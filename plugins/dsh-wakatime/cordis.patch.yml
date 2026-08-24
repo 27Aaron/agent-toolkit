@@ -1,0 +1,5 @@
+# Profile Bundle: observe successful Harness filesystem tools on the Host plane.
+# Users override this row from their profile or home patch layer by id.
+- insert:
+    - id: wakatime
+      name: '@27aaron/dsh-wakatime'
