@@ -49,6 +49,12 @@ For a portable artifact, run `pnpm --filter @27aaron/dsh-wakatime pack` and inst
 
 ## Configuration
 
+### Settings page
+
+When the plugin is installed in a web profile, restart DSH and open **Settings → Plugins → WakaTime**. The page is organized into a dashboard, AI Coding, projects, insights, and one compact configuration view. The dashboard summarizes the selected range's total, today, official daily average, most active day, Top 10 projects, models, coding tools, languages, activity categories, operating systems, machines, and AI-versus-human line changes. The project view adds today's project/language/category breakdown, while AI and Insights provide prompt, token, model, weekday, and daily AI-share detail.
+
+The API key is written to WakaTime's standard `.wakatime.cfg` with restrictive local permissions. UI-managed plugin options are stored under the WakaTime data directory. The page only receives a boolean indicating whether an API key is configured; it never reads the existing key back into the browser. Usage requests are made by the Host process and cached briefly to avoid repeated API calls. Summaries supply the range-level data, and the selected end date is also queried through WakaTime's durations endpoint for a focused “today” breakdown; if that endpoint is unavailable, the page falls back to summary data.
+
 The bundle inserts a row with id `wakatime`. Override that id in `$DSH_HOME/profiles/<name>/cordis.patch.yml`, `$DSH_HOME/cordis.patch.yml`, or a later `--patch` layer:
 
 ```yaml

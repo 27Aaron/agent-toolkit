@@ -35,6 +35,10 @@ export function getPluginDataDir(): string {
   return path.join(getWakatimeResourcesDir(), 'dsh-wakatime')
 }
 
+export function getPluginSettingsFilePath(): string {
+  return path.join(getPluginDataDir(), 'settings.json')
+}
+
 export function getPluginLogFilePath(): string {
   return path.join(getWakatimeResourcesDir(), 'dsh-wakatime.log')
 }

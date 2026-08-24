@@ -28,16 +28,37 @@ export interface TrackerConfig {
   maxPendingFiles: number
 }
 
+export interface TrackerStatus {
+  projectCount: number
+  pendingFiles: number
+  pendingProjects: Array<{ projectFolder: string; pendingFiles: number }>
+}
+
 export class WakatimeTracker {
   private readonly projects = new Map<string, ProjectBuffer>()
   private accepting = true
 
   constructor(
-    private readonly config: TrackerConfig,
+    private config: TrackerConfig,
     private readonly limiter: HeartbeatRateLimiter,
     private readonly send: HeartbeatSender,
     private readonly logger: PluginLogger,
   ) {}
+
+  updateConfig(config: TrackerConfig): void {
+    this.config = config
+  }
+
+  status(): TrackerStatus {
+    const pendingProjects = [...this.projects.entries()]
+      .map(([projectFolder, buffer]) => ({ projectFolder, pendingFiles: buffer.pending.size }))
+      .filter(project => project.pendingFiles > 0)
+    return {
+      projectCount: this.projects.size,
+      pendingFiles: pendingProjects.reduce((total, project) => total + project.pendingFiles, 0),
+      pendingProjects,
+    }
+  }
 
   record(projectFolder: string, changes: FileChange[], time: number = Date.now() / 1_000): void {
     if (!this.accepting || changes.length === 0) return
@@ -80,13 +101,17 @@ export class WakatimeTracker {
     if (buffer.requested || buffer.pending.size > 0) await this.request(projectFolder, true)
   }
 
+  async flushAll(): Promise<void> {
+    await Promise.all([...this.projects.keys()].map(project => this.flushProject(project)))
+  }
+
   async dispose(): Promise<void> {
     this.accepting = false
     for (const buffer of this.projects.values()) {
       if (buffer.retryTimer !== undefined) clearTimeout(buffer.retryTimer)
       buffer.retryTimer = undefined
     }
-    await Promise.all([...this.projects.keys()].map(project => this.flushProject(project)))
+    await this.flushAll()
   }
 
   private buffer(projectFolder: string): ProjectBuffer {

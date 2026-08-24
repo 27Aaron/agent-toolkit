@@ -59,18 +59,42 @@ export function formatArguments(binary: string, args: string[]): string {
 }
 
 export class HeartbeatDispatcher {
+  private category: WakatimeCategory
+  private timeoutMs: number
+  private lastAttemptAt = 0
+  private lastSuccessAt = 0
+  private lastError: string | undefined
+
   constructor(
     private readonly cli: CliManager,
     private readonly pluginTag: string,
-    private readonly category: WakatimeCategory,
-    private readonly timeoutMs: number,
+    category: WakatimeCategory,
+    timeoutMs: number,
     private readonly logger: PluginLogger,
-  ) {}
+  ) {
+    this.category = category
+    this.timeoutMs = timeoutMs
+  }
+
+  updateConfig(category: WakatimeCategory, timeoutMs: number): void {
+    this.category = category
+    this.timeoutMs = timeoutMs
+  }
+
+  status(): { lastAttemptAt?: number; lastSuccessAt?: number; lastError?: string } {
+    return {
+      ...(this.lastAttemptAt === 0 ? {} : { lastAttemptAt: this.lastAttemptAt }),
+      ...(this.lastSuccessAt === 0 ? {} : { lastSuccessAt: this.lastSuccessAt }),
+      ...(this.lastError === undefined ? {} : { lastError: this.lastError }),
+    }
+  }
 
   async send(heartbeats: Heartbeat[]): Promise<boolean> {
     if (heartbeats.length === 0) return true
+    this.lastAttemptAt = Date.now()
     const binary = await this.cli.ensureInstalled()
     if (binary === undefined) {
+      this.lastError = 'wakatime-cli is unavailable'
       this.logger.warn('heartbeat retained because wakatime-cli is unavailable')
       return false
     }
@@ -99,7 +123,14 @@ export class HeartbeatDispatcher {
     }))
 
     this.logger.debug(`sending ${heartbeats.length} heartbeat(s): ${formatArguments(binary, args)}`)
-    return this.run(binary, args, extraPayload)
+    const success = await this.run(binary, args, extraPayload)
+    if (success) {
+      this.lastSuccessAt = Date.now()
+      this.lastError = undefined
+    } else {
+      this.lastError = 'wakatime-cli failed to send the heartbeat'
+    }
+    return success
   }
 
   private run(binary: string, args: string[], extraPayload: unknown[]): Promise<boolean> {

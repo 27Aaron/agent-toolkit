@@ -14,6 +14,7 @@ import type { ResolvedConfig } from './config.ts'
 import type { PluginLogger } from './logger.ts'
 import { getPluginDataDir, getWakatimeResourcesDir } from './paths.ts'
 import type { WakatimeSettings } from './settings.ts'
+import type { WakatimeCliStatus } from './ui-contract.ts'
 
 const GITHUB_RELEASES_URL = 'https://api.github.com/repos/wakatime/wakatime-cli/releases/latest'
 const GITHUB_DOWNLOAD_URL = 'https://github.com/wakatime/wakatime-cli/releases/latest/download'
@@ -51,7 +52,7 @@ interface CliState {
   version?: string
 }
 
-interface RequestPolicy {
+export interface WakatimeRequestPolicy {
   timeoutMs: number
   noSSLVerify: boolean
   proxy?: string
@@ -138,7 +139,7 @@ function waitForSocket(socket: net.Socket, event: 'connect' | 'secureConnect', t
 async function createProxyTunnel(
   proxy: URL,
   target: URL,
-  policy: RequestPolicy,
+  policy: WakatimeRequestPolicy,
 ): Promise<net.Socket> {
   if (proxy.protocol !== 'http:' && proxy.protocol !== 'https:') {
     throw new Error(`unsupported proxy protocol ${proxy.protocol}`)
@@ -204,11 +205,15 @@ async function createProxyTunnel(
   })
 }
 
-async function sendRequest(url: string, policy: RequestPolicy): Promise<http.IncomingMessage> {
+async function sendRequest(
+  url: string,
+  policy: WakatimeRequestPolicy,
+  extraHeaders: Record<string, string> = {},
+): Promise<http.IncomingMessage> {
   const target = new URL(url)
   if (target.protocol !== 'https:') throw new Error(`refusing non-HTTPS download URL: ${target.protocol}`)
   const proxy = policy.proxy === undefined ? undefined : new URL(policy.proxy)
-  const headers = { 'User-Agent': 'github.com/27Aaron/agent-toolkit/dsh-wakatime' }
+  const headers = { 'User-Agent': 'github.com/27Aaron/agent-toolkit/dsh-wakatime', ...extraHeaders }
 
   if (proxy !== undefined) {
     const tunnel = await createProxyTunnel(proxy, target, policy)
@@ -247,18 +252,47 @@ async function sendRequest(url: string, policy: RequestPolicy): Promise<http.Inc
 
 async function requestWithRedirects(
   url: string,
-  policy: RequestPolicy,
+  policy: WakatimeRequestPolicy,
   redirectsLeft: number = MAX_REDIRECTS,
+  headers: Record<string, string> = {},
 ): Promise<http.IncomingMessage> {
-  const response = await sendRequest(url, policy)
+  const response = await sendRequest(url, policy, headers)
   const status = response.statusCode ?? 0
   const location = response.headers.location
   if (status >= 300 && status < 400 && location !== undefined) {
     response.resume()
     if (redirectsLeft === 0) throw new Error('too many HTTP redirects')
-    return requestWithRedirects(new URL(location, url).toString(), policy, redirectsLeft - 1)
+    const nextUrl = new URL(location, url)
+    const previousUrl = new URL(url)
+    const nextHeaders = nextUrl.origin === previousUrl.origin
+      ? headers
+      : Object.fromEntries(Object.entries(headers).filter(([name]) => name.toLowerCase() !== 'authorization'))
+    return requestWithRedirects(nextUrl.toString(), policy, redirectsLeft - 1, nextHeaders)
   }
   return response
+}
+
+/** Fetch a bounded JSON response using the same proxy and TLS policy as the CLI manager. */
+export async function requestWakatimeJson(
+  url: string,
+  policy: WakatimeRequestPolicy,
+  headers: Record<string, string> = {},
+): Promise<unknown> {
+  const response = await requestWithRedirects(url, policy, MAX_REDIRECTS, headers)
+  const status = response.statusCode ?? 0
+  if (status < 200 || status >= 300) {
+    response.resume()
+    throw new Error(`WakaTime API returned HTTP ${status}`)
+  }
+  const chunks: Buffer[] = []
+  let length = 0
+  for await (const raw of response) {
+    const chunk = typeof raw === 'string' ? Buffer.from(raw) : raw as Buffer
+    length += chunk.length
+    if (length > MAX_JSON_BYTES) throw new Error('WakaTime API response exceeded 1 MiB')
+    chunks.push(chunk)
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
 }
 
 class SizeLimitTransform extends Transform {
@@ -278,7 +312,7 @@ class SizeLimitTransform extends Transform {
   }
 }
 
-async function downloadToFile(url: string, destination: string, policy: RequestPolicy): Promise<void> {
+async function downloadToFile(url: string, destination: string, policy: WakatimeRequestPolicy): Promise<void> {
   const response = await requestWithRedirects(url, policy)
   const status = response.statusCode ?? 0
   if (status < 200 || status >= 300) {
@@ -297,7 +331,7 @@ async function downloadToFile(url: string, destination: string, policy: RequestP
   )
 }
 
-async function getLatestVersion(policy: RequestPolicy): Promise<string | undefined> {
+async function getLatestVersion(policy: WakatimeRequestPolicy): Promise<string | undefined> {
   const response = await requestWithRedirects(GITHUB_RELEASES_URL, policy)
   const status = response.statusCode ?? 0
   if (status !== 200) {
@@ -443,8 +477,8 @@ export class CliManager {
   private inflight: Promise<string | undefined> | undefined
 
   constructor(
-    private readonly config: ResolvedConfig,
-    private readonly settings: WakatimeSettings,
+    private config: ResolvedConfig,
+    private settings: WakatimeSettings,
     private readonly logger: PluginLogger,
   ) {
     const dataDir = getPluginDataDir()
@@ -465,6 +499,105 @@ export class CliManager {
     }
     void operation.then(clear, clear)
     return operation
+  }
+
+  updateConfig(config: ResolvedConfig): void {
+    this.config = config
+  }
+
+  updateSettings(settings: WakatimeSettings): void {
+    this.settings = settings
+  }
+
+  async inspect(): Promise<WakatimeCliStatus> {
+    if (this.config.cliPath !== undefined) {
+      try {
+        return {
+          state: 'ready',
+          source: 'configured',
+          path: this.config.cliPath,
+          version: await execVersion(this.config.cliPath),
+          managedPath: this.managedPath,
+        }
+      } catch {
+        return {
+          state: 'invalid',
+          source: 'configured',
+          path: this.config.cliPath,
+          managedPath: this.managedPath,
+        }
+      }
+    }
+
+    const global = executableOnPath('wakatime-cli')
+    if (global !== undefined) {
+      try {
+        return {
+          state: 'ready',
+          source: 'path',
+          path: global,
+          version: await execVersion(global),
+          managedPath: this.managedPath,
+        }
+      } catch {
+        return {
+          state: 'invalid',
+          source: 'path',
+          path: global,
+          managedPath: this.managedPath,
+        }
+      }
+    }
+
+    if (fs.existsSync(this.managedPath)) {
+      try {
+        return {
+          state: 'ready',
+          source: 'managed',
+          path: this.managedPath,
+          version: await execVersion(this.managedPath),
+          managedPath: this.managedPath,
+        }
+      } catch {
+        return {
+          state: 'invalid',
+          source: 'managed',
+          path: this.managedPath,
+          managedPath: this.managedPath,
+        }
+      }
+    }
+
+    return { state: 'missing', source: 'none', managedPath: this.managedPath }
+  }
+
+  async test(): Promise<WakatimeCliStatus> {
+    const binary = await this.ensureInstalled()
+    if (binary === undefined) return this.inspect()
+    try {
+      const inspected = await this.inspect()
+      if (inspected.path === binary && inspected.state === 'ready') return inspected
+      return {
+        state: 'ready',
+        source: this.sourceFor(binary),
+        path: binary,
+        version: await execVersion(binary),
+        managedPath: this.managedPath,
+      }
+    } catch {
+      return {
+        state: 'invalid',
+        source: this.sourceFor(binary),
+        path: binary,
+        managedPath: this.managedPath,
+      }
+    }
+  }
+
+  private sourceFor(binary: string): WakatimeCliStatus['source'] {
+    if (this.config.cliPath === binary) return 'configured'
+    if (binary === this.managedPath) return 'managed'
+    return 'path'
   }
 
   private async resolveCli(): Promise<string | undefined> {
@@ -501,7 +634,7 @@ export class CliManager {
     return this.managedPath
   }
 
-  private requestPolicy(): RequestPolicy {
+  private requestPolicy(): WakatimeRequestPolicy {
     return {
       timeoutMs: this.config.cliDownloadTimeoutMs,
       noSSLVerify: this.settings.noSSLVerify,
