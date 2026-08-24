@@ -1,3 +1,53 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build and test output
+lib/
+dist/
+coverage/
+*.tsbuildinfo
+*.tgz
+
+# Tool caches
+.cache/
+.nyc_output/
+.turbo/
+.vite/
+.vitest/
+.eslintcache
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local configuration and runtime state
+.env
+.env.*
+!.env.example
+!.env.*.example
+.dsh/
+.wakatime/
+.wakatime.cfg
+
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Editors and operating systems
+.idea/
+.vscode-test/
+*.swp
+*.swo
+*~
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
