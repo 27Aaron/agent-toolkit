@@ -1,49 +1,50 @@
 ---
 name: git-commit
-description: Create or draft Conventional Commit messages from repository changes. Use for committing changes, writing or rewriting commit messages, choosing type, scope, or breaking-change markers, and fixing commitlint message errors. Stage or commit only when explicitly requested.
+description: 创建或起草符合约定式提交（Conventional Commits）规范的提交消息。适用于提交仓库改动、起草或修改候选提交消息、选择 type、scope 或破坏性变更标记、修复 commitlint 错误，以及修改既有提交。只有在用户明确要求时才暂存、提交或 amend。
 ---
 
-# Git Commit with Conventional Commits
+# 使用约定式提交创建 Git 提交
 
-Analyze the actual changes and create a clear, focused commit using [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). Follow repository-specific instructions and commitlint rules when present.
+按照 [Conventional Commits v1.0.0](https://www.conventionalcommits.org/zh-hans/v1.0.0/) 创建清晰、聚焦的提交消息。根据当前仓库改动生成消息或实际执行提交时，必须分析真实改动。存在仓库专用指令或 commitlint 规则时，以其为准。
 
-## Decide the Action
+## 判断操作类型
 
-- Treat requests to write, generate, rewrite, suggest, or review a commit message as message-only. Inspect read-only state when useful, then return the proposed message without staging or committing.
-- Execute a commit only when the user explicitly asks to commit, create the commit, or otherwise save the changes in Git.
-- Default ambiguous requests to message-only rather than mutating the repository.
+- 将起草、生成、修改、建议或审查提交消息文本的请求视为仅消息模式。用户提供了消息、diff、改动摘要或 commitlint 错误时，以这些材料为主要依据；只有缺少必要上下文或需要确认仓库专用规则时，才检查仓库状态。
+- 只有用户明确要求提交、创建提交或以其他明确方式要求将改动保存到 Git 时，才执行提交。
+- 只有用户明确要求修改已经记录的提交时，才使用 amend 修改现有提交。Amend 操作不代表用户授权推送或强制推送改写后的历史。
+- 请求含糊时，默认仅生成消息，不修改仓库。
 
-## Format
+## 消息格式
 
 ```text
-<type>[optional scope][!]: <description>
+<type>[可选 scope][!]: <描述>
 
-[optional body]
+[可选正文]
 
-[optional footer(s)]
+[可选脚注]
 ```
 
-## Types
+## 类型
 
-The specification defines `feat`, `fix`, and breaking-change semantics. The other types below are common conventions; repository rules take precedence.
+规范定义了 `feat`、`fix` 和破坏性变更的语义。下列其他类型属于常见约定；仓库自身的规则优先。
 
-| Type       | Use for                                    |
-| ---------- | ------------------------------------------ |
-| `feat`     | New feature                                |
-| `fix`      | Bug fix                                    |
-| `docs`     | Documentation only                         |
-| `style`    | Formatting with no logic change            |
-| `refactor` | Restructuring without a feature or bug fix |
-| `perf`     | Performance improvement                    |
-| `test`     | Adding or updating tests                   |
-| `build`    | Build system or dependencies               |
-| `ci`       | CI configuration or workflows              |
-| `chore`    | Maintenance not covered by another type    |
-| `revert`   | Reverting changes when tooling supports it  |
+| 类型       | 适用场景                           |
+| ---------- | ---------------------------------- |
+| `feat`     | 新增功能                           |
+| `fix`      | 修复缺陷                           |
+| `docs`     | 仅修改文档                         |
+| `style`    | 仅调整格式，不改变逻辑             |
+| `refactor` | 重构代码，不新增功能或修复缺陷     |
+| `perf`     | 提升性能                           |
+| `test`     | 新增或修改测试                     |
+| `build`    | 修改构建系统或依赖                 |
+| `ci`       | 修改 CI 配置或工作流               |
+| `chore`    | 其他类型未覆盖的维护工作           |
+| `revert`   | 回退已有改动，且仓库工具支持该类型 |
 
-## Workflow
+## 工作流程
 
-### 1. Analyze Changes
+### 1. 分析改动
 
 ```bash
 git status --short
@@ -51,15 +52,16 @@ git diff --staged
 git diff
 ```
 
-Always inspect both staged and unstaged state. Treat partially staged files as separate snapshots.
+根据当前仓库改动生成消息或执行提交时，同时检查已暂存和未暂存状态。文件仅部分暂存时，将暂存部分和未暂存部分视为两个独立快照。
 
-- When staged changes exist, use the staged diff as the commit source of truth while accounting for any unstaged changes that will remain.
-- When nothing is staged, use the working-tree diff to plan a logical commit.
-- Check applicable repository instructions, commitlint configuration, and recent commit subjects when needed to match established language, scopes, and style.
+- 以用户声明的范围确定本次应包含的改动。
+- 用户要求处理已暂存改动，或已有暂存内容且用户没有指定更窄范围时，以 `staged diff` 为依据，同时说明提交后仍会保留哪些未暂存改动。
+- 没有暂存内容时，根据工作区 diff 规划一个逻辑提交。
+- 需要匹配仓库既有的语言、scope 或风格时，检查适用的仓库指令、commitlint 配置和近期提交标题。
 
-### 2. Stage a Logical Change
+### 2. 暂存一个逻辑变更
 
-Stage files or hunks only for an explicit commit request. Keep one logical change per commit and avoid unrelated files.
+只有在用户明确要求实际提交时，才暂存文件或变更块。优先保持一个提交只包含一个逻辑变更并排除无关文件，但不得因此擅自遗漏用户要求的改动，或将用户要求的范围拆成多个提交。
 
 ```bash
 git add path/to/file
@@ -68,53 +70,57 @@ git diff --staged --check
 git diff --staged
 ```
 
-- Preserve an existing staged snapshot; do not add unstaged changes unless the user's request includes them.
-- When the user explicitly asks to commit all current changes, inspect them first, then stage all intended files.
-- Never stage secrets or private keys. Inspect credential and environment files carefully without exposing sensitive values.
-- After staging, run the staged diff checks above and base the message only on that exact snapshot.
+- 保留已有的 `staged` 快照；除非用户要求的范围包含未暂存改动，否则不要将其加入暂存区。
+- 提交前，将 `staged` 快照与用户声明的范围进行比较。如果暂存内容包含范围外改动，不要提交、取消暂存或使用限定路径的提交命令绕过索引；停止操作并询问用户如何处理已有暂存内容。
+- 单独处理 `untracked` 文件，因为 `git diff` 不会显示其内容。暂存目标文件前，通过有针对性的读取检查其路径、文件类型及与任务相关的内容。不得仅凭文件名决定暂存，也不要暴露疑似密钥的值。
+- 用户明确要求提交全部当前改动时，先逐项检查，再暂存所有符合要求的文件。
+- 绝不暂存密钥或私钥。检查凭据文件和环境配置文件时，不要暴露敏感值。
+- 暂存后执行上述 `staged diff` 检查，并且只根据这个准确快照生成提交消息。
 
-### 3. Generate the Message
+### 3. 生成消息
 
-- Choose the type from the user-visible outcome, not merely from the kinds of files changed.
-- Prefer a specific type over `chore`; use `chore` only when no more precise type applies.
-- Use a scope only when the affected component is clear.
-- Write a specific, imperative description such as `add`, `fix`, or `remove`.
-- Follow repository language and rules; otherwise match the user's language.
-- Keep the header concise and avoid a trailing period. Prefer at most 72 characters when the repository defines no limit.
-- Add a body only when the reason, context, or impact is not clear from the header; do not repeat a file list.
-- Do not invent issue references, reviewers, co-authors, or sign-offs.
+- 根据用户可感知的结果选择 type，而不是仅根据被修改的文件类型判断。
+- 优先使用准确类型；只有其他类型都不合适时才使用 `chore`。
+- 只有受影响的组件清晰明确时才使用 scope。
+- 描述应具体且以动作表述，例如 `add`、`fix`、`remove`，中文可使用“新增”“修复”“移除”。
+- 遵循仓库既有的语言和规则；仓库没有约定时，匹配用户使用的语言。
+- 标题应简洁且结尾不加句号。仓库没有定义长度限制时，建议不超过 72 个字符。
+- 只有标题无法清楚表达原因、背景或影响时才添加正文；不要在正文中重复文件列表。
+- 不要虚构 issue 编号、审查者、共同作者或 sign-off。
 
-For breaking changes, add `!` before `:` and/or a `BREAKING CHANGE:` footer. When using only `!`, describe what breaks in the header.
+破坏性变更应在冒号前添加 `!`，和/或添加 `BREAKING CHANGE:` 脚注。只使用 `!` 时，必须在标题中说明会破坏什么。
 
 ```text
-feat(api)!: remove the legacy search endpoint
+feat(api)!: 移除旧版搜索接口
 
-BREAKING CHANGE: use the v2 search endpoint instead
+BREAKING CHANGE: 请改用 v2 搜索接口
 ```
 
-### 4. Execute the Commit
+### 4. 执行提交
 
-Run `git commit` only when the user explicitly asks to commit. Pass the complete message through stdin with `git commit --file=-` or another argv-safe interface; do not interpolate generated text into a shell command.
+只有用户明确要求提交时，才运行 `git commit`。通过标准输入将完整消息传给 `git commit --file=-`，或使用其他不会被 shell 重新解析的安全参数传递方式；不要把生成的消息插值到 shell 命令中。
 
-Allow hooks to run; do not bypass them automatically. If a hook fails:
+创建新提交时，如果确定目标范围后没有任何 `staged` 改动，应报告没有可提交的内容。除非用户明确要求创建空提交，否则不要使用 `--allow-empty`。
 
-- Inspect the hook output and `git status --short`.
-- Fix and retry only when the cause is within the intended change.
-- Reinspect the staged diff when a hook modifies files; never restage blindly.
-- Stop and report failures involving unrelated files, expanded scope, or missing authority.
+允许 hooks 正常运行，不要自动绕过。Hook 失败时：
 
-Verify the result with:
+- 检查 hook 输出和 `git status --short`。
+- 只有失败原因属于本次目标改动时，才修复并重试。
+- Hook 修改文件后，重新检查 `staged diff`，绝不盲目重新暂存。
+- 如果失败涉及无关文件、扩大任务范围或缺少授权，停止并报告。
+
+使用以下命令验证提交结果：
 
 ```bash
 git status --short
 git log -1 --format='%H%n%s'
 ```
 
-Report the commit hash and subject, plus any changes still left staged or unstaged.
+报告提交哈希和标题，并说明仍然存在的 `staged` 或 `unstaged` 改动。
 
-## Safety
+## 安全边界
 
-- Never change Git configuration.
-- Never use `--no-verify`, destructive commands, or history rewriting unless explicitly requested.
-- Never force-push `main` or `master`; do not force-push another branch unless explicitly requested.
-- Never push merely because the user asked to commit.
+- 绝不修改 Git 配置。
+- 除非用户明确要求，否则绝不使用 `--no-verify`、破坏性命令或历史重写操作。
+- 绝不强制推送 `main` 或 `master`；只有用户明确要求时，才可以强制推送其他分支。
+- 用户要求提交不代表用户要求推送。
