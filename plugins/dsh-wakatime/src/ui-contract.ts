@@ -80,6 +80,8 @@ export interface WakatimeDailyUsage {
   aiPromptEvents: number
   aiSessions: number
   projectCount: number
+  projectBreakdown: WakatimeUsageBucket[]
+  categoryBreakdown: WakatimeUsageBucket[]
   topProject?: string
 }
 
@@ -97,6 +99,10 @@ export interface WakatimeUsageTotals {
   aiPromptEvents: number
   aiSessions: number
   aiModelTotalCost: number
+  aiReviewPercent?: number
+  aiReviewSessions?: number
+  aiFollowUpPercent?: number
+  aiFollowUpEdits?: number
 }
 
 export interface WakatimeUsageBucket {
@@ -105,6 +111,15 @@ export interface WakatimeUsageBucket {
   percent: number
   aiAdditions: number
   aiDeletions: number
+  humanAdditions: number
+  humanDeletions: number
+  aiInputTokens: number
+  aiCachedInputTokens: number
+  aiOutputTokens: number
+  aiPromptEvents: number
+  aiSessions: number
+  aiCost: number
+  aiDetailsAvailable?: boolean
 }
 
 export interface WakatimeAiModelUsage {

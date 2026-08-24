@@ -6,6 +6,7 @@ import {
   type WakatimeUiConfig,
   type WakatimeUiRpcCall,
   type WakatimeUiStatus,
+  type WakatimeUsageBucket,
   type WakatimeUsageData,
 } from './ui-contract.ts'
 
@@ -50,6 +51,33 @@ const zh = {
   noApiKey: '还没有配置 WakaTime API Key',
   noApiKeyHint: '配置后，这里会显示每日编码时间、项目、语言以及 AI 编程数据。密钥只会在 Host 进程中使用。',
   noData: '这个时间范围还没有活动数据。',
+  activityOverview: '活动概览',
+  overLast7Days: '过去 7 天',
+  currentDay: '当前日期',
+  topDay: '最活跃的一天',
+  openAiDashboard: '打开 AI 仪表盘',
+  aiDrivenLabel: 'AI 驱动',
+  aiLinesLabel: 'AI 行数',
+  humanLinesLabel: '人工行数',
+  aiPercent: 'AI 百分比',
+  aiChanges: 'AI 改动',
+  humanChanges: '人工改动',
+  projectTokens: 'Token',
+  aiSpend: 'AI 支出',
+  aiPrompts: 'AI 提示词',
+  cost: '成本',
+  aiModelSpend: 'AI 模型支出',
+  humanReview: '人工复核',
+  reviewSessions: '复核会话',
+  humanFollowUp: '人工后续修改',
+  followUpEdits: '后续修改次数',
+  projectsOverview: '项目',
+  categoriesOverview: '分类',
+  segmentHint: '按分类、语言、编辑器或操作系统拆分',
+  decrease: '下降',
+  increase: '上升',
+  weekdays: '工作日',
+  aiVsHumanByDay: '每日 AI 与人工',
   range: '时间范围',
   totalTime: '编码时间',
   todayTime: '今天',
@@ -90,8 +118,8 @@ const zh = {
   aiHuman: 'AI 与人工',
   aiHumanHint: '按代码行变更对比 AI 生成和人工输入。',
   human: '人工',
-  topProjects: 'Top 10 项目',
-  topProjectsHint: '只显示时间最多的 10 个项目。',
+  topProjects: '项目',
+  topProjectsHint: '按编码时间排序的项目。',
   todayBreakdown: '今天的活动分布',
   todayProjects: '项目',
   todayLanguages: '语言',
@@ -149,6 +177,33 @@ const en = {
   noApiKey: 'WakaTime API key is not configured',
   noApiKeyHint: 'Configure it to see daily coding time, projects, languages, and AI coding data. The key stays in the Host process.',
   noData: 'There is no activity in this date range.',
+  activityOverview: 'Activity Overview',
+  overLast7Days: 'over the Last 7 Days',
+  currentDay: 'Current day',
+  topDay: 'top day',
+  openAiDashboard: 'Open AI dashboard',
+  aiDrivenLabel: 'AI-driven',
+  aiLinesLabel: 'AI lines',
+  humanLinesLabel: 'Human lines',
+  aiPercent: 'AI Percent',
+  aiChanges: 'AI changes',
+  humanChanges: 'Human changes',
+  projectTokens: 'Tokens',
+  aiSpend: 'AI spend',
+  aiPrompts: 'AI prompts',
+  cost: 'Cost',
+  aiModelSpend: 'AI model spend',
+  humanReview: 'Human review',
+  reviewSessions: 'review sessions',
+  humanFollowUp: 'Human follow-up',
+  followUpEdits: 'follow-up edits',
+  projectsOverview: 'Projects',
+  categoriesOverview: 'Categories',
+  segmentHint: 'Segment by category, language, editor, or operating system',
+  decrease: 'Decrease',
+  increase: 'Increase',
+  weekdays: 'Weekdays',
+  aiVsHumanByDay: 'AI vs Human by Day',
   range: 'Date range',
   totalTime: 'Coding time',
   todayTime: 'Today',
@@ -189,8 +244,8 @@ const en = {
   aiHuman: 'AI vs human',
   aiHumanHint: 'AI-generated and human-typed line changes.',
   human: 'Human',
-  topProjects: 'Top 10 projects',
-  topProjectsHint: 'Only the 10 projects with the most time are shown.',
+  topProjects: 'Projects',
+  topProjectsHint: 'Projects ordered by coding time.',
   todayBreakdown: 'Today’s activity breakdown',
   todayProjects: 'Projects',
   todayLanguages: 'Languages',
@@ -236,7 +291,7 @@ const STYLE = `
   width: 100%;
   max-width: 1080px;
   min-height: 100%;
-  padding: 28px 32px 56px;
+  padding: 0 0 24px;
   color: inherit;
   font: inherit;
   container-type: inline-size;
@@ -269,6 +324,122 @@ const STYLE = `
 .dshWakatimeDashboardChart { margin-top: 12px; }
 .dshWakatimeCardTitle { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 5px; font-size: 14px; letter-spacing: -.01em; }
 .dshWakatimeCardHint { margin: 0 0 16px; color: currentColor; opacity: .56; font-size: 12px; line-height: 1.5; }
+.dshWakatimeOfficialHeader { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 0 0 18px; }
+.dshWakatimeOfficialBrand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dshWakatimeOfficialMark { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 8px; color: #fff; background: #5b7cff; font-size: 16px; font-weight: 800; }
+.dshWakatimeOfficialEyebrow { margin: 0 0 4px; color: currentColor; opacity: .55; font-size: 11px; font-weight: 650; letter-spacing: .01em; }
+.dshWakatimeOfficialTitle { margin: 0; font-size: clamp(20px, 5vw, 28px); letter-spacing: -.035em; line-height: 1.05; }
+.dshWakatimeOfficialRange { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.dshWakatimeOfficialRange .dshWakatimeRangeLabel { display: none; }
+.dshWakatimeOfficialRange .dshWakatimeRangeButton { padding: 6px 8px; }
+.dshWakatimeOfficialRangeSelect { appearance: none; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); border-radius: 6px; padding: 7px 24px 7px 9px; color: inherit; background: color-mix(in srgb, currentColor 5%, transparent); color-scheme: dark; font: inherit; font-size: 11px; font-weight: 650; cursor: pointer; }
+.dshWakatimeOfficialRangeSelect option { color: #f4f5f7; background: #2e3137; }
+.dshWakatimeOfficialRangeMenu { position: relative; }
+.dshWakatimeOfficialRangeMenuButton { min-width: 72px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); border-radius: 6px; padding: 7px 10px; color: inherit; background: color-mix(in srgb, currentColor 5%, transparent); font: inherit; font-size: 11px; font-weight: 650; text-align: left; cursor: pointer; }
+.dshWakatimeOfficialRangeMenuButton::after { float: right; margin-left: 9px; content: '⌄'; opacity: .62; }
+.dshWakatimeOfficialRangePopover { position: absolute; z-index: 5; top: calc(100% + 5px); right: 0; display: grid; min-width: 112px; gap: 2px; padding: 4px; border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 7px; background: #2e3137; box-shadow: 0 10px 24px rgb(0 0 0 / 28%); }
+.dshWakatimeOfficialRangePopover button { border: 0; border-radius: 5px; padding: 7px 8px; color: #f4f5f7; background: transparent; font: inherit; font-size: 11px; text-align: left; cursor: pointer; }
+.dshWakatimeOfficialRangePopover button:hover, .dshWakatimeOfficialRangePopover button[aria-current="true"] { background: rgb(91 124 255 / 22%); }
+.dshWakatimeOfficialMetrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.dshWakatimeOfficialOverview { display: grid; grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr)); gap: 10px; padding: 16px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 9px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialOverviewTotal { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 2px 6px 2px 2px; }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue { font-size: clamp(22px, 6vw, 34px); }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricMeta { margin-top: 7px; }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue,
+.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { white-space: nowrap; }
+.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { font-size: 14px; letter-spacing: -.025em; }
+.dshWakatimeOfficialMetric { min-width: 0; padding: 12px 13px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialMetricLabel { margin-bottom: 7px; color: currentColor; opacity: .58; font-size: 11px; }
+.dshWakatimeOfficialMetricValue { overflow-wrap: anywhere; font-size: 17px; font-weight: 700; line-height: 1.15; }
+.dshWakatimeOfficialMetricMeta { margin-top: 4px; color: currentColor; opacity: .55; font-size: 10px; line-height: 1.3; }
+.dshWakatimeOfficialSection { margin-top: 18px; }
+.dshWakatimeOfficialSectionHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+.dshWakatimeOfficialSectionHeading h2 { margin: 0; font-size: 15px; letter-spacing: -.015em; }
+.dshWakatimeOfficialLink { border: 0; padding: 0; color: inherit; opacity: .62; background: transparent; font: inherit; font-size: 11px; text-decoration: none; cursor: pointer; }
+.dshWakatimeOfficialLink:hover { opacity: 1; text-decoration: underline; }
+.dshWakatimeOfficialAiGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dshWakatimeOfficialAiLayout { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 9px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialDonutFrame { display: grid; width: 142px; min-height: 142px; place-items: center; margin: auto; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialDonut { display: grid; width: 112px; height: 112px; place-items: center; border-radius: 50%; background: conic-gradient(#5b7cff var(--dsh-ai-percent), color-mix(in srgb, currentColor 12%, transparent) 0); }
+.dshWakatimeOfficialDonut::after { display: grid; width: 76px; height: 76px; place-items: center; border-radius: 50%; background: color-mix(in srgb, currentColor 3%, transparent); content: attr(data-percent); font-size: 22px; font-weight: 750; }
+.dshWakatimeOfficialDonutLabel { margin-top: -4px; color: currentColor; opacity: .68; font-size: 10px; text-align: center; }
+.dshWakatimeOfficialAiMetric { min-width: 0; padding: 10px 11px; border: 1px solid color-mix(in srgb, currentColor 12%, transparent); border-radius: 7px; background: color-mix(in srgb, currentColor 2%, transparent); }
+.dshWakatimeOfficialAiMetricLabel { color: currentColor; opacity: .56; font-size: 10px; }
+.dshWakatimeOfficialAiMetricValue { margin-top: 4px; overflow-wrap: anywhere; font-size: 16px; font-weight: 700; line-height: 1.1; }
+.dshWakatimeOfficialAiMetricMeta { margin-top: 3px; overflow-wrap: anywhere; color: currentColor; opacity: .54; font-size: 10px; line-height: 1.25; }
+.dshWakatimeOfficialSplit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dshWakatimeOfficialPanel { min-width: 0; padding: 14px 15px; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
+.dshWakatimeOfficialPanel h3 { margin: 0 0 10px; font-size: 13px; }
+.dshWakatimeOfficialList { display: grid; gap: 7px; }
+.dshWakatimeOfficialListRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline; min-width: 0; font-size: 11px; }
+.dshWakatimeOfficialListRow span:first-child { overflow: hidden; color: currentColor; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialListRow span:last-child { color: currentColor; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.dshWakatimeOfficialChartGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.dshWakatimeOfficialChartPanel { min-width: 0; padding: 14px 15px; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
+.dshWakatimeOfficialChartPanel h3 { margin: 0 0 12px; font-size: 13px; }
+.dshWakatimeOfficialProjectChartRows { display: grid; max-height: 212px; gap: 7px; overflow: auto; }
+.dshWakatimeOfficialProjectChartRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dshWakatimeOfficialProjectChartHead { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 3px; color: currentColor; font-size: 10px; }
+.dshWakatimeOfficialProjectChartHead span:first-child { overflow: hidden; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialProjectChartHead span:last-child { opacity: .6; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeOfficialProjectChartTrack { height: 5px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, currentColor 9%, transparent); }
+.dshWakatimeOfficialProjectChartTrack span { display: block; height: 100%; border-radius: inherit; background: #5b7cff; opacity: .68; }
+.dshWakatimeOfficialStackChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; min-height: 120px; align-items: end; }
+.dshWakatimeOfficialStackDay { display: grid; grid-template-rows: 90px auto; gap: 5px; min-width: 0; text-align: center; }
+.dshWakatimeOfficialStackBar { display: flex; height: 90px; flex-direction: column-reverse; align-items: stretch; justify-content: flex-start; overflow: hidden; border-radius: 3px 3px 1px 1px; background: color-mix(in srgb, currentColor 7%, transparent); }
+.dshWakatimeOfficialStackBar span { display: block; min-height: 1px; }
+.dshWakatimeOfficialStackLabel { overflow: hidden; color: currentColor; opacity: .56; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialLegend { display: flex; max-height: 76px; flex-wrap: wrap; gap: 5px 9px; margin-top: 10px; overflow: auto; }
+.dshWakatimeOfficialLegendItem { display: inline-flex; min-width: 0; align-items: center; gap: 4px; color: currentColor; opacity: .68; font-size: 9px; }
+.dshWakatimeOfficialLegendItem i { display: block; width: 7px; height: 7px; flex: 0 0 auto; border-radius: 2px; }
+.dshWakatimeOfficialTimelineRows { display: grid; gap: 8px; }
+.dshWakatimeOfficialTimelineRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dshWakatimeOfficialTimelineRowHead { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; color: currentColor; font-size: 10px; }
+.dshWakatimeOfficialTimelineRowHead span:first-child { overflow: hidden; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialTimelineRowHead span:last-child { opacity: .56; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeOfficialTimelineRowTrack { height: 5px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, currentColor 9%, transparent); }
+.dshWakatimeOfficialTimelineRowTrack span { display: block; height: 100%; border-radius: inherit; background: #5b7cff; opacity: .72; }
+.dshWakatimeOfficialWeekdayBars { display: grid; gap: 9px; }
+.dshWakatimeOfficialWeekdayRow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dshWakatimeOfficialWeekdayLabel { color: currentColor; opacity: .68; font-size: 10px; }
+.dshWakatimeOfficialWeekdayTrack { height: 6px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, currentColor 9%, transparent); }
+.dshWakatimeOfficialWeekdayTrack span { display: block; height: 100%; border-radius: inherit; background: #5b7cff; opacity: .72; }
+.dshWakatimeOfficialWeekdayValue { color: currentColor; opacity: .72; font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeOfficialTimeline { max-height: 260px; padding: 14px 15px; overflow: auto; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
+.dshWakatimeOfficialTimelineHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.dshWakatimeOfficialTimelineTitle { margin: 0; font-size: 13px; }
+.dshWakatimeOfficialSwitch { display: inline-flex; gap: 4px; }
+.dshWakatimeOfficialSwitch button { appearance: none; border: 0; border-radius: 5px; padding: 5px 7px; color: inherit; opacity: .58; background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.dshWakatimeOfficialSwitch button[aria-pressed="true"] { opacity: 1; background: color-mix(in srgb, currentColor 10%, transparent); }
+.dshWakatimeOfficialDays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; align-items: end; min-height: 128px; }
+.dshWakatimeOfficialDay { display: grid; grid-template-rows: 86px auto auto; gap: 4px; min-width: 0; text-align: center; }
+.dshWakatimeOfficialDayBar { display: flex; height: 86px; align-items: end; justify-content: center; }
+.dshWakatimeOfficialDayBar span { display: block; width: min(22px, 62%); min-height: 3px; border-radius: 3px 3px 1px 1px; background: currentColor; opacity: .62; }
+.dshWakatimeOfficialDayLabel { overflow: hidden; color: currentColor; opacity: .55; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialDayValue { overflow-wrap: anywhere; font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 650; line-height: 1.2; }
+.dshWakatimeProjectGrid { display: grid; max-height: 320px; gap: 9px; overflow: auto; padding-right: 4px; }
+.dshWakatimeProjectCard { display: grid; gap: 10px; padding: 13px 14px; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
+.dshWakatimeProjectHeader { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.dshWakatimeProjectHeaderButton { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 12px; border: 0; padding: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.dshWakatimeProjectHeaderButton:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.dshWakatimeProjectChevron { color: currentColor; opacity: .56; font-size: 11px; }
+.dshWakatimeProjectName { overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeProjectTime { color: currentColor; opacity: .68; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeProjectPercent { color: currentColor; opacity: .58; font-size: 10px; }
+.dshWakatimeProjectStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dshWakatimeProjectStat { min-width: 0; }
+.dshWakatimeProjectStatLabel { color: currentColor; opacity: .55; font-size: 9px; line-height: 1.25; }
+.dshWakatimeProjectStatValue { margin-top: 3px; overflow-wrap: anywhere; font-size: 11px; font-weight: 650; line-height: 1.2; }
+.dshWakatimeProjectStatMeta { margin-top: 2px; color: currentColor; opacity: .52; font-size: 9px; line-height: 1.2; }
+.dshWakatimeOfficialCompare { display: grid; gap: 9px; }
+.dshWakatimeOfficialCompareRow { display: grid; gap: 4px; }
+.dshWakatimeOfficialCompareHead { display: flex; justify-content: space-between; gap: 10px; color: currentColor; font-size: 10px; }
+.dshWakatimeOfficialCompareHead span:first-child { opacity: .65; }
+.dshWakatimeOfficialCompareHead span:last-child { font-variant-numeric: tabular-nums; font-weight: 650; }
+.dshWakatimeOfficialCompareTrack { display: flex; height: 5px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, currentColor 9%, transparent); }
+.dshWakatimeOfficialCompareTrack span { display: block; height: 100%; }
+.dshWakatimeOfficialCompareTrack .dshWakatimeAiPart { background: #5b7cff; opacity: .78; }
+.dshWakatimeOfficialCompareTrack .dshWakatimeHumanPart { background: #d69a2e; opacity: .9; }
 .dshWakatimeGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
 .dshWakatimeCard + .dshWakatimeGrid,
 .dshWakatimeGrid + .dshWakatimeCard,
@@ -303,7 +474,7 @@ const STYLE = `
 .dshWakatimeBreakdownHead span:first-child { overflow: hidden; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeBreakdownHead span:last-child { opacity: .58; }
 .dshWakatimeTrack { height: 4px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, currentColor 10%, transparent); }
-.dshWakatimeTrack span { display: block; height: 100%; border-radius: inherit; background: currentColor; opacity: .58; }
+.dshWakatimeTrack span { display: block; height: 100%; border-radius: inherit; background: #5b7cff; opacity: .72; }
 .dshWakatimeBreakdownValue { color: currentColor; opacity: .68; font-size: 11px; white-space: nowrap; }
 .dshWakatimeComparison { display: grid; gap: 12px; margin-top: 10px; }
 .dshWakatimeComparisonRow { display: grid; gap: 5px; }
@@ -333,19 +504,29 @@ const STYLE = `
 .dshWakatimeFormActions { display: flex; align-items: center; gap: 11px; padding-top: 2px; }
 .dshWakatimeSaved { color: inherit; opacity: .68; font-size: 12px; font-weight: 650; }
 @media (max-width: 820px) {
-  .dshWakatimePage { padding: 24px 20px 42px; }
+  .dshWakatimePage { padding: 0 0 24px; }
   .dshWakatimeToolbar { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 560px) {
-  .dshWakatimePage { padding: 20px 15px 36px; }
+  .dshWakatimePage { padding: 0 0 24px; }
   .dshWakatimeDailyChart { gap: 3px; }
   .dshWakatimeDayBar span { width: 16px; }
 }
 @container (max-width: 620px) {
-  .dshWakatimePage { padding: 20px 18px 36px; }
+  .dshWakatimePage { padding: 0 0 24px; }
   .dshWakatimeToolbar { margin-bottom: 16px; }
   .dshWakatimeTabs { gap: 12px 18px; }
   .dshWakatimeMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dshWakatimeOfficialHeader { align-items: flex-start; gap: 8px; }
+  .dshWakatimeOfficialRange { justify-content: flex-end; margin-left: auto; }
+  .dshWakatimeOfficialMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dshWakatimeOfficialOverview { grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr)); }
+  .dshWakatimeOfficialOverviewTotal { grid-column: auto; }
+  .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue { font-size: 24px; }
+  .dshWakatimeOfficialAiGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dshWakatimeOfficialChartGrid { grid-template-columns: 1fr; }
+  .dshWakatimeOfficialSplit { grid-template-columns: 1fr; }
+  .dshWakatimeProjectStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeCard { padding: 15px; }
   .dshWakatimeMiniGrid { grid-template-columns: 1fr; gap: 12px; }
   .dshWakatimeDailyChart { gap: 3px; }
@@ -378,18 +559,52 @@ function hydrateUsageData(value: WakatimeUsageData): WakatimeUsageData {
     categories?: WakatimeUsageData['categories']
     todayBreakdown?: WakatimeUsageData['todayBreakdown']
   }
+  const hydrateBucket = (bucket: WakatimeUsageBucket): WakatimeUsageBucket => {
+    const aiDetailsAvailable = bucket.aiDetailsAvailable
+      ?? Object.prototype.hasOwnProperty.call(bucket, 'humanAdditions')
+    return {
+    ...bucket,
+    humanAdditions: bucket.humanAdditions ?? 0,
+    humanDeletions: bucket.humanDeletions ?? 0,
+    aiInputTokens: bucket.aiInputTokens ?? 0,
+    aiCachedInputTokens: bucket.aiCachedInputTokens ?? 0,
+    aiOutputTokens: bucket.aiOutputTokens ?? 0,
+    aiPromptEvents: bucket.aiPromptEvents ?? 0,
+    aiSessions: bucket.aiSessions ?? 0,
+    aiCost: bucket.aiCost ?? 0,
+    aiDetailsAvailable,
+    }
+  }
+  const bucketList = (items: WakatimeUsageBucket[] | undefined): WakatimeUsageBucket[] => (items ?? []).map(hydrateBucket)
+  const days = value.days.map(day => ({
+    ...day,
+    projectBreakdown: bucketList(day.projectBreakdown),
+    categoryBreakdown: bucketList(day.categoryBreakdown),
+  }))
+  const todayBreakdown = legacy.todayBreakdown ?? {
+    date: value.end,
+    projects: [],
+    languages: [],
+    categories: [],
+  }
   return {
     ...value,
+    days,
     totals: {
       ...value.totals,
       aiPromptLengthSum: value.totals.aiPromptLengthSum ?? 0,
     },
-    categories: legacy.categories ?? [],
-    todayBreakdown: legacy.todayBreakdown ?? {
-      date: value.end,
-      projects: [],
-      languages: [],
-      categories: [],
+    projects: bucketList(value.projects),
+    categories: bucketList(legacy.categories),
+    languages: bucketList(value.languages),
+    editors: bucketList(value.editors),
+    machines: bucketList(value.machines),
+    operatingSystems: bucketList(value.operatingSystems),
+    todayBreakdown: {
+      date: todayBreakdown.date,
+      projects: bucketList(todayBreakdown.projects),
+      languages: bucketList(todayBreakdown.languages),
+      categories: bucketList(todayBreakdown.categories),
     },
   }
 }
@@ -448,7 +663,7 @@ function formatCost(value: number): string {
 
 function dayLabel(day: string): string {
   try {
-    return new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric', weekday: 'short' })
+    return new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric', weekday: 'long' })
       .format(new Date(`${day}T12:00:00`))
   } catch {
     return day.slice(5)
@@ -476,6 +691,56 @@ function Metric({ label, value, meta }: { label: string; value: string; meta?: s
   )
 }
 
+function compactNumber(value: number): string {
+  const absolute = Math.abs(value)
+  if (absolute >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`
+  if (absolute >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  if (absolute >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`
+  return formatNumber(value)
+}
+
+function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) return '—'
+  if (value > 0 && value < 1) return `${value.toFixed(2)}%`
+  if (value < 10) return `${value.toFixed(1)}%`
+  return `${Math.round(value)}%`
+}
+
+function bucketTokens(bucket: { aiInputTokens: number; aiCachedInputTokens: number; aiOutputTokens: number }): number {
+  return bucket.aiInputTokens + bucket.aiCachedInputTokens + bucket.aiOutputTokens
+}
+
+function officialMetric({ label, value, meta }: { label: string; value: string; meta?: string | undefined }) {
+  return h('div', { className: 'dshWakatimeOfficialMetric' },
+    h('div', { className: 'dshWakatimeOfficialMetricLabel' }, label),
+    h('div', { className: 'dshWakatimeOfficialMetricValue' }, value),
+    meta === undefined ? null : h('div', { className: 'dshWakatimeOfficialMetricMeta' }, meta),
+  )
+}
+
+function officialAiMetric({ label, value, meta }: { label: string; value: string; meta?: string | undefined }) {
+  return h('div', { className: 'dshWakatimeOfficialAiMetric' },
+    h('div', { className: 'dshWakatimeOfficialAiMetricLabel' }, label),
+    h('div', { className: 'dshWakatimeOfficialAiMetricValue' }, value),
+    meta === undefined ? null : h('div', { className: 'dshWakatimeOfficialAiMetricMeta' }, meta),
+  )
+}
+
+function OfficialList({
+  items,
+  empty,
+}: {
+  items: Array<{ name: string; value: string }>
+  empty: string
+}) {
+  return items.length === 0
+    ? h('p', { className: 'dshWakatimeNotice' }, empty)
+    : h('div', { className: 'dshWakatimeOfficialList' }, items.map(item => h('div', { className: 'dshWakatimeOfficialListRow', key: item.name },
+      h('span', { title: item.name }, item.name),
+      h('span', null, item.value),
+    )))
+}
+
 function Breakdown({
   items,
   formatValue,
@@ -495,32 +760,6 @@ function Breakdown({
     ),
     h('span', { className: 'dshWakatimeBreakdownValue' }, formatValue(item.value)),
   )))
-}
-
-function DailyChart({ days, t }: { days: WakatimeDailyUsage[]; t: Translator }) {
-  const max = Math.max(1, ...days.map(day => day.totalSeconds))
-  return h('div', { className: 'dshWakatimeDailyChart', role: 'list', 'aria-label': tr(t, 'dailyActivity', 'Daily activity') },
-    days.map(day => {
-      const height = day.totalSeconds > 0 ? Math.max(5, day.totalSeconds / max * 100) : 2
-      return h('div', {
-        className: 'dshWakatimeDay',
-        key: day.date,
-        role: 'listitem',
-        title: `${day.date} · ${day.text ?? formatDuration(day.totalSeconds)}`,
-      },
-      h('div', { className: 'dshWakatimeDayBar' }, h('span', { style: { height: `${height}%` } })),
-      h('div', { className: 'dshWakatimeDayLabel' }, dayLabel(day.date)),
-      h('div', { className: 'dshWakatimeDayTotal' }, day.text ?? formatDuration(day.totalSeconds)),
-      h('div', { className: 'dshWakatimeDayAi' }, (() => {
-        const parts = []
-        if (day.aiSeconds > 0) parts.push(formatDuration(day.aiSeconds))
-        const lines = day.aiAdditions + day.aiDeletions
-        if (lines > 0) parts.push(`${formatNumber(lines)} ${tr(t, 'lines', 'lines')}`)
-        return parts.length === 0 ? '—' : `AI ${parts.join(' · ')}`
-      })()),
-      )
-    }),
-  )
 }
 
 function AiDailyChart({ days, t }: { days: WakatimeDailyUsage[]; t: Translator }) {
@@ -567,23 +806,6 @@ function TodayBreakdownCard({ usage, t }: { usage: WakatimeUsageData; t: Transla
   )
 }
 
-function AiHumanComparison({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
-  const aiLines = usage.totals.aiAdditions + usage.totals.aiDeletions
-  const humanLines = usage.totals.humanAdditions + usage.totals.humanDeletions
-  const max = Math.max(1, aiLines, humanLines)
-  const row = (label: string, value: number) => h('div', { className: 'dshWakatimeComparisonRow', key: label },
-    h('div', { className: 'dshWakatimeComparisonHead' },
-      h('span', null, label),
-      h('span', null, `${formatNumber(value)} ${tr(t, 'lines', 'lines')}`),
-    ),
-    h('div', { className: 'dshWakatimeTrack' }, h('span', { style: { width: `${Math.max(4, value / max * 100)}%` } })),
-  )
-  return h('div', { className: 'dshWakatimeComparison' },
-    row(tr(t, 'ai', 'AI'), aiLines),
-    row(tr(t, 'human', 'Human'), humanLines),
-  )
-}
-
 function emptyBreakdown(t: Translator) {
   return h('p', { className: 'dshWakatimeNotice' }, tr(t, 'noBreakdown', 'No breakdown yet'))
 }
@@ -599,48 +821,297 @@ function bucketBreakdown(
   })
 }
 
-function DashboardView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+function OfficialTimeline({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+  const today = usage.dashboard.todayText ?? formatDuration(usage.dashboard.todaySeconds)
+  const renderRows = (items: WakatimeUsageBucket[]) => {
+    const max = Math.max(1, ...items.map(item => item.totalSeconds))
+    return items.length === 0
+      ? h('p', { className: 'dshWakatimeNotice' }, tr(t, 'noBreakdown', 'No breakdown yet'))
+      : h('div', { className: 'dshWakatimeOfficialTimelineRows' }, items.map(item => h('div', { className: 'dshWakatimeOfficialTimelineRow', key: item.name },
+        h('div', null,
+          h('div', { className: 'dshWakatimeOfficialTimelineRowHead' },
+            h('span', { title: item.name }, item.name),
+            h('span', null, formatDuration(item.totalSeconds)),
+          ),
+          h('div', { className: 'dshWakatimeOfficialTimelineRowTrack' }, h('span', { style: { width: `${Math.max(2, item.totalSeconds / max * 100)}%` } })),
+        ),
+        h('span', { className: 'dshWakatimeBreakdownValue' }, `${item.percent.toFixed(2)}%`),
+      )))
+  }
+  return h('section', { className: 'dshWakatimeOfficialSection' },
+    h('div', { className: 'dshWakatimeOfficialSplit' },
+      ...(['projects', 'categories'] as const).map(mode => h('div', { className: 'dshWakatimeOfficialTimeline', key: mode },
+        h('div', { className: 'dshWakatimeOfficialTimelineHeader' },
+          h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, tr(t, mode === 'projects' ? 'projectsOverview' : 'categoriesOverview', mode === 'projects' ? 'Projects' : 'Categories')),
+          h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, `${today} · ${tr(t, 'today', 'Today')}`),
+        ),
+        mode === 'categories' ? h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'segmentHint', 'Segment by category, language, editor, or operating system')) : null,
+        renderRows(mode === 'projects' ? usage.todayBreakdown.projects : usage.todayBreakdown.categories),
+      )),
+    ),
+  )
+}
+
+function OfficialActivityCharts({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+  const palette = ['#6d91ff', '#d69a2e', '#6fbf86', '#a58ce6', '#dd765f', '#55b8b0']
+  const renderChart = (mode: 'projects' | 'categories') => {
+    const source = mode === 'projects' ? usage.projects : usage.categories
+    if (mode === 'projects') {
+      const max = Math.max(1, ...source.map(item => item.totalSeconds))
+      return h('div', { className: 'dshWakatimeOfficialProjectChartRows' }, source.map(item => h('div', { className: 'dshWakatimeOfficialProjectChartRow', key: item.name },
+        h('div', null,
+          h('div', { className: 'dshWakatimeOfficialProjectChartHead' },
+            h('span', { title: item.name }, item.name),
+            h('span', null, formatDuration(item.totalSeconds)),
+          ),
+          h('div', { className: 'dshWakatimeOfficialProjectChartTrack' }, h('span', { style: { width: `${Math.max(2, item.totalSeconds / max * 100)}%` } })),
+        ),
+        h('span', { className: 'dshWakatimeBreakdownValue' }, `${item.percent.toFixed(2)}%`),
+      )))
+    }
+    const names = source.map(item => item.name)
+    const max = Math.max(1, ...usage.days.map(day => day.totalSeconds))
+    const chart = h('div', { className: 'dshWakatimeOfficialStackChart', role: 'list' }, usage.days.map(day => {
+      const items = day.categoryBreakdown
+      return h('div', { className: 'dshWakatimeOfficialStackDay', key: day.date, role: 'listitem', title: day.date },
+        h('div', { className: 'dshWakatimeOfficialStackBar' }, names.map((name, index) => {
+          const seconds = items.find(item => item.name === name)?.totalSeconds ?? 0
+          return h('span', { key: name, style: { height: `${seconds / max * 100}%`, background: palette[index % palette.length] } })
+        })),
+        h('div', { className: 'dshWakatimeOfficialStackLabel' }, dayLabel(day.date)),
+      )
+    }))
+    const legend = h('div', { className: 'dshWakatimeOfficialLegend' }, source.map((item, index) => h('span', { className: 'dshWakatimeOfficialLegendItem', key: item.name },
+      h('i', { style: { background: palette[index % palette.length] } }),
+      h('span', { title: item.name }, item.name),
+    )))
+    return h(React.Fragment, null, chart, legend)
+  }
+  return h('section', { className: 'dshWakatimeOfficialChartGrid' },
+    h('div', { className: 'dshWakatimeOfficialChartPanel' },
+      h('h3', null, tr(t, 'projectsOverview', 'Projects')),
+      renderChart('projects'),
+    ),
+    h('div', { className: 'dshWakatimeOfficialChartPanel' },
+      h('h3', null, tr(t, 'categoriesOverview', 'Categories')),
+      renderChart('categories'),
+    ),
+  )
+}
+
+function OfficialAiHumanByDay({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+  return h('div', { className: 'dshWakatimeOfficialCompare' }, usage.days.map(day => {
+    const aiLines = day.aiAdditions + day.aiDeletions
+    const humanLines = day.humanAdditions + day.humanDeletions
+    const total = aiLines + humanLines
+    const aiPercent = total > 0 ? aiLines / total * 100 : 0
+    return h('div', { className: 'dshWakatimeOfficialCompareRow', key: day.date },
+      h('div', { className: 'dshWakatimeOfficialCompareHead' },
+        h('span', null, dayLabel(day.date)),
+        h('span', null, `${formatPercent(aiPercent)} AI · ${compactNumber(total)} ${tr(t, 'lines', 'lines')}`),
+      ),
+      h('div', { className: 'dshWakatimeOfficialCompareTrack' },
+        h('span', { className: 'dshWakatimeAiPart', style: { width: `${aiPercent}%` } }),
+        h('span', { className: 'dshWakatimeHumanPart', style: { width: `${Math.max(0, 100 - aiPercent)}%` } }),
+      ),
+    )
+  }))
+}
+
+function OfficialWeekdays({ usage }: { usage: WakatimeUsageData }) {
+  const items = Array.from({ length: 7 }, (_, index) => {
+    const days = usage.days.filter(day => new Date(`${day.date}T12:00:00`).getDay() === index)
+    const average = days.length > 0 ? days.reduce((sum, day) => sum + day.totalSeconds, 0) / days.length : 0
+    return { name: weekdayLabel(index), average, days: days.length }
+  })
+  const maxSeconds = 24 * 60 * 60
+  return h('div', { className: 'dshWakatimeOfficialWeekdayBars' }, items.map(item => h('div', { className: 'dshWakatimeOfficialWeekdayRow', key: item.name },
+    h('span', { className: 'dshWakatimeOfficialWeekdayLabel' }, item.name),
+    h('div', { className: 'dshWakatimeOfficialWeekdayTrack' }, h('span', { style: { width: `${Math.min(100, item.average / maxSeconds * 100)}%` } })),
+    h('span', { className: 'dshWakatimeOfficialWeekdayValue' }, `${formatDuration(item.average)} (${item.average > 0 ? formatPercent(item.average / maxSeconds * 100) : '0%'})`),
+  )))
+}
+
+function OfficialProjectCard({ project, t }: { project: WakatimeUsageBucket; t: Translator }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const showAiDetails = project.aiDetailsAvailable !== false
+  const aiLines = project.aiAdditions + project.aiDeletions
+  const humanLines = project.humanAdditions + project.humanDeletions
+  const changedLines = aiLines + humanLines
+  const hasAiDetails = showAiDetails && (changedLines > 0 || project.aiPromptEvents > 0 || project.aiSessions > 0 || bucketTokens(project) > 0)
+  const aiPercent = changedLines > 0 ? aiLines / changedLines * 100 : 0
+  const stats = [
+    { label: tr(t, 'aiPercent', 'AI Percent'), value: changedLines > 0 ? formatPercent(aiPercent) : '—', meta: changedLines > 0 ? `${compactNumber(aiLines)} of ${compactNumber(changedLines)} ${tr(t, 'lines', 'lines')}` : undefined },
+    { label: tr(t, 'aiChanges', 'AI changes'), value: aiLines > 0 ? compactNumber(aiLines) : '—', meta: changedLines > 0 ? formatPercent(aiPercent) : undefined },
+    { label: tr(t, 'humanChanges', 'Human changes'), value: humanLines > 0 ? compactNumber(humanLines) : '—', meta: changedLines > 0 ? formatPercent(100 - aiPercent) : undefined },
+    { label: tr(t, 'aiPrompts', 'AI prompts'), value: project.aiPromptEvents > 0 ? formatNumber(project.aiPromptEvents) : '—' },
+    { label: tr(t, 'aiSessions', 'AI sessions'), value: project.aiSessions > 0 ? formatNumber(project.aiSessions) : '—' },
+    { label: tr(t, 'projectTokens', 'Tokens'), value: bucketTokens(project) > 0 ? compactNumber(bucketTokens(project)) : '—' },
+    { label: tr(t, 'aiSpend', 'AI spend'), value: project.aiCost > 0 ? formatCost(project.aiCost) : '—' },
+  ]
+  return h('article', { className: 'dshWakatimeProjectCard' },
+    hasAiDetails
+      ? h('button', { className: 'dshWakatimeProjectHeaderButton', type: 'button', 'aria-expanded': expanded, onClick: () => setExpanded(current => !current) },
+        h('div', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
+        h('div', { className: 'dshWakatimeProjectTime' }, formatDuration(project.totalSeconds), h('span', { className: 'dshWakatimeProjectChevron', 'aria-hidden': 'true' }, expanded ? ' ↑' : ' ↓')),
+      )
+      : h('div', { className: 'dshWakatimeProjectHeader' },
+        h('div', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
+        h('div', { className: 'dshWakatimeProjectTime' }, formatDuration(project.totalSeconds)),
+      ),
+    !expanded || !hasAiDetails
+      ? null
+      : h('div', { className: 'dshWakatimeProjectStats' }, stats.map(stat => h('div', { className: 'dshWakatimeProjectStat', key: stat.label },
+        h('div', { className: 'dshWakatimeProjectStatLabel' }, stat.label),
+        h('div', { className: 'dshWakatimeProjectStatValue' }, stat.value),
+        stat.meta === undefined ? null : h('div', { className: 'dshWakatimeProjectStatMeta' }, stat.meta),
+      ))),
+  )
+}
+
+function OfficialRangeMenu({ range, t, onPreset }: { range: UsageRange; t: Translator; onPreset: (days: number) => void }) {
+  const [open, setOpen] = React.useState(false)
+  const selected = range.start === rangeForDays(1).start ? 1 : range.start === rangeForDays(14).start ? 14 : 7
+  const options = [
+    { days: 1, label: tr(t, 'today', 'Today') },
+    { days: 7, label: tr(t, 'last7Days', 'Last 7 Days') },
+    { days: 14, label: tr(t, 'last14Days', 'Last 14 Days') },
+  ]
+  return h('div', { className: 'dshWakatimeOfficialRangeMenu' },
+    h('button', { className: 'dshWakatimeOfficialRangeMenuButton', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: () => setOpen(current => !current) }, options.find(option => option.days === selected)?.label),
+    open ? h('div', { className: 'dshWakatimeOfficialRangePopover', role: 'menu' }, options.map(option => h('button', { key: option.days, type: 'button', role: 'menuitem', 'aria-current': option.days === selected, onClick: () => { setOpen(false); onPreset(option.days) } }, option.label))) : null,
+  )
+}
+
+function DashboardView({
+  usage,
+  t,
+  range,
+  onPreset,
+  onOpenAi,
+}: {
+  usage: WakatimeUsageData
+  t: Translator
+  range: UsageRange
+  onPreset: (days: number) => void
+  onOpenAi: () => void
+}) {
   const dashboard = usage.dashboard
-  const activeDays = usage.days.filter(day => day.totalSeconds > 0).length
   const bestDay = dashboard.bestDay
-  const dailyAverage = dashboard.dailyAverageText ?? formatDuration(dashboard.dailyAverageSeconds)
-  const dailyAverageOther = dashboard.dailyAverageIncludingOtherText ?? formatDuration(dashboard.dailyAverageIncludingOtherSeconds)
   const today = dashboard.todayText ?? formatDuration(dashboard.todaySeconds)
+  const dailyAverage = dashboard.dailyAverageIncludingOtherText ?? formatDuration(dashboard.dailyAverageIncludingOtherSeconds)
+  const aiLines = usage.totals.aiAdditions + usage.totals.aiDeletions
+  const humanLines = usage.totals.humanAdditions + usage.totals.humanDeletions
+  const changedLines = aiLines + humanLines
+  const aiPercent = changedLines > 0 ? aiLines / changedLines * 100 : 0
+  const totalInputTokens = usage.totals.aiInputTokens + usage.totals.aiCachedInputTokens
+  const previousDay = usage.days.length > 1 ? usage.days[usage.days.length - 2] : undefined
+  const todayDay = usage.days[usage.days.length - 1]
+  const changePercent = previousDay !== undefined && previousDay.totalSeconds > 0 && todayDay !== undefined
+    ? (todayDay.totalSeconds - previousDay.totalSeconds) / previousDay.totalSeconds * 100
+    : undefined
+  const modelLines = usage.aiModels.reduce((sum, model) => sum + Math.abs(model.lines), 0)
+  const modelItems = usage.aiModels.map(model => ({
+    name: model.name,
+    value: `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')} (${(modelLines > 0 ? Math.abs(model.lines) / modelLines * 100 : 0).toFixed(2)}%)`,
+  }))
+  const bucketItems = (items: WakatimeUsageBucket[]) => items.map(item => ({
+    name: item.name,
+    value: `${formatDuration(item.totalSeconds)} (${item.percent.toFixed(2)}%)`,
+  }))
   return h(React.Fragment, null,
-    h('p', { className: 'dshWakatimeSectionHint' }, tr(t, 'rangeSummary', 'Activity overview for this range')),
-    h('div', { className: 'dshWakatimeMetrics' },
-      h(Metric, { label: tr(t, 'totalTime', 'Coding time'), value: dashboard.cumulativeText ?? formatDuration(dashboard.cumulativeSeconds), meta: `${activeDays}/${usage.days.length} ${tr(t, 'activeDays', 'active days')}` }),
-      h(Metric, { label: tr(t, 'todayTime', 'Today'), value: today, meta: usage.end }),
-      h(Metric, { label: tr(t, 'dailyAverage', 'Daily average'), value: dailyAverage, meta: `${tr(t, 'dailyAverageOther', 'Daily average incl. Other')}: ${dailyAverageOther}` }),
-      h(Metric, { label: tr(t, 'bestDay', 'Most active day'), value: bestDay === undefined ? '—' : bestDay.text ?? formatDuration(bestDay.totalSeconds), meta: bestDay === undefined ? '—' : dayLabel(bestDay.date) }),
+    h('header', { className: 'dshWakatimeOfficialHeader' },
+      h('div', { className: 'dshWakatimeOfficialBrand' },
+        h('div', { className: 'dshWakatimeOfficialMark', 'aria-hidden': 'true' }, 'W'),
+        h('div', null,
+          h('p', { className: 'dshWakatimeOfficialEyebrow' }, 'WakaTime Dashboard'),
+          h('h1', { className: 'dshWakatimeOfficialTitle' }, tr(t, 'activityOverview', 'Activity Overview')),
+        ),
+      ),
+      h('div', { className: 'dshWakatimeOfficialRange' },
+        h(OfficialRangeMenu, { range, t, onPreset }),
+      ),
     ),
-    h('section', { className: 'dshWakatimeCard dshWakatimeDashboardChart' },
-      h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'dailyActivity', 'Daily activity')),
-      h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'dailyActivityHint', 'Bar height represents coding time.')),
-      usage.days.every(day => day.totalSeconds === 0)
-        ? h('p', { className: 'dshWakatimeNotice' }, tr(t, 'noData', 'There is no activity in this date range.'))
-        : h(DailyChart, { days: usage.days, t }),
+    h('section', { className: 'dshWakatimeOfficialOverview' },
+      h('div', { className: 'dshWakatimeOfficialOverviewTotal' },
+        h('div', { className: 'dshWakatimeOfficialMetricValue' }, dashboard.cumulativeText ?? formatDuration(dashboard.cumulativeSeconds)),
+        h('div', { className: 'dshWakatimeOfficialMetricMeta' }, tr(t, 'overLast7Days', 'over the Last 7 Days')),
+      ),
+      officialMetric({ label: tr(t, 'currentDay', 'Current day'), value: today, meta: tr(t, 'today', 'Today') }),
+      officialMetric({ label: tr(t, 'dailyAverage', 'Daily average'), value: dailyAverage, meta: tr(t, 'overLast7Days', 'over the Last 7 Days') }),
+      officialMetric({ label: tr(t, 'bestDay', 'Most active'), value: bestDay === undefined ? '—' : dayLabel(bestDay.date), meta: tr(t, 'topDay', 'top day') }),
     ),
-    h('div', { className: 'dshWakatimeOverviewGrid' },
-      h(OverviewCard, { title: tr(t, 'topProjects', 'Top 10 projects') },
-        bucketBreakdown(usage.projects.slice(0, 10), formatDuration, t),
+    h('section', { className: 'dshWakatimeOfficialSection' },
+      h('div', { className: 'dshWakatimeOfficialSectionHeading' },
+        h('h2', null, tr(t, 'aiActivity', 'AI Coding')),
+        h('button', { className: 'dshWakatimeOfficialLink', type: 'button', onClick: onOpenAi }, tr(t, 'openAiDashboard', 'Open AI dashboard')),
       ),
-      h(TodayBreakdownCard, { usage, t }),
-      h(OverviewCard, { title: tr(t, 'models', 'Models') },
-        usage.aiModels.length === 0 ? emptyBreakdown(t) : h(Breakdown, {
-          items: usage.aiModels.map(model => ({ name: model.name, value: Math.abs(model.lines), detail: formatCost(model.cost) })),
-          formatValue: value => `${formatNumber(value)} ${tr(t, 'lines', 'lines')}`,
-        }),
+      h('div', { className: 'dshWakatimeOfficialAiLayout' },
+        h('div', null,
+          h('div', { className: 'dshWakatimeOfficialDonutFrame' },
+            h('div', { className: 'dshWakatimeOfficialDonut', 'data-percent': changedLines > 0 ? formatPercent(aiPercent) : '—', style: { background: `conic-gradient(#5b7cff ${aiPercent}%, color-mix(in srgb, currentColor 12%, transparent) 0)` } }),
+            h('div', { className: 'dshWakatimeOfficialDonutLabel' }, tr(t, 'aiDrivenLabel', 'AI-driven')),
+          ),
+        ),
+        h('div', { className: 'dshWakatimeOfficialAiGrid' },
+          officialAiMetric({ label: tr(t, 'aiLinesLabel', 'AI lines'), value: compactNumber(aiLines) }),
+          officialAiMetric({ label: tr(t, 'humanLinesLabel', 'Human lines'), value: compactNumber(humanLines) }),
+          officialAiMetric({ label: tr(t, 'tokens', 'Tokens'), value: compactNumber(totalInputTokens + usage.totals.aiOutputTokens), meta: `${compactNumber(totalInputTokens)} in · ${compactNumber(usage.totals.aiOutputTokens)} out` }),
+          officialAiMetric({ label: tr(t, 'cost', 'Cost'), value: formatCost(usage.totals.aiModelTotalCost), meta: tr(t, 'aiModelSpend', 'AI model spend') }),
+        ),
       ),
-      h(OverviewCard, { title: tr(t, 'editors', 'Coding tools') }, bucketBreakdown(usage.editors, formatDuration, t)),
-      h(OverviewCard, { title: tr(t, 'languages', 'Languages') }, bucketBreakdown(usage.languages, formatDuration, t)),
-      h(OverviewCard, { title: tr(t, 'categories', 'Activity categories') }, bucketBreakdown(usage.categories, formatDuration, t)),
-      h(OverviewCard, { title: tr(t, 'operatingSystems', 'Operating systems') }, bucketBreakdown(usage.operatingSystems, formatDuration, t)),
-      h(OverviewCard, { title: tr(t, 'machines', 'Machines') }, bucketBreakdown(usage.machines, formatDuration, t)),
-      h(OverviewCard, { title: tr(t, 'aiHuman', 'AI vs human') },
-        h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'aiHumanHint', 'AI-generated and human-typed line changes.')),
-        h(AiHumanComparison, { usage, t }),
+    ),
+    h(OfficialActivityCharts, { usage, t }),
+    h(OfficialTimeline, { usage, t }),
+    h('section', { className: 'dshWakatimeOfficialSection dshWakatimeOfficialSplit' },
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('h3', null, tr(t, 'models', 'Models')),
+        h(OfficialList, { items: modelItems, empty: tr(t, 'noBreakdown', 'No breakdown yet') }),
       ),
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('h3', null, tr(t, 'editors', 'Editors')),
+        h(OfficialList, { items: bucketItems(usage.editors), empty: tr(t, 'noBreakdown', 'No breakdown yet') }),
+      ),
+    ),
+    h('section', { className: 'dshWakatimeOfficialSection dshWakatimeOfficialSplit' },
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('h3', null, tr(t, 'languages', 'Languages')),
+        h(OfficialList, { items: bucketItems(usage.languages), empty: tr(t, 'noBreakdown', 'No breakdown yet') }),
+      ),
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('h3', null, tr(t, 'operatingSystems', 'Operating Systems')),
+        h(OfficialList, { items: bucketItems(usage.operatingSystems), empty: tr(t, 'noBreakdown', 'No breakdown yet') }),
+      ),
+    ),
+    h('section', { className: 'dshWakatimeOfficialSection' },
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('h3', null, tr(t, 'machines', 'Machines')),
+        h(OfficialList, { items: bucketItems(usage.machines), empty: tr(t, 'noBreakdown', 'No breakdown yet') }),
+      ),
+    ),
+    h('section', { className: 'dshWakatimeOfficialSection' },
+      h('div', { className: 'dshWakatimeOfficialMetrics' },
+        officialMetric({ label: tr(t, 'today', 'Today'), value: today, meta: tr(t, 'today', 'Today') }),
+        officialMetric({ label: changePercent === undefined ? tr(t, 'decrease', 'Decrease') : changePercent < 0 ? tr(t, 'decrease', 'Decrease') : tr(t, 'increase', 'Increase'), value: changePercent === undefined ? '—' : formatPercent(Math.abs(changePercent)) }),
+        officialMetric({ label: tr(t, 'dailyAverage', 'Daily Average'), value: dailyAverage }),
+        officialMetric({ label: tr(t, 'bestDay', 'Most Active Day'), value: bestDay === undefined ? '—' : dayLabel(bestDay.date) }),
+      ),
+    ),
+    h('section', { className: 'dshWakatimeOfficialSection dshWakatimeOfficialSplit' },
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('h3', null, tr(t, 'aiVsHumanByDay', 'AI vs Human by Day')),
+        h(OfficialAiHumanByDay, { usage, t }),
+      ),
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('h3', null, tr(t, 'weekdays', 'Weekdays')),
+        h(OfficialWeekdays, { usage }),
+      ),
+    ),
+    h('section', { className: 'dshWakatimeOfficialSection' },
+      h('div', { className: 'dshWakatimeOfficialSectionHeading' },
+        h('h2', null, tr(t, 'projectsOverview', 'Projects')),
+      ),
+      h('div', { className: 'dshWakatimeProjectGrid' }, usage.projects.map(project => h(OfficialProjectCard, { project, t, key: project.name }))),
     ),
     usage.isUpToDate === false ? h('p', { className: 'dshWakatimeNotice', role: 'status' }, tr(t, 'stale', 'WakaTime is updating this range.')) : null,
   )
@@ -716,9 +1187,9 @@ function WorkspaceView({ usage, t }: { usage: WakatimeUsageData; t: Translator }
   return h(React.Fragment, null,
     h('p', { className: 'dshWakatimeSectionHint' }, tr(t, 'workspaceHint', 'Time share across coding tools, languages, machines, and projects.')),
     h('section', { className: 'dshWakatimeCard' },
-      h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'topProjects', 'Top 10 projects')),
-      h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'topProjectsHint', 'Only the 10 projects with the most time are shown.')),
-      bucketBreakdown(usage.projects.slice(0, 10), formatDuration, t),
+      h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'topProjects', 'Projects')),
+      h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'topProjectsHint', 'Projects ordered by coding time.')),
+      bucketBreakdown(usage.projects, formatDuration, t),
     ),
     h('div', { className: 'dshWakatimeGrid' },
       h('section', { className: 'dshWakatimeCard' },
@@ -750,7 +1221,7 @@ function WorkspaceView({ usage, t }: { usage: WakatimeUsageData; t: Translator }
 
 function weekdayLabel(index: number): string {
   try {
-    return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(2024, 0, 7 + index))
+    return new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(new Date(2024, 0, 7 + index))
   } catch {
     return String(index + 1)
   }
@@ -927,7 +1398,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const data = usage === undefined || status?.apiKeyConfigured !== true || loading
     ? dataState
     : tab === 'dashboard'
-      ? h(DashboardView, { usage, t })
+      ? h(DashboardView, { usage, t, range, onPreset: setPreset, onOpenAi: () => setTab('ai') })
       : tab === 'ai'
         ? h(AiView, { usage, t })
         : tab === 'projects'
@@ -1005,7 +1476,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     error.length > 0 ? h('div', { className: 'dshWakatimeError', role: 'alert' }, error) : null,
     tab !== 'settings'
       ? h('section', { id: `dsh-wakatime-panel-${tab}`, role: 'tabpanel', 'aria-labelledby': `dsh-wakatime-tab-${tab}` },
-        h('div', { className: 'dshWakatimeToolbar' },
+        tab === 'dashboard' ? null : h('div', { className: 'dshWakatimeToolbar' },
           h('div', { className: 'dshWakatimeRange' },
             h('span', { className: 'dshWakatimeRangeLabel' }, tr(t, 'range', 'Date range')),
             h('button', { className: 'dshWakatimeButton dshWakatimeRangeButton', type: 'button', 'aria-pressed': range.start === rangeForDays(1).start, onClick: () => setPreset(1) }, tr(t, 'today', 'Today')),
