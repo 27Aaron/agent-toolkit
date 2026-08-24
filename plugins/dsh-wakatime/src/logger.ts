@@ -14,9 +14,13 @@ type Level = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
 export class PluginLogger {
   constructor(
     private readonly host: HostLogger | undefined,
-    private readonly debugEnabled: boolean,
+    private debugEnabled: boolean,
     private readonly logFile: string = getPluginLogFilePath(),
   ) {}
+
+  setDebugEnabled(enabled: boolean): void {
+    this.debugEnabled = enabled
+  }
 
   debug(message: string): void {
     if (!this.debugEnabled) return

@@ -49,6 +49,12 @@ dsh plugin --profile headless add ./plugins/dsh-wakatime
 
 ## 配置
 
+### 设置页面
+
+将插件安装到 web Profile 后重启 DSH，然后打开 **设置 → 插件 → WakaTime**。页面主要分为仪表盘、AI Coding、项目、洞察和配置：仪表盘总览选定时间范围的总时间、今天、官方日均时间、最活跃的一天、Top 10 项目、模型、编码工具、语言、活动分类、操作系统、设备机器以及 AI／人工行数对比；项目页补充今天的项目／语言／分类分布，AI 和洞察页提供提示词、Token、模型、工作日以及每日 AI 占比等明细。
+
+API Key 会以受限的本机文件权限写入 WakaTime 标准 `.wakatime.cfg`；页面管理的插件选项保存在 WakaTime 数据目录下。页面只会收到“是否已配置 API Key”的布尔值，不会把已有密钥读回浏览器。数据请求由 Host 进程发起，并短暂缓存以避免重复请求。时间范围数据来自 summaries，选定结束日期还会通过 WakaTime durations 接口获取更细的“今天”分布；接口不可用时会自动回退到 summaries 数据。
+
 Bundle 会插入 id 为 `wakatime` 的行。可在 `$DSH_HOME/profiles/<name>/cordis.patch.yml`、`$DSH_HOME/cordis.patch.yml` 或更晚的 `--patch` 层覆盖：
 
 ```yaml

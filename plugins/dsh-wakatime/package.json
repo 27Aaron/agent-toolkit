@@ -1,6 +1,6 @@
 {
   "name": "@27aaron/dsh-wakatime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "WakaTime integration for DeepSeek Harness",
   "author": "Aaron",
   "license": "MIT",
@@ -12,10 +12,13 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
+    "lib/client.js",
+    "lib/client.js.map",
     "lib/types/**/*.d.ts",
     "cordis.patch.yml",
     "README.md",
@@ -25,6 +28,16 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      "platform": "web"
     }
   },
   "repository": {
@@ -53,12 +66,33 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1 <5",
+    "@deepseek-ai/dsh-client-connection": ">=0.1.1-rc.2 <0.2",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.1-rc.2 <0.2",
+    "@deepseek-ai/dsh-client-runtime": ">=0.1.1-rc.2 <0.2",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.1-rc.2 <0.2",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.1-rc.2 <0.2",
     "@deepseek-ai/dsh-session": ">=0.1.1-rc.2 <0.2",
     "@deepseek-ai/dsh-tools": ">=0.1.1-rc.2 <0.2",
-    "@deepseek-ai/schemastery": ">=3.18.1 <4"
+    "@deepseek-ai/schemastery": ">=3.18.1 <4",
+    "react": ">=18.2.0 <19"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-connection": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-locale": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-runtime": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-settings": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-slots": {
       "optional": true
     },
     "@deepseek-ai/dsh-session": {
@@ -69,16 +103,26 @@
     },
     "@deepseek-ai/schemastery": {
       "optional": true
+    },
+    "react": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/dsh-client-connection": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-locale": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-runtime": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.1-rc.2",
     "@deepseek-ai/dsh-session": "0.1.1-rc.2",
     "@deepseek-ai/dsh-tools": "0.1.1-rc.2",
     "@deepseek-ai/schemastery": "3.18.1",
+    "@types/react": "^18.3.0",
     "@types/node": "^22.20.0",
     "@vitest/coverage-v8": "^4.1.8",
     "publint": "^0.3.21",
+    "react": "18.3.1",
     "tsdown": "^0.22.2",
     "typescript": "^5.9.3",
     "vitest": "^4.1.8"
