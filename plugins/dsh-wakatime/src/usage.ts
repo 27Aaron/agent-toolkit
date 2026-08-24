@@ -27,6 +27,18 @@ function number(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
+function optionalNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function firstNumber(value: RawRecord, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const result = optionalNumber(value[key])
+    if (result !== undefined) return result
+  }
+  return undefined
+}
+
 function string(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
@@ -107,12 +119,23 @@ function readModels(summary: RawRecord, models: Map<string, WakatimeAiModelUsage
 function readBucket(item: RawRecord): WakatimeUsageBucket | undefined {
   const name = string(item.name)
   if (name === undefined) return undefined
+  const aiDetailsAvailable = ['human_additions', 'human_deletions', 'ai_input_tokens', 'ai_prompt_events_total', 'ai_sessions', 'ai_model_total_cost']
+    .some(key => key in item)
   return {
     name,
     totalSeconds: number(item.total_seconds),
     percent: number(item.percent),
     aiAdditions: number(item.ai_additions),
     aiDeletions: number(item.ai_deletions),
+    humanAdditions: number(item.human_additions),
+    humanDeletions: number(item.human_deletions),
+    aiInputTokens: number(item.ai_input_tokens),
+    aiCachedInputTokens: number(item.ai_cached_input_tokens),
+    aiOutputTokens: number(item.ai_output_tokens),
+    aiPromptEvents: number(item.ai_prompt_events_total),
+    aiSessions: number(item.ai_sessions),
+    aiCost: number(item.ai_model_total_cost),
+    aiDetailsAvailable,
   }
 }
 
@@ -129,6 +152,14 @@ function mergeBuckets(target: Map<string, WakatimeUsageBucket>, values: RawRecor
     current.totalSeconds += bucket.totalSeconds
     current.aiAdditions += bucket.aiAdditions
     current.aiDeletions += bucket.aiDeletions
+    current.humanAdditions += bucket.humanAdditions
+    current.humanDeletions += bucket.humanDeletions
+    current.aiInputTokens += bucket.aiInputTokens
+    current.aiCachedInputTokens += bucket.aiCachedInputTokens
+    current.aiOutputTokens += bucket.aiOutputTokens
+    current.aiPromptEvents += bucket.aiPromptEvents
+    current.aiSessions += bucket.aiSessions
+    current.aiCost += bucket.aiCost
     target.set(bucket.name, current)
   }
 }
@@ -140,7 +171,6 @@ function sortBuckets(map: Map<string, WakatimeUsageBucket>, totalSeconds: number
       percent: totalSeconds > 0 ? bucket.totalSeconds / totalSeconds * 100 : 0,
     }))
     .sort((a, b) => b.totalSeconds - a.totalSeconds)
-    .slice(0, 10)
 }
 
 function durationName(item: RawRecord, key: string): string | undefined {
@@ -158,6 +188,15 @@ function mergeDurationBuckets(target: Map<string, WakatimeUsageBucket>, values: 
       percent: 0,
       aiAdditions: number(item.ai_additions),
       aiDeletions: number(item.ai_deletions),
+      humanAdditions: number(item.human_additions),
+      humanDeletions: number(item.human_deletions),
+      aiInputTokens: number(item.ai_input_tokens),
+      aiCachedInputTokens: number(item.ai_cached_input_tokens),
+      aiOutputTokens: number(item.ai_output_tokens),
+      aiPromptEvents: number(item.ai_prompt_events_total),
+      aiSessions: number(item.ai_sessions),
+      aiCost: number(item.ai_model_total_cost),
+      aiDetailsAvailable: false,
     }
     const current = target.get(name)
     if (current === undefined) target.set(name, bucket)
@@ -165,6 +204,14 @@ function mergeDurationBuckets(target: Map<string, WakatimeUsageBucket>, values: 
       current.totalSeconds += bucket.totalSeconds
       current.aiAdditions += bucket.aiAdditions
       current.aiDeletions += bucket.aiDeletions
+      current.humanAdditions += bucket.humanAdditions
+      current.humanDeletions += bucket.humanDeletions
+      current.aiInputTokens += bucket.aiInputTokens
+      current.aiCachedInputTokens += bucket.aiCachedInputTokens
+      current.aiOutputTokens += bucket.aiOutputTokens
+      current.aiPromptEvents += bucket.aiPromptEvents
+      current.aiSessions += bucket.aiSessions
+      current.aiCost += bucket.aiCost
     }
   }
 }
@@ -296,6 +343,8 @@ export function normalizeWakatimeSummaries(
       aiPromptEvents: number(grandTotal.ai_prompt_events_total),
       aiSessions: number(grandTotal.ai_sessions),
       projectCount: projects.length,
+      projectBreakdown: bucketsFromRecords(projects, number(grandTotal.total_seconds)),
+      categoryBreakdown: bucketsFromRecords(categories, number(grandTotal.total_seconds)),
       ...(topProject === undefined ? {} : { topProject }),
     }
     totals.totalSeconds += day.totalSeconds
@@ -316,6 +365,14 @@ export function normalizeWakatimeSummaries(
 
   const cumulative = record(body?.cumulative_total) ?? {}
   const dailyAverage = record(body?.daily_average) ?? {}
+  const reviewPercent = firstNumber(cumulative, ['human_review_percent', 'ai_human_review_percent', 'ai_review_percent'])
+  const reviewSessions = firstNumber(cumulative, ['human_review_sessions', 'ai_human_review_sessions', 'ai_review_sessions'])
+  const followUpPercent = firstNumber(cumulative, ['human_follow_up_percent', 'ai_human_follow_up_percent', 'ai_follow_up_percent'])
+  const followUpEdits = firstNumber(cumulative, ['human_follow_up_edits', 'ai_human_follow_up_edits', 'ai_follow_up_edits'])
+  if (reviewPercent !== undefined) totals.aiReviewPercent = reviewPercent
+  if (reviewSessions !== undefined) totals.aiReviewSessions = reviewSessions
+  if (followUpPercent !== undefined) totals.aiFollowUpPercent = followUpPercent
+  if (followUpEdits !== undefined) totals.aiFollowUpEdits = followUpEdits
   const activeBestDay = days
     .filter(day => day.totalSeconds > 0)
     .sort((a, b) => b.totalSeconds - a.totalSeconds)[0]
@@ -348,7 +405,7 @@ export function normalizeWakatimeSummaries(
     editors: sortBuckets(editorMap, totals.totalSeconds),
     machines: sortBuckets(machineMap, totals.totalSeconds),
     operatingSystems: sortBuckets(operatingSystemMap, totals.totalSeconds),
-    aiModels: [...modelMap.values()].sort((a, b) => Math.abs(b.lines) - Math.abs(a.lines)).slice(0, 10),
+    aiModels: [...modelMap.values()].sort((a, b) => Math.abs(b.lines) - Math.abs(a.lines)),
     todayBreakdown,
     dashboard: {
       cumulativeSeconds: number(cumulative.seconds) || totals.totalSeconds,
