@@ -2,6 +2,11 @@
 node_modules/
 .pnpm-store/
 
+# Nix
+.direnv/
+result
+result-*
+
 # Build and test output
 lib/
 dist/
