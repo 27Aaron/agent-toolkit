@@ -2,6 +2,7 @@ import * as React from 'react'
 import {
   WAKATIME_RPC_CHANNEL,
   UI_CATEGORIES,
+  type WakatimeCliUpdateCheck,
   type WakatimeDailyUsage,
   type WakatimeInsightsData,
   type WakatimeUiConfig,
@@ -31,6 +32,11 @@ interface FormState {
 interface UsageRange {
   start: string
   end: string
+}
+
+interface CliUpdateState {
+  updateAvailable: boolean
+  latestVersion?: string
 }
 
 const zh = {
@@ -179,7 +185,12 @@ const zh = {
   cliSourceManaged: 'WakaTime 目录',
   cliSourceNone: '未找到',
   cliDownload: '下载 WakaTime CLI',
-  cliUpdate: '检查并更新',
+  cliCheckUpdate: '检查更新',
+  cliUpdate: '更新',
+  cliLatest: '当前是最新版本',
+  cliUpdateAvailable: '发现新版本 {version}',
+  cliUpdated: '已更新至 {version}',
+  cliChecking: '检查中…',
   cliInvalidConfigured: '自定义 CLI 路径不可执行，请修正路径或清空路径。',
   cliInvalidPath: '系统 PATH 中的 CLI 不可执行，请通过包管理器修复。',
   cliDownloaded: 'CLI 已安装',
@@ -347,7 +358,12 @@ const en = {
   cliSourceManaged: 'WakaTime directory',
   cliSourceNone: 'Not found',
   cliDownload: 'Download WakaTime CLI',
-  cliUpdate: 'Check and update',
+  cliCheckUpdate: 'Check for updates',
+  cliUpdate: 'Update',
+  cliLatest: 'Already up to date',
+  cliUpdateAvailable: 'Update {version} available',
+  cliUpdated: 'Updated to {version}',
+  cliChecking: 'Checking…',
   cliInvalidConfigured: 'The configured CLI path is not executable. Fix or clear the path.',
   cliInvalidPath: 'The CLI found on PATH is not executable. Repair it with your package manager.',
   cliDownloaded: 'CLI installed',
@@ -440,7 +456,7 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeButton:hover { border-color: currentColor; background: var(--dsh-surface-input); }
 .dshWakatimeButton:disabled { opacity: .45; cursor: wait; }
 .dshWakatimeButton[data-primary="true"] { border-color: currentColor; }
-.dshWakatimeButton:focus-visible, .dshWakatimeTab:focus-visible, .dshWakatimeField input:focus-visible, .dshWakatimeField select:focus-visible, .dshWakatimeCategoryButton:focus-visible, .dshWakatimeCategoryPopover button:focus-visible, .dshWakatimeAdvanced summary:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.dshWakatimeButton:focus-visible, .dshWakatimeTab:focus-visible, .dshWakatimeField input:focus-visible, .dshWakatimeField select:focus-visible, .dshWakatimeCategoryButton:focus-visible, .dshWakatimeCategoryPopover button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .dshWakatimeTabs { display: flex; flex-wrap: wrap; gap: var(--dsh-space-3) 20px; margin-bottom: var(--dsh-space-4); border-bottom: 1px solid var(--dsh-border); }
 .dshWakatimeTab { appearance: none; position: relative; border: 0; padding: 0 0 10px; color: inherit; opacity: .58; background: none; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
 .dshWakatimeTab[aria-selected="true"] { opacity: 1; }
@@ -527,12 +543,15 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeOfficialCategoryBlock > .dshWakatimeOfficialChartGrid { margin-top: 12px; }
 .dshWakatimeOfficialChartPanel { min-width: 0; padding: var(--dsh-space-3); border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
 .dshWakatimeOfficialChartPanel h3 { margin: 0 0 12px; font-size: 13px; }
-.dshWakatimeOfficialProjectChartRows { display: grid; max-height: 212px; gap: 7px; overflow: auto; }
-.dshWakatimeOfficialProjectChartRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
-.dshWakatimeOfficialProjectChartHead { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 3px; color: currentColor; font-size: 10px; }
-.dshWakatimeOfficialProjectChartHead span:first-child { overflow: hidden; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
-.dshWakatimeOfficialProjectChartHead span:last-child { opacity: .6; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dshWakatimeOfficialProjectChartTrack { height: 5px; overflow: hidden; border-radius: 3px; background: var(--dsh-surface-raised); }
+.dshWakatimeOfficialProjectChartRows { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; max-height: 212px; gap: var(--dsh-space-2) var(--dsh-space-2); overflow: auto; }
+.dshWakatimeOfficialProjectChartRow { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; grid-template-rows: auto 5px; column-gap: var(--dsh-space-2); row-gap: 4px; align-items: center; min-width: 0; }
+.dshWakatimeOfficialProjectChartLabel,
+.dshWakatimeOfficialProjectChartDetail,
+.dshWakatimeOfficialProjectChartValue { min-width: 0; color: currentColor; font-size: 10px; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeOfficialProjectChartLabel { overflow: hidden; opacity: .72; text-overflow: ellipsis; }
+.dshWakatimeOfficialProjectChartDetail { color: currentColor; opacity: .6; text-align: right; }
+.dshWakatimeOfficialProjectChartValue { grid-column: 3; grid-row: 1 / -1; align-self: center; opacity: .8; text-align: right; }
+.dshWakatimeOfficialProjectChartTrack { grid-column: 1 / 3; width: 100%; min-width: 0; height: 5px; overflow: hidden; border-radius: 3px; background: var(--dsh-surface-raised); }
 .dshWakatimeOfficialProjectChartTrack span { display: block; height: 100%; border-radius: inherit; background: var(--dsh-accent); opacity: .68; }
 .dshWakatimeOfficialStackChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; min-height: 120px; align-items: end; }
 .dshWakatimeOfficialStackDay { display: grid; grid-template-rows: 90px auto; gap: 5px; min-width: 0; text-align: center; }
@@ -595,7 +614,7 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeInsightsStatus { margin: 0 0 var(--dsh-space-3); border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); padding: 9px 11px; color: inherit; background: var(--dsh-surface-raised); font-size: 11px; line-height: 1.45; }
 .dshWakatimeInsightsSummary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .dshWakatimeInsightsSummaryCard { min-width: 0; padding: var(--dsh-space-3); border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
-.dshWakatimeInsightsSummaryCard:first-child { background: color-mix(in srgb, var(--dsh-accent) 11%, transparent); }
+.dshWakatimeInsightsSummaryCard:first-child { background: var(--dsh-surface); }
 .dshWakatimeInsightsSummaryLabel { color: currentColor; opacity: .56; font-size: 10px; }
 .dshWakatimeInsightsSummaryValue { margin-top: 6px; overflow: hidden; font-size: 15px; font-weight: 720; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeInsightsSummaryMeta { margin-top: 4px; overflow: hidden; color: currentColor; opacity: .52; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
@@ -665,12 +684,16 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeInsightsDonutLegend i[data-tone="human"] { background: var(--dsh-human); }
 .dshWakatimeInsightsDonutLegend i[data-tone="ai-delete"] { background: var(--dsh-ai-delete); }
 .dshWakatimeInsightsDonutLegend i[data-tone="human-delete"] { background: var(--dsh-human-delete); }
-.dshWakatimeInsightsModels { display: grid; gap: 9px; }
-.dshWakatimeInsightsModelRow { display: grid; gap: 4px; }
-.dshWakatimeInsightsModelHead { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; font-size: 10px; }
-.dshWakatimeInsightsModelHead span:first-child { overflow: hidden; opacity: .74; text-overflow: ellipsis; white-space: nowrap; }
-.dshWakatimeInsightsModelHead span:nth-child(2), .dshWakatimeInsightsModelHead span:last-child { opacity: .68; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeInsightsModels { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; gap: var(--dsh-space-2) var(--dsh-space-2); }
+.dshWakatimeInsightsModelRow { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; grid-template-rows: auto 5px; column-gap: var(--dsh-space-2); row-gap: 4px; align-items: center; min-width: 0; }
+.dshWakatimeInsightsModelLabel,
+.dshWakatimeInsightsModelDetail,
+.dshWakatimeInsightsModelValue { min-width: 0; color: currentColor; font-size: 10px; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeInsightsModelLabel { overflow: hidden; opacity: .74; text-overflow: ellipsis; }
+.dshWakatimeInsightsModelDetail { color: currentColor; opacity: .68; text-align: right; }
+.dshWakatimeInsightsModelValue { grid-column: 3; grid-row: 1 / -1; align-self: center; opacity: .68; text-align: right; }
 .dshWakatimeInsightsModelTrack { height: 5px; overflow: hidden; border-radius: 3px; background: var(--dsh-surface-raised); }
+.dshWakatimeInsightsModelRow > .dshWakatimeInsightsModelTrack { grid-column: 1 / 3; width: 100%; min-width: 0; }
 .dshWakatimeInsightsModelTrack span { display: block; height: 100%; border-radius: inherit; background: var(--dsh-accent); }
 .dshWakatimeInsightsModelSummary { margin: 0 0 12px; color: currentColor; opacity: .62; font-size: 10px; line-height: 1.45; }
 .dshWakatimeInsightsTwoCol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -689,23 +712,30 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeInsightBar span { display: block; width: min(22px, 60%); min-height: 3px; border-radius: 3px 3px 1px 1px; background: currentColor; opacity: .62; }
 .dshWakatimeInsightLabel { overflow: hidden; color: currentColor; opacity: .58; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeInsightValue { font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 650; }
-.dshWakatimeDailyChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; min-height: 156px; align-items: end; }
-.dshWakatimeDay { display: grid; min-width: 0; grid-template-rows: 104px auto auto; gap: 4px; text-align: center; }
+.dshWakatimeDailyChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; min-height: 156px; align-items: start; }
+.dshWakatimeDay { display: grid; min-width: 0; grid-template-rows: 104px 16px 16px 28px; gap: 4px; text-align: center; }
 .dshWakatimeDayBar { display: flex; height: 104px; align-items: end; justify-content: center; }
 .dshWakatimeDayBar span { display: block; width: min(24px, 58%); min-height: 3px; border-radius: 3px 3px 1px 1px; background: currentColor; opacity: .64; }
-.dshWakatimeDayLabel { overflow: hidden; color: currentColor; opacity: .58; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.dshWakatimeDayTotal { font-size: 11px; font-weight: 650; }
-.dshWakatimeDayAi { min-height: 14px; overflow-wrap: anywhere; color: currentColor; opacity: .56; font-size: 10px; line-height: 1.25; }
+.dshWakatimeDayLabel,
+.dshWakatimeDayTotal,
+.dshWakatimeDayAi { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeDayLabel { color: currentColor; opacity: .58; font-size: 10px; line-height: 16px; }
+.dshWakatimeDayTotal { overflow-wrap: normal; font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 650; line-height: 16px; }
+.dshWakatimeDayAi { color: currentColor; opacity: .56; font-size: 10px; line-height: 14px; }
 .dshWakatimeRows { display: grid; gap: 8px; }
 .dshWakatimeRow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--dsh-border); }
 .dshWakatimeRow:last-child { padding-bottom: 0; border-bottom: 0; }
 .dshWakatimeRowLabel { color: currentColor; opacity: .6; font-size: 12px; }
 .dshWakatimeRowValue { max-width: 68%; overflow-wrap: anywhere; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 620; line-height: 1.35; text-align: right; }
-.dshWakatimeBreakdown { display: grid; gap: 10px; margin-top: 13px; }
-.dshWakatimeBreakdownItem { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
-.dshWakatimeBreakdownHead { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 4px; font-size: 11px; }
-.dshWakatimeBreakdownHead span:first-child { overflow: hidden; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
-.dshWakatimeBreakdownHead span:last-child { opacity: .58; }
+.dshWakatimeBreakdown { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; gap: 10px var(--dsh-space-2); margin-top: 13px; }
+.dshWakatimeBreakdownItem { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; grid-template-rows: auto 5px; column-gap: var(--dsh-space-2); row-gap: 4px; align-items: center; min-width: 0; }
+.dshWakatimeBreakdownLabel,
+.dshWakatimeBreakdownDetail,
+.dshWakatimeBreakdownValue { min-width: 0; font-size: 11px; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeBreakdownLabel { overflow: hidden; opacity: .72; text-overflow: ellipsis; }
+.dshWakatimeBreakdownDetail { color: currentColor; opacity: .58; text-align: right; }
+.dshWakatimeBreakdownItem > .dshWakatimeBreakdownValue { grid-column: 3; grid-row: 1 / -1; align-self: center; color: currentColor; opacity: .8; text-align: right; }
+.dshWakatimeBreakdownItem > .dshWakatimeTrack { grid-column: 1 / 3; width: 100%; min-width: 0; }
 .dshWakatimeTrack { height: 4px; overflow: hidden; border-radius: 3px; background: var(--dsh-surface-raised); }
 .dshWakatimeTrack span { display: block; height: 100%; border-radius: inherit; background: var(--dsh-accent); opacity: .72; }
 .dshWakatimeBreakdownValue { color: currentColor; opacity: .68; font-size: 11px; white-space: nowrap; }
@@ -751,8 +781,7 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeCheck input { width: 15px; height: 15px; margin: 1px 0 0; accent-color: currentColor; }
 .dshWakatimeCheck small { display: block; margin-top: 4px; }
 .dshWakatimeAdvanced { border-top: 1px solid var(--dsh-border); padding-top: var(--dsh-space-3); }
-.dshWakatimeAdvanced summary { width: fit-content; color: inherit; opacity: .7; font-size: 12px; font-weight: 650; cursor: pointer; }
-.dshWakatimeAdvanced[open] summary { margin-bottom: 15px; opacity: 1; }
+.dshWakatimeAdvancedTitle { margin: 0 0 15px; color: inherit; opacity: .7; font-size: 12px; font-weight: 650; }
 .dshWakatimeFormActions { display: flex; align-items: center; justify-content: flex-end; gap: 11px; padding-top: 2px; }
 .dshWakatimeFormActions .dshWakatimeButton { margin-left: auto; }
 .dshWakatimeSaved { color: inherit; opacity: .68; font-size: 12px; font-weight: 650; }
@@ -817,18 +846,17 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeOfficialChartPanel h3 { margin-bottom: var(--dsh-space-2); font-size: 13px; }
 .dshWakatimeOfficialListRow { grid-template-columns: minmax(0, 1fr) max-content; }
 .dshWakatimeOfficialProjectChartRow,
+.dshWakatimeBreakdownItem { grid-template-columns: subgrid; }
 .dshWakatimeOfficialTimelineRow,
-.dshWakatimeInsightsListRow,
-.dshWakatimeBreakdownItem { grid-template-columns: minmax(0, 1fr) max-content; }
-.dshWakatimeInsightsModelHead { grid-template-columns: minmax(0, 1fr) max-content max-content; }
+.dshWakatimeInsightsListRow { grid-template-columns: minmax(0, 1fr) max-content; }
 .dshWakatimeOfficialWeekdayLabel,
 .dshWakatimeOfficialListRow span:first-child,
 .dshWakatimeInsightsListRow span:first-child { justify-self: start; text-align: left; }
 .dshWakatimeOfficialListRow span:last-child,
 .dshWakatimeOfficialWeekdayValue,
 .dshWakatimeBreakdownValue,
-.dshWakatimeInsightsModelHead span:nth-child(2),
-.dshWakatimeInsightsModelHead span:last-child { justify-self: end; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeInsightsModelDetail,
+.dshWakatimeInsightsModelValue { justify-self: end; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dshWakatimeOfficialWeekdayTrack { width: 100%; min-width: 0; }
 .dshWakatimeOfficialList,
 .dshWakatimeOfficialTimelineRows,
@@ -865,7 +893,8 @@ body[data-color-scheme="light"] .dshWakatimePage {
 #dsh-wakatime-panel-ai .dshWakatimeCardHint { font-size: 11px; line-height: 1.4; }
 #dsh-wakatime-panel-ai .dshWakatimeRowLabel,
 #dsh-wakatime-panel-ai .dshWakatimeRowValue,
-#dsh-wakatime-panel-ai .dshWakatimeBreakdownHead,
+#dsh-wakatime-panel-ai .dshWakatimeBreakdownLabel,
+#dsh-wakatime-panel-ai .dshWakatimeBreakdownDetail,
 #dsh-wakatime-panel-ai .dshWakatimeBreakdownValue,
 #dsh-wakatime-panel-ai .dshWakatimeComparisonHead { font-size: 11px; }
 .dshWakatimeInsightsStatus { margin-bottom: var(--dsh-section-gap); }
@@ -889,7 +918,6 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeChecks { gap: var(--dsh-space-3); }
 .dshWakatimeCheck { gap: var(--dsh-space-2); }
 .dshWakatimeAdvanced { padding-top: var(--dsh-space-3); }
-.dshWakatimeAdvanced[open] summary { margin-bottom: var(--dsh-space-3); }
 .dshWakatimeFormActions { gap: var(--dsh-space-3); }
 .dshWakatimeConfigCard { max-width: 760px; overflow: hidden; padding: 0; }
 .dshWakatimeConfigCard > .dshWakatimeForm { gap: 0; }
@@ -917,14 +945,14 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeConfigCard .dshWakatimeCliHeaderActions .dshWakatimeButton { min-height: 32px; }
 .dshWakatimeConfigCard .dshWakatimeCliPath { grid-column: 1 / -1; margin-top: 5px; overflow-wrap: anywhere; }
 .dshWakatimeConfigCard .dshWakatimeCliHint { grid-column: 1 / -1; margin-top: 5px; }
-.dshWakatimeConfigCard .dshWakatimeAdvanced { margin: 0 12px; padding: 9px 0; border-top: 0; }
-.dshWakatimeConfigCard .dshWakatimeAdvanced[open] summary { margin-bottom: 8px; }
-.dshWakatimeConfigCard .dshWakatimeAdvanced summary { font-size: 11px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced { margin: 0 12px; padding: 9px 0 5px; border-top: 0; }
+.dshWakatimeConfigCard .dshWakatimeAdvancedTitle { margin-bottom: 8px; font-size: 11px; opacity: 1; }
 .dshWakatimeConfigCard .dshWakatimeAdvanced > .dshWakatimeForm { gap: var(--dsh-space-3); }
 .dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeField { gap: 6px; }
 .dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeFormGrid { gap: 10px; }
+.dshWakatimeAdvancedFooter { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--dsh-space-4); }
 .dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeChecks { gap: var(--dsh-space-2); }
-.dshWakatimeConfigCard .dshWakatimeFormActions { margin: 0 12px; padding: 8px 0 10px; background: transparent; }
+.dshWakatimeConfigCard .dshWakatimeAdvancedFooter .dshWakatimeFormActions { margin: 0; padding: 0 0 2px; background: transparent; }
 .dshWakatimeConfigCard .dshWakatimeSaved { margin-right: auto; font-size: 11px; }
 @media (max-width: 820px) {
   .dshWakatimePage { padding: 0 0 var(--dsh-space-5); }
@@ -970,6 +998,8 @@ body[data-color-scheme="light"] .dshWakatimePage {
   .dshWakatimeConfigCard .dshWakatimeKeyMeta { padding-top: 0; }
   .dshWakatimeCliPanel { grid-template-columns: 1fr; }
   .dshWakatimeCliActions { grid-column: 1; grid-row: auto; justify-content: flex-start; }
+  .dshWakatimeAdvancedFooter { grid-template-columns: 1fr; gap: var(--dsh-space-3); }
+  .dshWakatimeConfigCard .dshWakatimeAdvancedFooter .dshWakatimeFormActions { justify-content: flex-end; }
   #dsh-wakatime-panel-ai .dshWakatimeMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .dshWakatimeButton { transition: none; } }
@@ -1376,14 +1406,10 @@ function Breakdown({
   const max = Math.max(1, ...items.map(item => item.value))
   if (items.length === 0) return h('p', { className: 'dshWakatimeNotice' }, '—')
   return h('div', { className: 'dshWakatimeBreakdown' }, items.map(item => h('div', { className: 'dshWakatimeBreakdownItem', key: item.name },
-    h('div', null,
-      h('div', { className: 'dshWakatimeBreakdownHead' },
-        h('span', { title: item.name }, item.name),
-        item.detail === undefined ? null : h('span', null, item.detail),
-      ),
-      h('div', { className: 'dshWakatimeTrack' }, h('span', { style: { width: `${Math.max(4, item.value / max * 100)}%` } })),
-    ),
+    h('span', { className: 'dshWakatimeBreakdownLabel', title: item.name }, item.name),
+    item.detail === undefined ? h('span', { className: 'dshWakatimeBreakdownDetail', 'aria-hidden': 'true' }, '') : h('span', { className: 'dshWakatimeBreakdownDetail' }, item.detail),
     h('span', { className: 'dshWakatimeBreakdownValue' }, formatValue(item.value)),
+    h('div', { className: 'dshWakatimeTrack' }, h('span', { style: { width: `${Math.max(4, item.value / max * 100)}%` } })),
   )))
 }
 
@@ -1416,14 +1442,10 @@ function OfficialActivityCharts({ usage, t, mode = 'all', embedded = false }: { 
     if (chartMode === 'projects') {
       const max = Math.max(1, ...source.map(item => item.totalSeconds))
       return h('div', { className: 'dshWakatimeOfficialProjectChartRows' }, source.map(item => h('div', { className: 'dshWakatimeOfficialProjectChartRow', key: item.name },
-        h('div', null,
-          h('div', { className: 'dshWakatimeOfficialProjectChartHead' },
-            h('span', { title: item.name }, item.name),
-            h('span', null, formatDuration(item.totalSeconds)),
-          ),
-          h('div', { className: 'dshWakatimeOfficialProjectChartTrack' }, h('span', { style: { width: `${Math.max(2, item.totalSeconds / max * 100)}%` } })),
-        ),
-        h('span', { className: 'dshWakatimeBreakdownValue' }, `${item.percent.toFixed(2)}%`),
+        h('span', { className: 'dshWakatimeOfficialProjectChartLabel', title: item.name }, item.name),
+        h('span', { className: 'dshWakatimeOfficialProjectChartDetail' }, formatDuration(item.totalSeconds)),
+        h('span', { className: 'dshWakatimeOfficialProjectChartValue' }, `${item.percent.toFixed(2)}%`),
+        h('div', { className: 'dshWakatimeOfficialProjectChartTrack' }, h('span', { style: { width: `${Math.max(2, item.totalSeconds / max * 100)}%` } })),
       )))
     }
     const names = source.map(item => item.name)
@@ -1536,6 +1558,27 @@ function OfficialRangeMenu({ range, t, onPreset }: { range: UsageRange; t: Trans
   return h('div', { className: 'dshWakatimeOfficialRangeMenu' },
     h('button', { className: 'dshWakatimeOfficialRangeMenuButton', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: () => setOpen(current => !current) }, options.find(option => option.days === selected)?.label),
     open ? h('div', { className: 'dshWakatimeOfficialRangePopover', role: 'menu' }, options.map(option => h('button', { key: option.days, type: 'button', role: 'menuitem', 'aria-current': option.days === selected, onClick: () => { setOpen(false); onPreset(option.days) } }, option.label))) : null,
+  )
+}
+
+function OfficialBrand({ title }: { title: string }) {
+  return h('div', { className: 'dshWakatimeOfficialBrand' },
+    h('div', { className: 'dshWakatimeOfficialMark', 'aria-hidden': 'true' },
+      h('svg', { viewBox: '0 0 340 340', focusable: 'false' },
+        h('path', { fill: 'none', fillRule: 'evenodd', clipRule: 'evenodd', d: 'M170 20C87.156 20 20 87.156 20 170C20 252.844 87.156 320 170 320C252.844 320 320 252.844 320 170C320 87.156 252.844 20 170 20V20V20Z', stroke: '#fff', strokeWidth: 40 }),
+        h('path', { d: 'M190.183 213.541C188.74 215.443 186.576 216.667 184.151 216.667C183.913 216.667 183.677 216.651 183.443 216.627C183.042 216.579 182.823 216.545 182.606 216.497C182.337 216.434 182.137 216.375 181.94 216.308C181.561 216.176 181.392 216.109 181.228 216.035C180.843 215.849 180.707 215.778 180.572 215.701C180.205 215.478 180.109 215.412 180.014 215.345C179.856 215.233 179.698 215.117 179.547 214.992C179.251 214.746 179.147 214.65 179.044 214.552C178.731 214.241 178.531 214.018 178.341 213.785C177.982 213.331 177.69 212.888 177.438 212.415L168.6 198.214L159.766 212.415C158.38 214.939 155.874 216.667 152.995 216.667C150.106 216.667 147.588 214.926 146.243 212.346L107.607 156.061C106.337 154.529 105.556 152.499 105.556 150.258C105.556 145.514 109.043 141.665 113.344 141.665C116.127 141.665 118.564 143.282 119.942 145.708L152.555 193.9L161.735 178.952C163.058 176.288 165.626 174.478 168.575 174.478C171.273 174.478 173.652 175.996 175.049 178.298L184.517 193.839L235.684 120.583C237.075 118.226 239.475 116.667 242.213 116.667C246.514 116.667 250 120.514 250 125.258C250 127.332 249.337 129.232 248.23 130.715L190.183 213.541Z', fill: '#fff', stroke: '#fff', strokeWidth: 10 }),
+      ),
+    ),
+    h('h1', { className: 'dshWakatimeOfficialTitle' }, title),
+  )
+}
+
+function OfficialSubpageHeader({ title, range, t, onPreset }: { title: string; range: UsageRange; t: Translator; onPreset: (days: number) => void }) {
+  return h('header', { className: 'dshWakatimeOfficialHeader' },
+    h(OfficialBrand, { title }),
+    h('div', { className: 'dshWakatimeOfficialRange' },
+      h(OfficialRangeMenu, { range, t, onPreset }),
+    ),
   )
 }
 
@@ -1669,8 +1712,9 @@ function DashboardView({
   )
 }
 
-function ProjectsView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+function ProjectsView({ usage, t, range, onPreset }: { usage: WakatimeUsageData; t: Translator; range: UsageRange; onPreset: (days: number) => void }) {
   return h(React.Fragment, null,
+    h(OfficialSubpageHeader, { title: tr(t, 'projectsOverview', 'Projects'), range, t, onPreset }),
     h(OfficialActivityCharts, { usage, t, mode: 'projects' }),
     h('section', { className: 'dshWakatimeOfficialSection' },
       h('div', { className: 'dshWakatimeOfficialPanel' },
@@ -1684,7 +1728,7 @@ function ProjectsView({ usage, t }: { usage: WakatimeUsageData; t: Translator })
   )
 }
 
-function AiView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+function AiView({ usage, t, range, onPreset }: { usage: WakatimeUsageData; t: Translator; range: UsageRange; onPreset: (days: number) => void }) {
   const totals = usage.totals
   const aiLines = totals.aiAdditions + totals.aiDeletions
   const humanLines = totals.humanAdditions + totals.humanDeletions
@@ -1694,6 +1738,7 @@ function AiView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
     ? formatNumber(totals.aiPromptLengthSum / totals.aiPromptEvents)
     : '—'
   return h(React.Fragment, null,
+    h(OfficialSubpageHeader, { title: tr(t, 'aiActivity', 'AI Coding'), range, t, onPreset }),
     h('div', { className: 'dshWakatimeMetrics' },
       h(Metric, { label: tr(t, 'aiTime', 'AI coding time'), value: formatDuration(totals.aiSeconds), meta: totals.totalSeconds > 0 ? `${Math.round(totals.aiSeconds / totals.totalSeconds * 100)}% ${tr(t, 'ofTotal', 'of total')}` : '—' }),
       h(Metric, { label: tr(t, 'aiLines', 'AI line changes'), value: `${formatNumber(aiLines)} ${tr(t, 'lines', 'lines')}`, meta: `+${formatNumber(totals.aiAdditions)} / −${formatNumber(totals.aiDeletions)}` }),
@@ -1936,12 +1981,10 @@ function InsightsModels({ insights, t }: { insights: WakatimeInsightsData; t: Tr
   return h('section', { className: 'dshWakatimeInsightsPanel' },
     h('div', { className: 'dshWakatimeInsightsPanelHeader' }, h('h2', null, tr(t, 'models', 'Models'))),
     models.length === 0 ? emptyBreakdown(t) : h(React.Fragment, null,
-      h('div', { className: 'dshWakatimeInsightsModels' }, models.map(model => h('div', { className: 'dshWakatimeInsightsModelRow', key: model.name },
-        h('div', { className: 'dshWakatimeInsightsModelHead' },
-          h('span', { title: model.name }, model.name),
-          h('span', null, `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')}`),
-          h('span', null, formatCost(model.cost)),
-        ),
+    h('div', { className: 'dshWakatimeInsightsModels' }, models.map(model => h('div', { className: 'dshWakatimeInsightsModelRow', key: model.name },
+        h('span', { className: 'dshWakatimeInsightsModelLabel', title: model.name }, model.name),
+        h('span', { className: 'dshWakatimeInsightsModelDetail' }, `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')}`),
+        h('span', { className: 'dshWakatimeInsightsModelValue' }, formatCost(model.cost)),
         h('div', { className: 'dshWakatimeInsightsModelTrack' }, h('span', { style: { width: `${Math.max(2, totalLines > 0 ? Math.abs(model.lines) / totalLines * 100 : 2)}%` } })),
       ))),
     ),
@@ -2024,7 +2067,8 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const [usageLoading, setUsageLoading] = React.useState(false)
   const [insightsLoading, setInsightsLoading] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
-  const [cliAction, setCliAction] = React.useState<'download' | 'update'>()
+  const [cliAction, setCliAction] = React.useState<'download' | 'check-update' | 'update'>()
+  const [cliUpdateState, setCliUpdateState] = React.useState<CliUpdateState>()
   const [notice, setNotice] = React.useState('')
   const [error, setError] = React.useState('')
 
@@ -2058,6 +2102,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     setLoading(true)
     setError('')
     setNotice('')
+    setCliUpdateState(undefined)
     try {
       const next = await callValue<WakatimeUiStatus>(rpcCall, 'status')
       setStatus(next)
@@ -2104,6 +2149,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
       setForm(formFromStatus(next))
       setApiKey('')
       setClearApiKey(false)
+      setCliUpdateState(undefined)
       setInsights(undefined)
       setNotice(tr(t, 'saved', 'Saved'))
       await loadUsage(range)
@@ -2114,15 +2160,28 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     }
   }
 
-  const runCliAction = async (action: 'download' | 'update') => {
+  const runCliAction = async (action: 'download' | 'check-update' | 'update') => {
     setCliAction(action)
     setError('')
     setNotice('')
     try {
+      if (action === 'check-update') {
+        const result = await callValue<WakatimeCliUpdateCheck>(rpcCall, 'check-cli-update')
+        setStatus(result.status)
+        setForm(formFromStatus(result.status))
+        setCliUpdateState({ updateAvailable: result.updateAvailable, ...(result.latestVersion === undefined ? {} : { latestVersion: result.latestVersion }) })
+        setNotice(result.updateAvailable
+          ? tr(t, 'cliUpdateAvailable', 'Update {version} available').replace('{version}', result.latestVersion ?? '')
+          : tr(t, 'cliLatest', 'Already up to date'))
+        return
+      }
       const next = await callValue<WakatimeUiStatus>(rpcCall, action === 'download' ? 'download-cli' : 'update-cli')
       setStatus(next)
       setForm(formFromStatus(next))
-      setNotice(tr(t, action === 'download' ? 'cliDownloaded' : 'cliChecked', action === 'download' ? 'CLI installed' : 'Check complete'))
+      setCliUpdateState(action === 'update' ? { updateAvailable: false, ...(next.cli.version === undefined ? {} : { latestVersion: next.cli.version }) } : undefined)
+      setNotice(action === 'download'
+        ? tr(t, 'cliDownloaded', 'CLI installed')
+        : tr(t, 'cliUpdated', 'Updated to {version}').replace('{version}', next.cli.version ?? 'latest'))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : tr(t, 'cliActionFailed', 'CLI action failed'))
     } finally {
@@ -2162,6 +2221,8 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const cliPath = status?.cli.path ?? status?.cli.managedPath
   const canDownloadCli = source === 'none' || (source === 'managed' && state === 'invalid')
   const canUpdateCli = source === 'managed' && state === 'ready'
+  const cliButtonAction: 'check-update' | 'update' = cliUpdateState?.updateAvailable === true ? 'update' : 'check-update'
+  const cliUpdateButtonDisabled = busy || (cliUpdateState !== undefined && !cliUpdateState.updateAvailable)
   const hasUsage = status?.apiKeyConfigured === true && usage !== undefined
 
   const dataState = loading && usage === undefined
@@ -2187,8 +2248,8 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
         : tab === 'dashboard'
           ? h(DashboardView, { usage, t, range, onPreset: setPreset, onOpenAi: () => setTab('ai') })
           : tab === 'ai'
-            ? h(AiView, { usage, t })
-            : h(ProjectsView, { usage, t })
+            ? h(AiView, { usage, t, range, onPreset: setPreset })
+            : h(ProjectsView, { usage, t, range, onPreset: setPreset })
 
   const settings = config === undefined
     ? h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'loading', 'Loading…'))
@@ -2220,7 +2281,16 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
                 ? h('button', { className: 'dshWakatimeButton', 'data-primary': 'true', type: 'button', disabled: busy, onClick: () => { void runCliAction('download') } }, cliAction === 'download' ? tr(t, 'saving', 'Saving…') : tr(t, 'cliDownload', 'Download WakaTime CLI'))
                 : null,
               canUpdateCli
-                ? h('button', { className: 'dshWakatimeButton', type: 'button', disabled: busy, onClick: () => { void runCliAction('update') } }, cliAction === 'update' ? tr(t, 'saving', 'Saving…') : tr(t, 'cliUpdate', 'Check for updates'))
+                ? h('button', { className: 'dshWakatimeButton', type: 'button', disabled: cliUpdateButtonDisabled, onClick: () => { void runCliAction(cliButtonAction) } },
+                  cliAction === 'check-update'
+                    ? tr(t, 'cliChecking', 'Checking…')
+                    : cliAction === 'update'
+                      ? tr(t, 'saving', 'Saving…')
+                      : cliUpdateState?.updateAvailable
+                        ? tr(t, 'cliUpdate', 'Update')
+                        : cliUpdateState
+                          ? tr(t, 'cliLatest', 'Already up to date')
+                          : tr(t, 'cliCheckUpdate', 'Check for updates'))
               : null,
             ),
           ),
@@ -2230,8 +2300,8 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
                 ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliInvalidPath', 'The CLI found on PATH is not executable.'))
                 : null,
         ),
-        h('details', { className: 'dshWakatimeAdvanced' },
-          h('summary', null, tr(t, 'advanced', 'Advanced options')),
+        h('section', { className: 'dshWakatimeAdvanced', 'aria-labelledby': 'dsh-wakatime-advanced-title' },
+          h('h3', { id: 'dsh-wakatime-advanced-title', className: 'dshWakatimeAdvancedTitle' }, tr(t, 'advanced', 'Advanced options')),
           h('div', { className: 'dshWakatimeForm' },
             h('div', { className: 'dshWakatimeFormGrid' },
               h('div', { className: 'dshWakatimeField' },
@@ -2247,15 +2317,17 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
               h('label', { htmlFor: 'dsh-wakatime-cli-path' }, tr(t, 'cliPath', 'CLI path')),
               h('input', { id: 'dsh-wakatime-cli-path', type: 'text', value: config.cliPath, placeholder: config.cliPath.trim().length === 0 && cliPath !== undefined ? cliPath : '~/.wakatime/wakatime-cli-*', onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('cliPath', event.target.value) }),
             ),
-            h('div', { className: 'dshWakatimeChecks' },
-              h('div', { className: 'dshWakatimeCheck' }, h('input', { id: 'dsh-wakatime-track-reads', type: 'checkbox', checked: config.trackReads, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('trackReads', event.target.checked) }), h('div', null, h('label', { htmlFor: 'dsh-wakatime-track-reads' }, tr(t, 'trackReads', 'Track reads')))),
-              h('div', { className: 'dshWakatimeCheck' }, h('input', { id: 'dsh-wakatime-debug', type: 'checkbox', checked: config.debug, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('debug', event.target.checked) }), h('div', null, h('label', { htmlFor: 'dsh-wakatime-debug' }, tr(t, 'debug', 'Debug logging')))),
+            h('div', { className: 'dshWakatimeAdvancedFooter' },
+              h('div', { className: 'dshWakatimeChecks' },
+                h('div', { className: 'dshWakatimeCheck' }, h('input', { id: 'dsh-wakatime-track-reads', type: 'checkbox', checked: config.trackReads, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('trackReads', event.target.checked) }), h('div', null, h('label', { htmlFor: 'dsh-wakatime-track-reads' }, tr(t, 'trackReads', 'Track reads')))),
+                h('div', { className: 'dshWakatimeCheck' }, h('input', { id: 'dsh-wakatime-debug', type: 'checkbox', checked: config.debug, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('debug', event.target.checked) }), h('div', null, h('label', { htmlFor: 'dsh-wakatime-debug' }, tr(t, 'debug', 'Debug logging')))),
+              ),
+              h('div', { className: 'dshWakatimeFormActions' },
+                notice.length > 0 ? h('span', { className: 'dshWakatimeSaved', role: 'status' }, notice) : null,
+                h('button', { className: 'dshWakatimeButton', 'data-primary': 'true', type: 'button', disabled: busy || !settingsDirty, onClick: () => { void save() } }, saving ? tr(t, 'saving', 'Saving…') : tr(t, 'save', 'Save settings')),
+              ),
             ),
           ),
-        ),
-        h('div', { className: 'dshWakatimeFormActions' },
-          notice.length > 0 ? h('span', { className: 'dshWakatimeSaved', role: 'status' }, notice) : null,
-          h('button', { className: 'dshWakatimeButton', 'data-primary': 'true', type: 'button', disabled: busy || !settingsDirty, onClick: () => { void save() } }, saving ? tr(t, 'saving', 'Saving…') : tr(t, 'save', 'Save settings')),
         ),
       ),
     )
@@ -2275,11 +2347,6 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     error.length > 0 ? h('div', { className: 'dshWakatimeError', role: 'alert' }, error) : null,
     tab !== 'settings'
       ? h('section', { id: `dsh-wakatime-panel-${tab}`, role: 'tabpanel', 'aria-labelledby': `dsh-wakatime-tab-${tab}` },
-        tab === 'dashboard' || tab === 'insights' ? null : h('div', { className: 'dshWakatimeToolbar dshWakatimePageRangeToolbar' },
-          h('div', { className: 'dshWakatimeOfficialRange' },
-            h(OfficialRangeMenu, { range, t, onPreset: setPreset }),
-          ),
-        ),
         data,
       )
       : h('section', { id: 'dsh-wakatime-panel-settings', role: 'tabpanel', 'aria-labelledby': 'dsh-wakatime-tab-settings' }, settings),
