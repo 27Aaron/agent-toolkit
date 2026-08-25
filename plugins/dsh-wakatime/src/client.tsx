@@ -3,6 +3,7 @@ import {
   WAKATIME_RPC_CHANNEL,
   UI_CATEGORIES,
   type WakatimeDailyUsage,
+  type WakatimeInsightsData,
   type WakatimeUiConfig,
   type WakatimeUiRpcCall,
   type WakatimeUiStatus,
@@ -126,7 +127,35 @@ const zh = {
   todayCategories: '分类',
   weekdayAverage: '工作日平均',
   aiPercentage: 'AI 占比趋势',
-  insightsHint: '从每日活动中提炼出的节奏与 AI 使用趋势。',
+  insightActivity: '活动',
+  insightAiPercentage: 'AI 占比',
+  insightHeatmapHint: '颜色越亮代表活动越多。',
+  insightAiHeatmapHint: '颜色越亮代表 AI 代码占比越高。',
+  insightLess: '少',
+  insightMore: '多',
+  insightAiDriven: 'AI 驱动',
+  insightHuman: '人工',
+  insightAiAdditions: 'AI 新增',
+  insightAiDeletions: 'AI 删除',
+  insightHumanAdditions: '人工新增',
+  insightHumanDeletions: '人工删除',
+  insightTotal: '总编码时间',
+  insightActiveDays: '活跃天数',
+  insightActiveDaysMeta: '共活跃 {days} 天',
+  insightDailyAverage: '日均时间',
+  insightRangeMeta: '过去 1 年',
+  insightDurationMeta: '累计时长 {time}',
+  insightBestDayMeta: '当天时长 {time}',
+  insightTooltipAverage: '平均编码时间',
+  insightTooltipDays: '{days} 个工作日',
+  insightTooltipNoBreakdown: '暂无分类明细',
+  insightTopLanguage: '主要语言',
+  insightTopProject: '主要项目',
+  insightTopOperatingSystem: '主要操作系统',
+  insightMostActiveDay: '最活跃的一天',
+  insightModelSummary: 'AI 模型共改动 {lines} 行，估算支出 {cost}。',
+  insightUpdating: 'WakaTime 正在生成这段长期数据，当前显示的是缓存结果。',
+  insightNoData: '这段时间还没有可用的洞察数据。',
   workspaceHint: '编码工具、语言、设备和项目的时间占比。',
   noBreakdown: '暂无明细',
   apiKey: 'API Key',
@@ -252,7 +281,35 @@ const en = {
   todayCategories: 'Categories',
   weekdayAverage: 'Weekday average',
   aiPercentage: 'AI share trend',
-  insightsHint: 'Patterns and AI usage trends derived from daily activity.',
+  insightActivity: 'Activity',
+  insightAiPercentage: 'AI Percentage',
+  insightHeatmapHint: 'Brighter cells indicate more activity.',
+  insightAiHeatmapHint: 'Brighter cells indicate a higher share of AI line changes.',
+  insightLess: 'Less',
+  insightMore: 'More',
+  insightAiDriven: 'AI-driven',
+  insightHuman: 'Human',
+  insightAiAdditions: 'AI additions',
+  insightAiDeletions: 'AI deletions',
+  insightHumanAdditions: 'Human additions',
+  insightHumanDeletions: 'Human deletions',
+  insightTotal: 'Total coding time',
+  insightActiveDays: 'active days',
+  insightActiveDaysMeta: '{days} active days',
+  insightDailyAverage: 'Daily average',
+  insightRangeMeta: 'over the last year',
+  insightDurationMeta: 'Total time {time}',
+  insightBestDayMeta: 'That day {time}',
+  insightTooltipAverage: 'Average coding time',
+  insightTooltipDays: '{days} weekdays',
+  insightTooltipNoBreakdown: 'No category breakdown',
+  insightTopLanguage: 'Top language',
+  insightTopProject: 'Top project',
+  insightTopOperatingSystem: 'Top operating system',
+  insightMostActiveDay: 'Most active day',
+  insightModelSummary: 'AI models changed {lines} lines with {cost} estimated spend.',
+  insightUpdating: 'WakaTime is preparing this long-range data; cached results are shown for now.',
+  insightNoData: 'There is no insight data for this range yet.',
   workspaceHint: 'Time share across coding tools, languages, machines, and projects.',
   noBreakdown: 'No breakdown yet',
   apiKey: 'API key',
@@ -440,6 +497,93 @@ const STYLE = `
 .dshWakatimeOfficialCompareTrack span { display: block; height: 100%; }
 .dshWakatimeOfficialCompareTrack .dshWakatimeAiPart { background: #5b7cff; opacity: .78; }
 .dshWakatimeOfficialCompareTrack .dshWakatimeHumanPart { background: #d69a2e; opacity: .9; }
+.dshWakatimeInsightsStatus { margin: 0 0 12px; border: 1px solid color-mix(in srgb, #d69a2e 42%, transparent); border-radius: 7px; padding: 9px 11px; color: inherit; background: color-mix(in srgb, #d69a2e 8%, transparent); font-size: 11px; line-height: 1.45; }
+.dshWakatimeInsightsSummary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.dshWakatimeInsightsSummaryCard { min-width: 0; padding: 12px 13px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeInsightsSummaryCard:first-child { background: color-mix(in srgb, #5b7cff 11%, transparent); }
+.dshWakatimeInsightsSummaryLabel { color: currentColor; opacity: .56; font-size: 10px; }
+.dshWakatimeInsightsSummaryValue { margin-top: 6px; overflow: hidden; font-size: 15px; font-weight: 720; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeInsightsSummaryMeta { margin-top: 4px; overflow: hidden; color: currentColor; opacity: .52; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeInsightsPanel { margin-top: 12px; padding: 14px 15px; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
+.dshWakatimeInsightsPanelHeader { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.dshWakatimeInsightsPanelHeader h2 { margin: 0; font-size: 14px; letter-spacing: -.015em; }
+.dshWakatimeInsightsPanelHeader p { margin: 0; color: currentColor; opacity: .54; font-size: 10px; }
+.dshWakatimeInsightsHeatmapScroll { overflow-x: auto; padding: 2px 0 5px; }
+.dshWakatimeInsightsHeatmap { display: grid; grid-template-columns: max-content max-content; gap: 5px; min-width: max-content; }
+.dshWakatimeInsightsHeatmapLabels { display: grid; grid-template-rows: repeat(7, 11px); gap: 3px; padding-top: 19px; }
+.dshWakatimeInsightsHeatmapLabels span { color: currentColor; opacity: .55; font-size: 9px; line-height: 11px; white-space: nowrap; }
+.dshWakatimeInsightsHeatmapBody { display: grid; gap: 5px; }
+.dshWakatimeInsightsHeatmapMonths, .dshWakatimeInsightsHeatGrid { display: grid; grid-template-columns: repeat(var(--dsh-insight-weeks), 11px); column-gap: 3px; }
+.dshWakatimeInsightsHeatmapMonths { height: 14px; }
+.dshWakatimeInsightsHeatmapMonths span { overflow: visible; color: currentColor; opacity: .52; font-size: 9px; white-space: nowrap; }
+.dshWakatimeInsightsHeatGrid { grid-template-rows: repeat(7, 11px); row-gap: 3px; grid-auto-flow: column; }
+.dshWakatimeInsightsHeatCell { display: block; width: 11px; height: 11px; border: 1px solid color-mix(in srgb, currentColor 7%, transparent); border-radius: 2px; background: color-mix(in srgb, currentColor 6%, transparent); }
+.dshWakatimeInsightsHeatCell:hover { outline: 2px solid currentColor; outline-offset: 1px; }
+.dshWakatimeInsightsHeatCell[data-kind="activity"][data-level="1"] { background: #26385f; }
+.dshWakatimeInsightsHeatCell[data-kind="activity"][data-level="2"] { background: #3d5da3; }
+.dshWakatimeInsightsHeatCell[data-kind="activity"][data-level="3"] { background: #5b7cff; }
+.dshWakatimeInsightsHeatCell[data-kind="activity"][data-level="4"] { background: #91aaff; }
+.dshWakatimeInsightsHeatCell[data-kind="ai"][data-level="1"] { background: #324b7e; }
+.dshWakatimeInsightsHeatCell[data-kind="ai"][data-level="2"] { background: #4e6fb8; }
+.dshWakatimeInsightsHeatCell[data-kind="ai"][data-level="3"] { background: #758fe0; }
+.dshWakatimeInsightsHeatCell[data-kind="ai"][data-level="4"] { background: #a8baff; }
+.dshWakatimeInsightsLegend { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 8px; color: currentColor; opacity: .55; font-size: 9px; }
+.dshWakatimeInsightsLegend i { display: block; width: 10px; height: 10px; border-radius: 2px; background: color-mix(in srgb, currentColor 6%, transparent); }
+.dshWakatimeInsightsLegend i:nth-of-type(2) { background: #3d5da3; }
+.dshWakatimeInsightsLegend i:nth-of-type(3) { background: #5b7cff; }
+.dshWakatimeInsightsLegend i:nth-of-type(4) { background: #91aaff; }
+.dshWakatimeInsightsWeekdayChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; min-height: 146px; align-items: end; }
+.dshWakatimeInsightsWeekday { position: relative; display: grid; grid-template-rows: 106px auto auto; gap: 5px; min-width: 0; text-align: center; }
+.dshWakatimeInsightsWeekdayBar { display: flex; height: 106px; flex-direction: column-reverse; justify-content: flex-start; overflow: hidden; border-radius: 3px 3px 1px 1px; background: color-mix(in srgb, currentColor 7%, transparent); }
+.dshWakatimeInsightsWeekdayBar span { display: block; min-height: 1px; }
+.dshWakatimeInsightsWeekdayLabel { overflow: hidden; color: currentColor; opacity: .55; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeInsightsWeekdayValue { color: currentColor; opacity: .78; font-size: 10px; font-variant-numeric: tabular-nums; }
+.dshWakatimeInsightsWeekdayTooltip { position: absolute; z-index: 5; bottom: calc(100% + 7px); left: 50%; display: grid; width: max-content; max-width: 220px; gap: 6px; transform: translate(-50%, 4px); border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 7px; padding: 9px 10px; color: #f4f5f7; background: #2e3137; box-shadow: 0 10px 24px rgb(0 0 0 / 30%); font-size: 10px; line-height: 1.3; opacity: 0; pointer-events: none; transition: opacity .12s ease, transform .12s ease; }
+.dshWakatimeInsightsWeekday:hover .dshWakatimeInsightsWeekdayTooltip,
+.dshWakatimeInsightsWeekday:focus-visible .dshWakatimeInsightsWeekdayTooltip { transform: translate(-50%, 0); opacity: 1; }
+.dshWakatimeInsightsWeekday:first-child .dshWakatimeInsightsWeekdayTooltip { left: 0; transform: translate(0, 4px); }
+.dshWakatimeInsightsWeekday:first-child:hover .dshWakatimeInsightsWeekdayTooltip,
+.dshWakatimeInsightsWeekday:first-child:focus-visible .dshWakatimeInsightsWeekdayTooltip { transform: translate(0, 0); }
+.dshWakatimeInsightsWeekday:last-child .dshWakatimeInsightsWeekdayTooltip { right: 0; left: auto; transform: translate(0, 4px); }
+.dshWakatimeInsightsWeekday:last-child:hover .dshWakatimeInsightsWeekdayTooltip,
+.dshWakatimeInsightsWeekday:last-child:focus-visible .dshWakatimeInsightsWeekdayTooltip { transform: translate(0, 0); }
+.dshWakatimeInsightsWeekdayTooltipTitle { font-weight: 700; }
+.dshWakatimeInsightsWeekdayTooltipMeta { color: rgb(244 245 247 / 65%); }
+.dshWakatimeInsightsWeekdayTooltipRows { display: grid; gap: 3px; }
+.dshWakatimeInsightsWeekdayTooltipRow { display: flex; justify-content: space-between; gap: 12px; white-space: nowrap; }
+.dshWakatimeInsightsWeekdayTooltipRow span:first-child { color: rgb(244 245 247 / 72%); }
+.dshWakatimeInsightsWeekdayTooltipRow span:last-child { font-variant-numeric: tabular-nums; }
+.dshWakatimeInsightsWeekday:focus-visible { outline: 2px solid #5b7cff; outline-offset: 3px; border-radius: 4px; }
+.dshWakatimeInsightsColumns { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 12px; margin-top: 12px; }
+.dshWakatimeInsightsColumns > .dshWakatimeInsightsPanel { margin-top: 0; }
+.dshWakatimeInsightsDonuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.dshWakatimeInsightsDonutCard { display: grid; min-width: 0; place-items: center; gap: 8px; padding: 12px 8px; border: 1px solid color-mix(in srgb, currentColor 11%, transparent); border-radius: 7px; background: color-mix(in srgb, currentColor 2%, transparent); }
+.dshWakatimeInsightsDonut { display: grid; width: 112px; height: 112px; place-items: center; border-radius: 50%; }
+.dshWakatimeInsightsDonut::after { display: grid; width: 76px; height: 76px; place-items: center; border-radius: 50%; background: color-mix(in srgb, currentColor 3%, transparent); content: attr(data-value); font-size: 18px; font-weight: 750; }
+.dshWakatimeInsightsDonutTitle { color: currentColor; opacity: .7; font-size: 10px; text-align: center; }
+.dshWakatimeInsightsDonutLegend { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 8px; color: currentColor; opacity: .62; font-size: 9px; }
+.dshWakatimeInsightsDonutLegend span { display: inline-flex; align-items: center; gap: 4px; }
+.dshWakatimeInsightsDonutLegendGrid { display: grid; width: auto; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 5px 8px; }
+.dshWakatimeInsightsDonutLegendGrid span { min-width: 0; justify-content: flex-start; white-space: nowrap; }
+.dshWakatimeInsightsDonutLegend i { display: block; width: 7px; height: 7px; border-radius: 2px; }
+.dshWakatimeInsightsDonutLegend i[data-tone="ai"] { background: #5b7cff; }
+.dshWakatimeInsightsDonutLegend i[data-tone="human"] { background: #d69a2e; }
+.dshWakatimeInsightsDonutLegend i[data-tone="ai-delete"] { background: #8a78d8; }
+.dshWakatimeInsightsDonutLegend i[data-tone="human-delete"] { background: #d66f5e; }
+.dshWakatimeInsightsModels { display: grid; gap: 9px; }
+.dshWakatimeInsightsModelRow { display: grid; gap: 4px; }
+.dshWakatimeInsightsModelHead { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; font-size: 10px; }
+.dshWakatimeInsightsModelHead span:first-child { overflow: hidden; opacity: .74; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeInsightsModelHead span:nth-child(2), .dshWakatimeInsightsModelHead span:last-child { opacity: .68; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dshWakatimeInsightsModelTrack { height: 5px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, currentColor 9%, transparent); }
+.dshWakatimeInsightsModelTrack span { display: block; height: 100%; border-radius: inherit; background: #5b7cff; }
+.dshWakatimeInsightsModelSummary { margin: 0 0 12px; color: currentColor; opacity: .62; font-size: 10px; line-height: 1.45; }
+.dshWakatimeInsightsTwoCol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.dshWakatimeInsightsList { display: grid; gap: 7px; }
+.dshWakatimeInsightsListRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding-bottom: 7px; border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent); font-size: 11px; }
+.dshWakatimeInsightsListRow:last-child { padding-bottom: 0; border-bottom: 0; }
+.dshWakatimeInsightsListRow span:first-child { overflow: hidden; opacity: .68; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeInsightsListRow span:last-child { opacity: .82; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .dshWakatimeGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
 .dshWakatimeCard + .dshWakatimeGrid,
 .dshWakatimeGrid + .dshWakatimeCard,
@@ -527,6 +671,7 @@ const STYLE = `
   .dshWakatimeOfficialChartGrid { grid-template-columns: 1fr; }
   .dshWakatimeOfficialSplit { grid-template-columns: 1fr; }
   .dshWakatimeProjectStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dshWakatimeInsightsColumns, .dshWakatimeInsightsTwoCol { grid-template-columns: 1fr; }
   .dshWakatimeCard { padding: 15px; }
   .dshWakatimeMiniGrid { grid-template-columns: 1fr; gap: 12px; }
   .dshWakatimeDailyChart { gap: 3px; }
@@ -659,6 +804,23 @@ function formatNumber(value: number): string {
 function formatCost(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return '—'
   return `$${value.toFixed(2)}`
+}
+
+const WAKATIME_CATEGORY_COLORS: Record<string, string> = {
+  'ai coding': '#5b7cff',
+  browsing: '#d69a2e',
+  coding: '#6fbf86',
+  'writing docs': '#a58ce6',
+  'writing tests': '#dd765f',
+  debugging: '#55b8b0',
+  'code reviewing': '#8a78d8',
+  building: '#9aa4b2',
+}
+const WAKATIME_CATEGORY_FALLBACK_COLORS = ['#5b7cff', '#d69a2e', '#6fbf86', '#a58ce6', '#dd765f', '#55b8b0']
+
+function categoryColor(name: string, fallbackIndex: number): string {
+  return WAKATIME_CATEGORY_COLORS[name.trim().toLowerCase()]
+    ?? WAKATIME_CATEGORY_FALLBACK_COLORS[fallbackIndex % WAKATIME_CATEGORY_FALLBACK_COLORS.length]!
 }
 
 function dayLabel(day: string): string {
@@ -853,7 +1015,6 @@ function OfficialTimeline({ usage, t }: { usage: WakatimeUsageData; t: Translato
 }
 
 function OfficialActivityCharts({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
-  const palette = ['#6d91ff', '#d69a2e', '#6fbf86', '#a58ce6', '#dd765f', '#55b8b0']
   const renderChart = (mode: 'projects' | 'categories') => {
     const source = mode === 'projects' ? usage.projects : usage.categories
     if (mode === 'projects') {
@@ -876,13 +1037,13 @@ function OfficialActivityCharts({ usage, t }: { usage: WakatimeUsageData; t: Tra
       return h('div', { className: 'dshWakatimeOfficialStackDay', key: day.date, role: 'listitem', title: day.date },
         h('div', { className: 'dshWakatimeOfficialStackBar' }, names.map((name, index) => {
           const seconds = items.find(item => item.name === name)?.totalSeconds ?? 0
-          return h('span', { key: name, style: { height: `${seconds / max * 100}%`, background: palette[index % palette.length] } })
+          return h('span', { key: name, style: { height: `${seconds / max * 100}%`, background: categoryColor(name, index) } })
         })),
         h('div', { className: 'dshWakatimeOfficialStackLabel' }, dayLabel(day.date)),
       )
     }))
     const legend = h('div', { className: 'dshWakatimeOfficialLegend' }, source.map((item, index) => h('span', { className: 'dshWakatimeOfficialLegendItem', key: item.name },
-      h('i', { style: { background: palette[index % palette.length] } }),
+      h('i', { style: { background: categoryColor(item.name, index) } }),
       h('span', { title: item.name }, item.name),
     )))
     return h(React.Fragment, null, chart, legend)
@@ -1227,65 +1388,240 @@ function weekdayLabel(index: number): string {
   }
 }
 
-function InsightsView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
-  const weekdayItems = Array.from({ length: 7 }, (_, index) => {
-    const days = usage.days.filter(day => new Date(`${day.date}T12:00:00`).getDay() === index)
-    const average = days.length > 0
-      ? days.reduce((sum, day) => sum + day.totalSeconds, 0) / days.length
-      : 0
-    return {
-      name: weekdayLabel(index),
-      value: average,
-      ...(days.length > 0 ? { detail: `${days.length} ${tr(t, 'days', 'days')}` } : {}),
+function insightDate(value: string): Date {
+  return new Date(`${value}T12:00:00`)
+}
+
+function addInsightDays(value: Date, days: number): Date {
+  const next = new Date(value)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function insightDateKey(value: Date): string {
+  return localDateInput(value)
+}
+
+function insightMonthLabel(value: Date): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, { month: 'short' }).format(value)
+  } catch {
+    return String(value.getMonth() + 1)
+  }
+}
+
+function insightHeatLevel(value: number, max: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  const ratio = value / Math.max(1, max)
+  if (ratio <= .25) return 1
+  if (ratio <= .5) return 2
+  if (ratio <= .75) return 3
+  return 4
+}
+
+function InsightsHeatmap({ insights, t, kind }: { insights: WakatimeInsightsData; t: Translator; kind: 'activity' | 'ai' }) {
+  const source = kind === 'ai' && insights.aiDays.length > 0 ? insights.aiDays : insights.days
+  const firstDate = insights.start ?? source[0]?.date
+  const lastDate = insights.end ?? source[source.length - 1]?.date
+  if (firstDate === undefined || lastDate === undefined || source.length === 0) {
+    return h('section', { className: 'dshWakatimeInsightsPanel' },
+      h('div', { className: 'dshWakatimeInsightsPanelHeader' }, h('h2', null, tr(t, kind === 'activity' ? 'insightActivity' : 'insightAiPercentage', kind === 'activity' ? 'Activity' : 'AI Percentage'))),
+      emptyBreakdown(t),
+    )
+  }
+  const first = insightDate(firstDate)
+  const last = insightDate(lastDate)
+  const firstMonday = addInsightDays(first, -((first.getDay() + 6) % 7))
+  const lastSunday = addInsightDays(last, 6 - ((last.getDay() + 6) % 7))
+  const weeks = Math.max(1, Math.floor((lastSunday.getTime() - firstMonday.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1)
+  const byDate = new Map(source.map(day => [day.date, day]))
+  const max = kind === 'ai' ? 100 : Math.max(1, ...source.map(day => day.totalSeconds))
+  const cells: Array<{ date: string | undefined; level: number; label: string }> = []
+  for (let week = 0; week < weeks; week += 1) {
+    for (let row = 0; row < 7; row += 1) {
+      const date = addInsightDays(firstMonday, week * 7 + row)
+      const key = insightDateKey(date)
+      const day = byDate.get(key)
+      const value = kind === 'ai' ? day?.aiPercent ?? 0 : day?.totalSeconds ?? 0
+      const label = day === undefined
+        ? `${key} · ${tr(t, 'noData', 'No activity')}`
+        : kind === 'ai' ? `${key} · ${formatPercent(day.aiPercent)} ${tr(t, 'insightAiDriven', 'AI-driven')}` : `${key} · ${formatDuration(day.totalSeconds)}`
+      cells.push({ date: day === undefined ? undefined : key, level: insightHeatLevel(value, max), label })
     }
+  }
+  const monthLabels = Array.from({ length: weeks }, (_, week) => {
+    const date = addInsightDays(firstMonday, week * 7)
+    return date.getDate() <= 7 ? insightMonthLabel(date) : ''
   })
-  const aiDays = usage.days.map(day => {
-    const aiLines = day.aiAdditions + day.aiDeletions
-    const humanLines = day.humanAdditions + day.humanDeletions
-    const changedLines = aiLines + humanLines
-    return { day, percent: changedLines > 0 ? aiLines / changedLines * 100 : 0 }
-  })
-  const maxAiPercent = Math.max(1, ...aiDays.map(item => item.percent))
-  return h(React.Fragment, null,
-    h('p', { className: 'dshWakatimeSectionHint' }, tr(t, 'insightsHint', 'Patterns and AI usage trends derived from daily activity.')),
-    h('div', { className: 'dshWakatimeGrid' },
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'weekdayAverage', 'Weekday average')),
-        h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'dailyActivityHint', 'Bar height represents coding time.')),
-        h(Breakdown, { items: weekdayItems, formatValue: formatDuration }),
-      ),
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'aiHuman', 'AI vs human')),
-        h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'aiPercentage', 'AI share trend')),
-        aiDays.length === 0
-          ? emptyBreakdown(t)
-          : h('div', { className: 'dshWakatimeInsightChart', role: 'list', 'aria-label': tr(t, 'aiPercentage', 'AI share trend') }, aiDays.map(item => {
-            const height = item.percent > 0 ? Math.max(5, item.percent / maxAiPercent * 100) : 2
-            return h('div', { className: 'dshWakatimeInsightDay', key: item.day.date, role: 'listitem', title: `${item.day.date} · ${item.percent.toFixed(0)}%` },
-              h('div', { className: 'dshWakatimeInsightBar' }, h('span', { style: { height: `${height}%` } })),
-              h('div', { className: 'dshWakatimeInsightLabel' }, dayLabel(item.day.date)),
-              h('div', { className: 'dshWakatimeInsightValue' }, `${item.percent.toFixed(0)}%`),
-            )
-          })),
+  const gridStyle = { '--dsh-insight-weeks': String(weeks) } as React.CSSProperties
+  const rowLabels = [weekdayLabel(1), '', weekdayLabel(3), '', weekdayLabel(5), '', '']
+  return h('section', { className: 'dshWakatimeInsightsPanel' },
+    h('div', { className: 'dshWakatimeInsightsPanelHeader' },
+      h('div', null,
+        h('h2', null, tr(t, kind === 'activity' ? 'insightActivity' : 'insightAiPercentage', kind === 'activity' ? 'Activity' : 'AI Percentage')),
       ),
     ),
-    h('div', { className: 'dshWakatimeGrid' },
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'aiActivity', 'AI coding')),
-        h('div', { className: 'dshWakatimeRows' },
-          h(Row, { label: tr(t, 'aiTime', 'AI coding time'), value: formatDuration(usage.totals.aiSeconds) }),
-          h(Row, { label: tr(t, 'aiLines', 'AI line changes'), value: formatNumber(usage.totals.aiAdditions + usage.totals.aiDeletions) }),
-          h(Row, { label: tr(t, 'aiSessions', 'AI sessions'), value: formatNumber(usage.totals.aiSessions) }),
-          h(Row, { label: tr(t, 'categories', 'Activity categories'), value: formatNumber(usage.categories.length) }),
+    h('div', { className: 'dshWakatimeInsightsHeatmapScroll' },
+      h('div', { className: 'dshWakatimeInsightsHeatmap' },
+        h('div', { className: 'dshWakatimeInsightsHeatmapLabels' }, rowLabels.map((label, index) => h('span', { key: index }, label))),
+        h('div', { className: 'dshWakatimeInsightsHeatmapBody' },
+          h('div', { className: 'dshWakatimeInsightsHeatmapMonths', style: gridStyle }, monthLabels.map((label, index) => h('span', { key: index }, label))),
+          h('div', { className: 'dshWakatimeInsightsHeatGrid', style: gridStyle, role: 'grid', 'aria-label': tr(t, kind === 'activity' ? 'insightActivity' : 'insightAiPercentage', kind === 'activity' ? 'Activity' : 'AI Percentage') }, cells.map((cell, index) => h('span', {
+            key: `${cell.date ?? 'empty'}-${index}`,
+            className: 'dshWakatimeInsightsHeatCell',
+            'data-kind': kind,
+            'data-level': cell.level,
+            title: cell.label,
+            'aria-label': cell.label,
+            role: 'gridcell',
+          }))),
         ),
       ),
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'models', 'Models')),
-        usage.aiModels.length === 0 ? emptyBreakdown(t) : h(Breakdown, {
-          items: usage.aiModels.map(model => ({ name: model.name, value: Math.abs(model.lines), detail: formatCost(model.cost) })),
-          formatValue: value => `${formatNumber(value)} ${tr(t, 'lines', 'lines')}`,
-        }),
+    ),
+    h('div', { className: 'dshWakatimeInsightsLegend' },
+      h('span', null, tr(t, 'insightLess', 'Less')),
+      h('i', null), h('i', null), h('i', null), h('i', null),
+      h('span', null, tr(t, 'insightMore', 'More')),
+    ),
+  )
+}
+
+function weekdayOrder(name: string): number {
+  const value = name.toLowerCase()
+  const index = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].findIndex(item => value.includes(item))
+  if (index >= 0) return index
+  const numeric = Number.parseInt(name, 10)
+  return Number.isFinite(numeric) ? numeric : 7
+}
+
+function InsightsWeekdayChart({ insights, t }: { insights: WakatimeInsightsData; t: Translator }) {
+  const items = [...insights.weekdays].sort((a, b) => weekdayOrder(a.name) - weekdayOrder(b.name))
+  const max = Math.max(1, ...items.map(item => item.totalSeconds))
+  return h('section', { className: 'dshWakatimeInsightsPanel' },
+    h('div', { className: 'dshWakatimeInsightsPanelHeader' },
+      h('div', null,
+        h('h2', null, tr(t, 'weekdayAverage', 'Weekday average')),
       ),
+    ),
+    items.length === 0 ? emptyBreakdown(t) : h('div', { className: 'dshWakatimeInsightsWeekdayChart' }, items.map((item, itemIndex) => {
+      const segments = item.categoryBreakdown.length > 0 ? item.categoryBreakdown : [{ name: 'Coding', totalSeconds: item.totalSeconds, percent: 100 }]
+      const detailSegments = item.categoryBreakdown.filter(segment => segment.totalSeconds > 0)
+      const label = weekdayLabel((weekdayOrder(item.name) + 1) % 7)
+      const tooltipId = `dsh-insight-weekday-tooltip-${itemIndex}`
+      return h('div', { className: 'dshWakatimeInsightsWeekday', key: item.name, tabIndex: 0, role: 'group', 'aria-describedby': tooltipId, 'aria-label': `${label} · ${item.averageText ?? formatDuration(item.totalSeconds)}` },
+        h('div', { className: 'dshWakatimeInsightsWeekdayBar' }, segments.map((segment, segmentIndex) => h('span', {
+          key: segment.name,
+          style: { height: `${Math.max(1, segment.totalSeconds / max * 100)}%`, background: categoryColor(segment.name, segmentIndex) },
+        }))),
+        h('div', { className: 'dshWakatimeInsightsWeekdayLabel' }, label),
+        h('div', { className: 'dshWakatimeInsightsWeekdayValue' }, item.averageText ?? formatDuration(item.totalSeconds)),
+        h('div', { id: tooltipId, className: 'dshWakatimeInsightsWeekdayTooltip', role: 'tooltip' },
+          h('strong', { className: 'dshWakatimeInsightsWeekdayTooltipTitle' }, label),
+          h('span', { className: 'dshWakatimeInsightsWeekdayTooltipMeta' }, `${tr(t, 'insightTooltipAverage', 'Average coding time')} · ${item.averageText ?? formatDuration(item.totalSeconds)} · ${tr(t, 'insightTooltipDays', '{days} weekdays').replace('{days}', formatNumber(item.days))}`),
+          detailSegments.length === 0
+            ? h('span', { className: 'dshWakatimeInsightsWeekdayTooltipMeta' }, tr(t, 'insightTooltipNoBreakdown', 'No category breakdown'))
+            : h('div', { className: 'dshWakatimeInsightsWeekdayTooltipRows' }, detailSegments.map(segment => h('div', { className: 'dshWakatimeInsightsWeekdayTooltipRow', key: segment.name },
+              h('span', null, segment.name),
+              h('span', null, `${formatDuration(segment.totalSeconds)} · ${formatPercent(segment.percent)}`),
+            ))),
+        ),
+      )
+    })),
+  )
+}
+
+function InsightsDonut({ title, center, segments, legendColumns = 1 }: { title: string; center: string; segments: Array<{ label: string; value: number; color: string; tone: string }>; legendColumns?: 1 | 2 }) {
+  const total = segments.reduce((sum, segment) => sum + Math.max(0, segment.value), 0)
+  let cursor = 0
+  const stops = total > 0 ? segments.map(segment => {
+    const start = cursor / total * 100
+    cursor += Math.max(0, segment.value)
+    return `${segment.color} ${start}% ${cursor / total * 100}%`
+  }).join(', ') : 'color-mix(in srgb, currentColor 14%, transparent) 0 100%'
+  return h('div', { className: 'dshWakatimeInsightsDonutCard' },
+    h('div', { className: 'dshWakatimeInsightsDonut', 'data-value': center, style: { background: `conic-gradient(${stops})` } }),
+    h('div', { className: 'dshWakatimeInsightsDonutTitle' }, title),
+    h('div', { className: `dshWakatimeInsightsDonutLegend${legendColumns === 2 ? ' dshWakatimeInsightsDonutLegendGrid' : ''}` }, segments.map(segment => h('span', { key: segment.label }, h('i', { 'data-tone': segment.tone }), `${segment.label} ${total > 0 ? formatPercent(segment.value / total * 100) : '0%'}`))),
+  )
+}
+
+function InsightsModels({ insights, t }: { insights: WakatimeInsightsData; t: Translator }) {
+  const models = insights.aiModels
+  const totalLines = models.reduce((sum, model) => sum + Math.abs(model.lines), 0)
+  return h('section', { className: 'dshWakatimeInsightsPanel' },
+    h('div', { className: 'dshWakatimeInsightsPanelHeader' }, h('h2', null, tr(t, 'models', 'Models'))),
+    models.length === 0 ? emptyBreakdown(t) : h(React.Fragment, null,
+      h('div', { className: 'dshWakatimeInsightsModels' }, models.map(model => h('div', { className: 'dshWakatimeInsightsModelRow', key: model.name },
+        h('div', { className: 'dshWakatimeInsightsModelHead' },
+          h('span', { title: model.name }, model.name),
+          h('span', null, `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')}`),
+          h('span', null, formatCost(model.cost)),
+        ),
+        h('div', { className: 'dshWakatimeInsightsModelTrack' }, h('span', { style: { width: `${Math.max(2, totalLines > 0 ? Math.abs(model.lines) / totalLines * 100 : 2)}%` } })),
+      ))),
+    ),
+  )
+}
+
+function InsightsView({ insights, t, loading }: { insights: WakatimeInsightsData | undefined; t: Translator; loading: boolean }) {
+  if (loading && insights === undefined) return h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'loading', 'Loading…'))
+  if (insights === undefined || !insights.available) return h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'insightNoData', 'There is no insight data for this range yet.'))
+  const summary = insights.summary
+  const aiLines = insights.totals.aiAdditions + insights.totals.aiDeletions
+  const humanLines = insights.totals.humanAdditions + insights.totals.humanDeletions
+  const aiAdditions = insights.totals.aiAdditions
+  const humanAdditions = insights.totals.humanAdditions
+  const aiDeletions = insights.totals.aiDeletions
+  const humanDeletions = insights.totals.humanDeletions
+  const topLanguage = insights.languages[0]
+  const topProject = insights.projects[0]
+  const topOperatingSystem = insights.operatingSystems[0]
+  return h(React.Fragment, null,
+    insights.isUpToDate === false || insights.isUpdating === true
+      ? h('p', { className: 'dshWakatimeInsightsStatus', role: 'status' }, tr(t, 'insightUpdating', 'WakaTime is preparing this long-range data; cached results are shown for now.'))
+      : null,
+    h('section', { className: 'dshWakatimeInsightsSummary' },
+      h('div', { className: 'dshWakatimeInsightsSummaryCard' },
+        h('div', { className: 'dshWakatimeInsightsSummaryLabel' }, tr(t, 'insightTotal', 'Total coding time')),
+        h('div', { className: 'dshWakatimeInsightsSummaryValue' }, summary.totalText ?? formatDuration(summary.totalSeconds)),
+        h('div', { className: 'dshWakatimeInsightsSummaryMeta' }, tr(t, 'insightActiveDaysMeta', '{days} active days').replace('{days}', formatNumber(summary.activeDays))),
+      ),
+      ...[
+        { label: tr(t, 'insightDailyAverage', 'Daily average'), value: summary.dailyAverageText ?? formatDuration(summary.dailyAverageSeconds), meta: tr(t, 'insightRangeMeta', 'over the last year') },
+        { label: tr(t, 'insightTopLanguage', 'Top language'), value: topLanguage?.name ?? '—', meta: topLanguage === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topLanguage.totalSeconds)) },
+        { label: tr(t, 'insightTopProject', 'Top project'), value: topProject?.name ?? '—', meta: topProject === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topProject.totalSeconds)) },
+        { label: tr(t, 'insightTopOperatingSystem', 'Top operating system'), value: topOperatingSystem?.name ?? '—', meta: topOperatingSystem === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topOperatingSystem.totalSeconds)) },
+        { label: tr(t, 'insightMostActiveDay', 'Most active day'), value: summary.bestDay === undefined ? '—' : dayLabel(summary.bestDay.date), meta: summary.bestDay === undefined ? undefined : tr(t, 'insightBestDayMeta', 'That day {time}').replace('{time}', formatDuration(summary.bestDay.totalSeconds)) },
+      ].map(item => h('div', { className: 'dshWakatimeInsightsSummaryCard', key: item.label },
+        h('div', { className: 'dshWakatimeInsightsSummaryLabel' }, item.label),
+        h('div', { className: 'dshWakatimeInsightsSummaryValue', title: item.value }, item.value),
+        item.meta === undefined ? null : h('div', { className: 'dshWakatimeInsightsSummaryMeta' }, item.meta),
+      )),
+    ),
+    h(InsightsWeekdayChart, { insights, t }),
+    h(InsightsHeatmap, { insights, t, kind: 'activity' }),
+    h(InsightsHeatmap, { insights, t, kind: 'ai' }),
+    h('div', { className: 'dshWakatimeInsightsColumns' },
+      h('section', { className: 'dshWakatimeInsightsPanel' },
+        h('div', { className: 'dshWakatimeInsightsPanelHeader' },
+          h('div', null,
+            h('h2', null, tr(t, 'aiHuman', 'AI vs human')),
+          ),
+        ),
+        h('div', { className: 'dshWakatimeInsightsDonuts' },
+          h(InsightsDonut, { title: tr(t, 'insightAiDriven', 'AI-driven'), center: formatPercent(aiLines + humanLines > 0 ? aiLines / (aiLines + humanLines) * 100 : 0), segments: [
+            { label: tr(t, 'insightAiDriven', 'AI-driven'), value: aiLines, color: '#5b7cff', tone: 'ai' },
+            { label: tr(t, 'insightHuman', 'Human'), value: humanLines, color: '#d69a2e', tone: 'human' },
+          ] }),
+          h(InsightsDonut, { title: tr(t, 'insightAiAdditions', 'AI additions'), center: formatNumber(aiAdditions), legendColumns: 2, segments: [
+            { label: tr(t, 'insightAiAdditions', 'AI additions'), value: aiAdditions, color: '#5b7cff', tone: 'ai' },
+            { label: tr(t, 'insightAiDeletions', 'AI deletions'), value: aiDeletions, color: '#8a78d8', tone: 'ai-delete' },
+            { label: tr(t, 'insightHumanAdditions', 'Human additions'), value: humanAdditions, color: '#d69a2e', tone: 'human' },
+            { label: tr(t, 'insightHumanDeletions', 'Human deletions'), value: humanDeletions, color: '#d66f5e', tone: 'human-delete' },
+          ] }),
+        ),
+      ),
+      h(InsightsModels, { insights, t }),
     ),
   )
 }
@@ -1295,11 +1631,13 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const [range, setRange] = React.useState<UsageRange>(defaultRange)
   const [status, setStatus] = React.useState<WakatimeUiStatus>()
   const [usage, setUsage] = React.useState<WakatimeUsageData>()
+  const [insights, setInsights] = React.useState<WakatimeInsightsData>()
   const [form, setForm] = React.useState<FormState>()
   const [apiKey, setApiKey] = React.useState('')
   const [clearApiKey, setClearApiKey] = React.useState(false)
   const [loading, setLoading] = React.useState(true)
   const [usageLoading, setUsageLoading] = React.useState(false)
+  const [insightsLoading, setInsightsLoading] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
   const [notice, setNotice] = React.useState('')
   const [error, setError] = React.useState('')
@@ -1316,6 +1654,19 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
       setUsageLoading(false)
     }
   }, [range, rpcCall, t])
+
+  const loadInsights = React.useCallback(async () => {
+    setInsightsLoading(true)
+    try {
+      const next = await callValue<WakatimeInsightsData>(rpcCall, 'insights', { range: 'last_year' })
+      setInsights(next)
+      setError('')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : tr(t, 'usageFailed', 'Could not read WakaTime insights'))
+    } finally {
+      setInsightsLoading(false)
+    }
+  }, [rpcCall, t])
 
   const refresh = React.useCallback(async () => {
     setLoading(true)
@@ -1334,6 +1685,10 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   }, [loadUsage, range, rpcCall, t])
 
   React.useEffect(() => { void refresh() }, [])
+  React.useEffect(() => {
+    if (tab !== 'insights' || status?.apiKeyConfigured !== true || insights !== undefined) return
+    void loadInsights()
+  }, [insights, loadInsights, status?.apiKeyConfigured, tab])
 
   const save = async () => {
     if (form === undefined) return
@@ -1358,6 +1713,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
       setForm(formFromStatus(next))
       setApiKey('')
       setClearApiKey(false)
+      setInsights(undefined)
       setNotice(tr(t, 'saved', 'Saved'))
       await loadUsage(range)
     } catch (reason) {
@@ -1395,15 +1751,17 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
           ? h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'usageFailed', 'Could not read WakaTime data'))
           : null
 
-  const data = usage === undefined || status?.apiKeyConfigured !== true || loading
+  const data = status?.apiKeyConfigured !== true || loading
     ? dataState
-    : tab === 'dashboard'
-      ? h(DashboardView, { usage, t, range, onPreset: setPreset, onOpenAi: () => setTab('ai') })
-      : tab === 'ai'
-        ? h(AiView, { usage, t })
-        : tab === 'projects'
-          ? h(WorkspaceView, { usage, t })
-          : h(InsightsView, { usage, t })
+    : tab === 'insights'
+      ? h(InsightsView, { insights, t, loading: insightsLoading })
+      : usage === undefined
+        ? dataState
+        : tab === 'dashboard'
+          ? h(DashboardView, { usage, t, range, onPreset: setPreset, onOpenAi: () => setTab('ai') })
+          : tab === 'ai'
+            ? h(AiView, { usage, t })
+            : h(WorkspaceView, { usage, t })
 
   const settings = config === undefined
     ? h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'loading', 'Loading…'))
@@ -1476,7 +1834,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     error.length > 0 ? h('div', { className: 'dshWakatimeError', role: 'alert' }, error) : null,
     tab !== 'settings'
       ? h('section', { id: `dsh-wakatime-panel-${tab}`, role: 'tabpanel', 'aria-labelledby': `dsh-wakatime-tab-${tab}` },
-        tab === 'dashboard' ? null : h('div', { className: 'dshWakatimeToolbar' },
+        tab === 'dashboard' || tab === 'insights' ? null : h('div', { className: 'dshWakatimeToolbar' },
           h('div', { className: 'dshWakatimeRange' },
             h('span', { className: 'dshWakatimeRangeLabel' }, tr(t, 'range', 'Date range')),
             h('button', { className: 'dshWakatimeButton dshWakatimeRangeButton', type: 'button', 'aria-pressed': range.start === rangeForDays(1).start, onClick: () => setPreset(1) }, tr(t, 'today', 'Today')),

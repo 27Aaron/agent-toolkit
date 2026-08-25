@@ -128,6 +128,74 @@ export interface WakatimeAiModelUsage {
   cost: number
 }
 
+export type WakatimeInsightRange =
+  | 'last_7_days'
+  | 'last_30_days'
+  | 'last_6_months'
+  | 'last_year'
+  | 'all_time'
+  | `${number}`
+  | `${number}-${number}`
+
+export interface WakatimeInsightDay {
+  date: string
+  totalSeconds: number
+  text?: string
+  aiPercent: number
+  aiAdditions: number
+  aiDeletions: number
+  humanAdditions: number
+  humanDeletions: number
+}
+
+export interface WakatimeInsightWeekday {
+  name: string
+  totalSeconds: number
+  averageText?: string
+  percent: number
+  days: number
+  categoryBreakdown: WakatimeUsageBucket[]
+}
+
+export interface WakatimeInsightSummary {
+  totalSeconds: number
+  totalSecondsIncludingOtherLanguage: number
+  dailyAverageSeconds: number
+  dailyAverageIncludingOtherSeconds: number
+  totalText?: string
+  totalIncludingOtherText?: string
+  dailyAverageText?: string
+  dailyAverageIncludingOtherText?: string
+  activeDays: number
+  bestDay?: { date: string; totalSeconds: number; text?: string }
+}
+
+export interface WakatimeInsightsData {
+  available: boolean
+  range: WakatimeInsightRange | string
+  humanReadableRange?: string
+  start?: string
+  end?: string
+  timezone?: string
+  fetchedAt?: number
+  isUpToDate?: boolean
+  percentCalculated?: number
+  isUpdating?: boolean
+  message?: string
+  days: WakatimeInsightDay[]
+  aiDays: WakatimeInsightDay[]
+  weekdays: WakatimeInsightWeekday[]
+  totals: WakatimeUsageTotals
+  summary: WakatimeInsightSummary
+  projects: WakatimeUsageBucket[]
+  languages: WakatimeUsageBucket[]
+  editors: WakatimeUsageBucket[]
+  categories: WakatimeUsageBucket[]
+  machines: WakatimeUsageBucket[]
+  operatingSystems: WakatimeUsageBucket[]
+  aiModels: WakatimeAiModelUsage[]
+}
+
 export interface WakatimeUsageData {
   available: boolean
   start: string
