@@ -24,11 +24,15 @@ describe('WakaTime UI settings persistence', () => {
       trackReads: false,
       cliPath: '/tmp/wakatime-cli',
       heartbeatIntervalMs: 60_000,
+      dashboardRefreshIntervalMs: 300_000,
+      insightsRefreshIntervalMs: 1_800_000,
     }, file)).toEqual({
       category: 'ai coding',
       trackReads: false,
       cliPath: '/tmp/wakatime-cli',
       heartbeatIntervalMs: 60_000,
+      dashboardRefreshIntervalMs: 300_000,
+      insightsRefreshIntervalMs: 1_800_000,
     })
     expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual(readPersistedWakatimeConfig(file))
 
@@ -36,6 +40,8 @@ describe('WakaTime UI settings persistence', () => {
       category: 'ai coding',
       trackReads: false,
       heartbeatIntervalMs: 60_000,
+      dashboardRefreshIntervalMs: 300_000,
+      insightsRefreshIntervalMs: 1_800_000,
     })
   })
 

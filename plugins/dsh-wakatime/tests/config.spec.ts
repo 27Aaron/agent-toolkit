@@ -9,6 +9,8 @@ describe('configuration', () => {
       heartbeatIntervalMs: 60_000,
       heartbeatTimeoutMs: 30_000,
       cliUpdateCheckIntervalMs: 14_400_000,
+      dashboardRefreshIntervalMs: 300_000,
+      insightsRefreshIntervalMs: 1_800_000,
       cliDownloadTimeoutMs: 120_000,
       autoInstall: false,
       trackReads: true,

@@ -59,6 +59,16 @@ export interface WakatimeRequestPolicy {
   proxy?: string
 }
 
+export class WakatimeApiError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    public readonly retryAfterMs?: number,
+  ) {
+    super(`WakaTime API returned HTTP ${statusCode}`)
+    this.name = 'WakatimeApiError'
+  }
+}
+
 function isWindows(): boolean {
   return os.platform() === 'win32'
 }
@@ -295,8 +305,15 @@ export async function requestWakatimeJson(
   const response = await requestWithRedirects(url, policy, MAX_REDIRECTS, headers)
   const status = response.statusCode ?? 0
   if (status < 200 || status >= 300) {
+    const retryAfter = response.headers['retry-after']
+    const retryAfterValue = Array.isArray(retryAfter) ? retryAfter[0] : retryAfter
+    const retryAfterSeconds = retryAfterValue === undefined ? Number.NaN : Number(retryAfterValue)
+    const retryAfterDate = retryAfterValue === undefined ? Number.NaN : Date.parse(retryAfterValue)
+    const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0
+      ? retryAfterSeconds * 1000
+      : Number.isFinite(retryAfterDate) ? Math.max(0, retryAfterDate - Date.now()) : undefined
     response.resume()
-    throw new Error(`WakaTime API returned HTTP ${status}`)
+    throw new WakatimeApiError(status, retryAfterMs)
   }
   const chunks: Buffer[] = []
   let length = 0

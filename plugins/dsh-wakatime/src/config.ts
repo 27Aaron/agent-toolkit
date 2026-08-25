@@ -38,6 +38,10 @@ export interface Config {
   heartbeatTimeoutMs?: number
   /** Minimum interval between managed CLI update checks. */
   cliUpdateCheckIntervalMs?: number
+  /** Minimum interval between background Dashboard refreshes. */
+  dashboardRefreshIntervalMs?: number
+  /** Minimum interval between background Insights refreshes. */
+  insightsRefreshIntervalMs?: number
   /** Timeout for each CLI download or GitHub metadata request. */
   cliDownloadTimeoutMs?: number
   /** Explicit absolute wakatime-cli path. Disables discovery and management. */
@@ -62,6 +66,8 @@ export const Config: z<Config> = z.object({
   heartbeatIntervalMs: z.number().step(1).min(1_000).max(MAX_TIMER_MS).default(60_000),
   heartbeatTimeoutMs: z.number().step(1).min(1_000).max(MAX_TIMER_MS).default(30_000),
   cliUpdateCheckIntervalMs: z.number().step(1).min(60_000).max(MAX_TIMER_MS).default(14_400_000),
+  dashboardRefreshIntervalMs: z.number().step(1).min(60_000).max(MAX_TIMER_MS).default(300_000),
+  insightsRefreshIntervalMs: z.number().step(1).min(60_000).max(MAX_TIMER_MS).default(1_800_000),
   cliDownloadTimeoutMs: z.number().step(1).min(1_000).max(MAX_TIMER_MS).default(120_000),
   cliPath: z.string().min(1),
   // Downloads are opt-in. The settings page exposes explicit download and
@@ -78,6 +84,8 @@ export interface ResolvedConfig {
   heartbeatIntervalMs: number
   heartbeatTimeoutMs: number
   cliUpdateCheckIntervalMs: number
+  dashboardRefreshIntervalMs: number
+  insightsRefreshIntervalMs: number
   cliDownloadTimeoutMs: number
   cliPath?: string
   autoInstall: boolean
@@ -97,6 +105,8 @@ export function resolveConfig(config: Config): ResolvedConfig {
     heartbeatIntervalMs: config.heartbeatIntervalMs ?? 60_000,
     heartbeatTimeoutMs: config.heartbeatTimeoutMs ?? 30_000,
     cliUpdateCheckIntervalMs: config.cliUpdateCheckIntervalMs ?? 14_400_000,
+    dashboardRefreshIntervalMs: config.dashboardRefreshIntervalMs ?? 300_000,
+    insightsRefreshIntervalMs: config.insightsRefreshIntervalMs ?? 1_800_000,
     cliDownloadTimeoutMs: config.cliDownloadTimeoutMs ?? 120_000,
     ...(cliPath === undefined ? {} : { cliPath }),
     autoInstall: config.autoInstall ?? false,

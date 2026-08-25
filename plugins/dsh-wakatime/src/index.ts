@@ -14,7 +14,7 @@ import * as path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-tools'
-import { CliManager } from './cli.ts'
+import { CliManager, WakatimeApiError } from './cli.ts'
 import { extractFileChanges, resolveEntityPath } from './changes.ts'
 import {
   buildPluginTag,
@@ -52,6 +52,12 @@ import { getPluginLogFilePath, getWakatimeConfigFilePath } from './paths.ts'
 import { fetchWakatimeInsights, validateInsightRange } from './insights.ts'
 import { fetchWakatimeUsage, validateUsageRange } from './usage.ts'
 import type { WakatimeInsightsData, WakatimeUsageData } from './ui-contract.ts'
+import {
+  readWakatimeCache,
+  writeWakatimeCache,
+  type WakatimeCache,
+  type WakatimeCacheEntry,
+} from './cache.ts'
 
 export { Config, name }
 export type { Config as WakatimeConfig, WakatimeCategory } from './config.ts'
@@ -77,7 +83,18 @@ interface RpcContext {
 }
 
 function publicError(code: string, message: string): WakatimeUiRpcResult<never> {
-  return { ok: false, error: { code, message } }
+  // The shared client connection validates RPC errors against its wire-level
+  // error union. Keep plugin-local validation failures on the generic
+  // bad-request branch and always include the required details object.
+  const wireCode = code === 'invalid_config' ? 'bad-request' : 'internal'
+  return {
+    ok: false,
+    error: {
+      code: wireCode,
+      message,
+      details: wireCode === 'bad-request' ? { issues: [] } : {},
+    },
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -95,6 +112,8 @@ function configPatch(value: unknown): PersistedWakatimeConfig {
   if (typeof value.cliPath === 'string') patch.cliPath = value.cliPath
   if (typeof value.debug === 'boolean') patch.debug = value.debug
   if (typeof value.heartbeatIntervalMs === 'number') patch.heartbeatIntervalMs = value.heartbeatIntervalMs
+  if (typeof value.dashboardRefreshIntervalMs === 'number') patch.dashboardRefreshIntervalMs = value.dashboardRefreshIntervalMs
+  if (typeof value.insightsRefreshIntervalMs === 'number') patch.insightsRefreshIntervalMs = value.insightsRefreshIntervalMs
   return patch
 }
 
@@ -124,8 +143,15 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
     config.heartbeatTimeoutMs,
     logger,
   )
-  let usageCache: { key: string; expiresAt: number; value: WakatimeUsageData } | undefined
-  let insightsCache: { key: string; expiresAt: number; value: WakatimeInsightsData } | undefined
+  let persistedCache: WakatimeCache = readWakatimeCache()
+  let usageCache: WakatimeCacheEntry<WakatimeUsageData> | undefined = persistedCache.usage
+  let insightsCache: WakatimeCacheEntry<WakatimeInsightsData> | undefined = persistedCache.insights
+  let usageRefresh: { key: string; promise: Promise<WakatimeUsageData> } | undefined
+  let insightsRefresh: { key: string; promise: Promise<WakatimeInsightsData> } | undefined
+  let usageBackoffUntil = 0
+  let insightsBackoffUntil = 0
+  let backgroundRefreshTimer: ReturnType<typeof setTimeout> | undefined
+  let backgroundRefreshDisposed = false
   const tracker = new WakatimeTracker(
     config,
     new HeartbeatRateLimiter(),
@@ -141,7 +167,126 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
     ...(config.cliPath === undefined ? {} : { cliPath: config.cliPath }),
     debug: config.debug,
     heartbeatIntervalMs: config.heartbeatIntervalMs,
+    dashboardRefreshIntervalMs: config.dashboardRefreshIntervalMs,
+    insightsRefreshIntervalMs: config.insightsRefreshIntervalMs,
   })
+
+  interface UsageRange {
+    start: string
+    end: string
+  }
+
+  const localDateInput = (date: Date): string => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const defaultUsageRange = (): UsageRange => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setDate(start.getDate() - 6)
+    return { start: localDateInput(start), end: localDateInput(end) }
+  }
+
+  const usageKey = (range: UsageRange): string => `${settings.apiUrl ?? DEFAULT_WAKATIME_API_URL}|${range.start}:${range.end}`
+  const insightsKey = (range: string): string => `${settings.apiUrl ?? DEFAULT_WAKATIME_API_URL}|${range}`
+
+  const persistCache = (): void => {
+    try {
+      writeWakatimeCache(persistedCache)
+    } catch (error) {
+      logger.exception('WARN', error, 'could not persist WakaTime dashboard cache')
+    }
+  }
+
+  const rateLimitBackoff = (error: unknown): number | undefined => {
+    if (!(error instanceof WakatimeApiError) || error.statusCode !== 429) return undefined
+    return Math.max(60_000, error.retryAfterMs ?? 5 * 60_000)
+  }
+
+  const refreshUsage = (range: UsageRange, force: boolean = false): Promise<WakatimeUsageData> => {
+    const key = usageKey(range)
+    if (!force && usageCache?.key === key && Date.now() - usageCache.fetchedAt < config.dashboardRefreshIntervalMs) {
+      return Promise.resolve(usageCache.value)
+    }
+    if (Date.now() < usageBackoffUntil) {
+      if (usageCache?.key === key) return Promise.resolve(usageCache.value)
+      return Promise.reject(new WakatimeApiError(429, usageBackoffUntil - Date.now()))
+    }
+    if (usageRefresh?.key === key) return usageRefresh.promise
+    const promise = fetchWakatimeUsage(settings, range.start, range.end).then(value => {
+      usageBackoffUntil = 0
+      usageCache = { key, fetchedAt: Date.now(), value }
+      persistedCache.usage = usageCache
+      persistCache()
+      return value
+    }).catch(error => {
+      const backoff = rateLimitBackoff(error)
+      if (backoff !== undefined) {
+        usageBackoffUntil = Date.now() + backoff
+        if (usageCache?.key === key) return usageCache.value
+      }
+      throw error
+    }).finally(() => {
+      if (usageRefresh?.key === key) usageRefresh = undefined
+    })
+    usageRefresh = { key, promise }
+    return promise
+  }
+
+  const refreshInsights = (range: string, force: boolean = false): Promise<WakatimeInsightsData> => {
+    const key = insightsKey(range)
+    if (!force && insightsCache?.key === key && Date.now() - insightsCache.fetchedAt < config.insightsRefreshIntervalMs) {
+      return Promise.resolve(insightsCache.value)
+    }
+    if (Date.now() < insightsBackoffUntil) {
+      if (insightsCache?.key === key) return Promise.resolve(insightsCache.value)
+      return Promise.reject(new WakatimeApiError(429, insightsBackoffUntil - Date.now()))
+    }
+    if (insightsRefresh?.key === key) return insightsRefresh.promise
+    const promise = fetchWakatimeInsights(settings, range as Parameters<typeof fetchWakatimeInsights>[1]).then(value => {
+      insightsBackoffUntil = 0
+      insightsCache = { key, fetchedAt: Date.now(), value }
+      persistedCache.insights = insightsCache
+      persistCache()
+      return value
+    }).catch(error => {
+      const backoff = rateLimitBackoff(error)
+      if (backoff !== undefined) {
+        insightsBackoffUntil = Date.now() + backoff
+        if (insightsCache?.key === key) return insightsCache.value
+      }
+      throw error
+    }).finally(() => {
+      if (insightsRefresh?.key === key) insightsRefresh = undefined
+    })
+    insightsRefresh = { key, promise }
+    return promise
+  }
+
+  const refreshBackgroundData = async (): Promise<void> => {
+    if (settings.apiKeyConfigured !== true) return
+    const usageRange = defaultUsageRange()
+    const usageNeedsRefresh = usageCache?.key !== usageKey(usageRange)
+      || Date.now() - (usageCache?.fetchedAt ?? 0) >= config.dashboardRefreshIntervalMs
+    const insightsNeedsRefresh = insightsCache !== undefined
+      && Date.now() - insightsCache.fetchedAt >= config.insightsRefreshIntervalMs
+    await Promise.all([
+      usageNeedsRefresh ? refreshUsage(usageRange, true) : undefined,
+      insightsNeedsRefresh && insightsCache !== undefined ? refreshInsights(insightsCache.value.range, true) : undefined,
+    ])
+  }
+
+  const scheduleBackgroundRefresh = (): void => {
+    if (backgroundRefreshTimer !== undefined) clearTimeout(backgroundRefreshTimer)
+    if (backgroundRefreshDisposed) return
+    backgroundRefreshTimer = setTimeout(() => {
+      void refreshBackgroundData().catch(error => logger.exception('WARN', error, 'background WakaTime refresh failed'))
+        .finally(scheduleBackgroundRefresh)
+    }, Math.max(60_000, Math.min(config.dashboardRefreshIntervalMs, config.insightsRefreshIntervalMs)))
+  }
 
   const status = async (): Promise<WakatimeUiStatus> => ({
     config: uiConfig(),
@@ -179,25 +324,27 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
       if (endpoint === 'usage') {
         const input = isRecord(payload) ? payload : {}
         const range = validateUsageRange(input.start, input.end)
-        const key = `${range.start}:${range.end}`
-        if (usageCache !== undefined && usageCache.key === key && usageCache.expiresAt > Date.now()) {
+        const key = usageKey(range)
+        if (input.force !== true && usageCache?.key === key) {
+          if (Date.now() - usageCache.fetchedAt >= config.dashboardRefreshIntervalMs) {
+            void refreshUsage(range, true).catch(error => logger.exception('WARN', error, 'background WakaTime usage refresh failed'))
+          }
           return { ok: true, value: usageCache.value }
         }
-        const value = await fetchWakatimeUsage(settings, range.start, range.end)
-        usageCache = { key, expiresAt: Date.now() + 60_000, value }
-        return { ok: true, value }
+        return { ok: true, value: await refreshUsage(range, input.force === true) }
       }
 
       if (endpoint === 'insights') {
         const input = isRecord(payload) ? payload : {}
         const range = validateInsightRange(input.range)
-        const key = range
-        if (insightsCache !== undefined && insightsCache.key === key && insightsCache.expiresAt > Date.now()) {
+        const key = insightsKey(range)
+        if (input.force !== true && insightsCache?.key === key) {
+          if (Date.now() - insightsCache.fetchedAt >= config.insightsRefreshIntervalMs) {
+            void refreshInsights(range, true).catch(error => logger.exception('WARN', error, 'background WakaTime insights refresh failed'))
+          }
           return { ok: true, value: insightsCache.value }
         }
-        const value = await fetchWakatimeInsights(settings, range)
-        insightsCache = { key, expiresAt: Date.now() + 5 * 60_000, value }
-        return { ok: true, value }
+        return { ok: true, value: await refreshInsights(range, input.force === true) }
       }
 
       if (endpoint === 'test-cli') {
@@ -259,7 +406,12 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
         settings = readWakatimeSettings()
         usageCache = undefined
         insightsCache = undefined
+        usageBackoffUntil = 0
+        insightsBackoffUntil = 0
+        persistedCache = { version: persistedCache.version }
+        persistCache()
         updateRuntimeConfig(next)
+        scheduleBackgroundRefresh()
         return { ok: true, value: await status() }
       }
 
@@ -321,5 +473,21 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   ctx.effect(
     () => async () => tracker.dispose(),
     'dsh-wakatime: flush pending heartbeats',
+  )
+
+  ctx.effect(
+    () => {
+      const startupPrefetchTimer = setTimeout(() => {
+        void refreshUsage(defaultUsageRange(), true)
+          .catch(error => logger.exception('WARN', error, 'startup WakaTime prefetch failed'))
+      }, 2_000)
+      scheduleBackgroundRefresh()
+      return () => {
+        backgroundRefreshDisposed = true
+        clearTimeout(startupPrefetchTimer)
+        if (backgroundRefreshTimer !== undefined) clearTimeout(backgroundRefreshTimer)
+      }
+    },
+    'dsh-wakatime: prefetch dashboard data',
   )
 }

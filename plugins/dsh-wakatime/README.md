@@ -79,6 +79,8 @@ All keys are optional because defaults live in the exported Schemastery schema. 
 | `heartbeatIntervalMs`      |     `60000` | Minimum interval between batches for one project.                      |
 | `heartbeatTimeoutMs`       |     `30000` | Maximum lifetime of one heartbeat process.                             |
 | `cliUpdateCheckIntervalMs` |  `14400000` | Managed CLI update-check interval.                                     |
+| `dashboardRefreshIntervalMs` | `300000` | Background Dashboard refresh interval; the settings page displays minutes. |
+| `insightsRefreshIntervalMs` | `1800000` | Background Insights refresh interval; the settings page displays minutes. |
 | `cliDownloadTimeoutMs`     |    `120000` | Timeout for each GitHub request or CLI download.                       |
 | `cliPath`                  |       unset | Absolute CLI path; `~` is expanded. Disables discovery and management. |
 | `autoInstall`              |     `false` | Allow background download/update of a managed CLI during heartbeats.   |
