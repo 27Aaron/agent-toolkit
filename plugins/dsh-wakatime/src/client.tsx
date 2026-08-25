@@ -54,8 +54,19 @@ const zh = {
   noData: '这个时间范围还没有活动数据。',
   activityOverview: '活动概览',
   overLast7Days: '过去 7 天',
+  rangeMeta: '统计范围：过去 7 天',
+  totalCodingTime: '总编码时间',
   currentDay: '当前日期',
   topDay: '最活跃的一天',
+  bestDayDuration: '当天 {time}',
+  todayCodingTime: '今天编码时间',
+  comparedWithPreviousDay: '与前一天相比',
+  comparisonMeta: '较前一天',
+  comparisonUnavailable: '至少需要两天数据',
+  noComparison: '暂无对比',
+  dailyAverageCoding: '日均编码时间',
+  mostActiveDayShort: '最活跃日',
+  noChange: '持平',
   openAiDashboard: '打开 AI 仪表盘',
   aiDrivenLabel: 'AI 驱动',
   aiLinesLabel: 'AI 行数',
@@ -202,8 +213,19 @@ const en = {
   noData: 'There is no activity in this date range.',
   activityOverview: 'Activity Overview',
   overLast7Days: 'over the Last 7 Days',
+  rangeMeta: 'Range: Last 7 Days',
+  totalCodingTime: 'Total coding time',
   currentDay: 'Current day',
   topDay: 'top day',
+  bestDayDuration: 'That day {time}',
+  todayCodingTime: 'Today coding time',
+  comparedWithPreviousDay: 'Compared with previous day',
+  comparisonMeta: 'vs. previous day',
+  comparisonUnavailable: 'At least two days are needed',
+  noComparison: 'No comparison',
+  dailyAverageCoding: 'Average coding time',
+  mostActiveDayShort: 'Most active day',
+  noChange: 'No change',
   openAiDashboard: 'Open AI dashboard',
   aiDrivenLabel: 'AI-driven',
   aiLinesLabel: 'AI lines',
@@ -339,6 +361,14 @@ const STYLE = `
   padding: 0 0 24px;
   color: inherit;
   font: inherit;
+  --dsh-space-1: 4px;
+  --dsh-space-2: 8px;
+  --dsh-space-3: 12px;
+  --dsh-space-4: 16px;
+  --dsh-space-5: 20px;
+  --dsh-radius: 8px;
+  --dsh-border: color-mix(in srgb, currentColor 14%, transparent);
+  --dsh-surface: color-mix(in srgb, currentColor 3%, transparent);
   container-type: inline-size;
 }
 .dshWakatimePage *, .dshWakatimePage *::before, .dshWakatimePage *::after { box-sizing: border-box; min-width: 0; }
@@ -369,11 +399,11 @@ const STYLE = `
 .dshWakatimeDashboardChart { margin-top: 12px; }
 .dshWakatimeCardTitle { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 5px; font-size: 14px; letter-spacing: -.01em; }
 .dshWakatimeCardHint { margin: 0 0 16px; color: currentColor; opacity: .56; font-size: 12px; line-height: 1.5; }
-.dshWakatimeOfficialHeader { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 0 0 18px; }
+.dshWakatimeOfficialHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 16px; }
 .dshWakatimeOfficialBrand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.dshWakatimeOfficialMark { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 8px; color: #fff; background: #5b7cff; font-size: 16px; font-weight: 800; }
+.dshWakatimeOfficialMark { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: 7px; color: #fff; background: #5b7cff; font-size: 14px; font-weight: 800; }
 .dshWakatimeOfficialEyebrow { margin: 0 0 4px; color: currentColor; opacity: .55; font-size: 11px; font-weight: 650; letter-spacing: .01em; }
-.dshWakatimeOfficialTitle { margin: 0; font-size: clamp(20px, 5vw, 28px); letter-spacing: -.035em; line-height: 1.05; }
+.dshWakatimeOfficialTitle { margin: 0; font-size: clamp(19px, 4.5vw, 24px); letter-spacing: -.035em; line-height: 1.05; }
 .dshWakatimeOfficialRange { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .dshWakatimeOfficialRange .dshWakatimeRangeLabel { display: none; }
 .dshWakatimeOfficialRange .dshWakatimeRangeButton { padding: 6px 8px; }
@@ -386,8 +416,9 @@ const STYLE = `
 .dshWakatimeOfficialRangePopover button { border: 0; border-radius: 5px; padding: 7px 8px; color: #f4f5f7; background: transparent; font: inherit; font-size: 11px; text-align: left; cursor: pointer; }
 .dshWakatimeOfficialRangePopover button:hover, .dshWakatimeOfficialRangePopover button[aria-current="true"] { background: rgb(91 124 255 / 22%); }
 .dshWakatimeOfficialMetrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.dshWakatimeOfficialOverview { display: grid; grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr)); gap: 10px; padding: 16px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 9px; background: color-mix(in srgb, currentColor 3%, transparent); }
-.dshWakatimeOfficialOverviewTotal { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 2px 6px 2px 2px; }
+.dshWakatimeOfficialOverview { display: grid; grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr)); gap: 10px; padding: 10px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 9px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialOverviewTotal { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 12px 13px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricLabel { margin-bottom: 7px; }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue { font-size: clamp(22px, 6vw, 34px); }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricMeta { margin-top: 7px; }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue,
@@ -403,7 +434,9 @@ const STYLE = `
 .dshWakatimeOfficialLink { border: 0; padding: 0; color: inherit; opacity: .62; background: transparent; font: inherit; font-size: 11px; text-decoration: none; cursor: pointer; }
 .dshWakatimeOfficialLink:hover { opacity: 1; text-decoration: underline; }
 .dshWakatimeOfficialAiGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.dshWakatimeOfficialAiLayout { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 9px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialAiBlock { padding: 14px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 9px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.dshWakatimeOfficialAiBlock .dshWakatimeOfficialSectionHeading { margin-bottom: 10px; }
+.dshWakatimeOfficialAiLayout { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; padding: 0; }
 .dshWakatimeOfficialDonutFrame { display: grid; width: 142px; min-height: 142px; place-items: center; margin: auto; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); }
 .dshWakatimeOfficialDonut { display: grid; width: 112px; height: 112px; place-items: center; border-radius: 50%; background: conic-gradient(#5b7cff var(--dsh-ai-percent), color-mix(in srgb, currentColor 12%, transparent) 0); }
 .dshWakatimeOfficialDonut::after { display: grid; width: 76px; height: 76px; place-items: center; border-radius: 50%; background: color-mix(in srgb, currentColor 3%, transparent); content: attr(data-percent); font-size: 22px; font-weight: 750; }
@@ -422,6 +455,8 @@ const STYLE = `
 .dshWakatimeOfficialListRow span:last-child { color: currentColor; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .dshWakatimeOfficialChartGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
 .dshWakatimeOfficialChartGridSingle { grid-template-columns: 1fr; }
+.dshWakatimeOfficialCategoryBlock > .dshWakatimeOfficialSplit { margin-top: 0; }
+.dshWakatimeOfficialCategoryBlock > .dshWakatimeOfficialChartGrid { margin-top: 12px; }
 .dshWakatimeOfficialChartPanel { min-width: 0; padding: 14px 15px; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
 .dshWakatimeOfficialChartPanel h3 { margin: 0 0 12px; font-size: 13px; }
 .dshWakatimeOfficialProjectChartRows { display: grid; max-height: 212px; gap: 7px; overflow: auto; }
@@ -631,6 +666,102 @@ const STYLE = `
 .dshWakatimeAdvanced[open] summary { margin-bottom: 15px; opacity: 1; }
 .dshWakatimeFormActions { display: flex; align-items: center; gap: 11px; padding-top: 2px; }
 .dshWakatimeSaved { color: inherit; opacity: .68; font-size: 12px; font-weight: 650; }
+
+/* Keep the dashboard, insights, projects, and settings surfaces on one visual rhythm. */
+.dshWakatimeTabs { gap: var(--dsh-space-3) 20px; margin-bottom: var(--dsh-space-4); }
+.dshWakatimeToolbar { gap: var(--dsh-space-4); margin-bottom: var(--dsh-space-3); }
+.dshWakatimeRange { gap: var(--dsh-space-1); }
+.dshWakatimeMetrics { gap: var(--dsh-space-2); margin-bottom: var(--dsh-space-3); }
+.dshWakatimeMetric,
+.dshWakatimeCard,
+.dshWakatimeOfficialMetric,
+.dshWakatimeOfficialPanel,
+.dshWakatimeOfficialChartPanel,
+.dshWakatimeOfficialTimeline,
+.dshWakatimeProjectCard,
+.dshWakatimeInsightsSummaryCard,
+.dshWakatimeInsightsPanel,
+.dshWakatimeInsightsDonutCard { border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
+.dshWakatimeMetric,
+.dshWakatimeOfficialMetric { padding: var(--dsh-space-3); }
+.dshWakatimeMetricLabel { font-size: 10px; }
+.dshWakatimeMetricValue { font-size: 16px; }
+.dshWakatimeMetricMeta { font-size: 10px; }
+.dshWakatimeCard,
+.dshWakatimeOfficialPanel,
+.dshWakatimeOfficialChartPanel,
+.dshWakatimeOfficialTimeline,
+.dshWakatimeInsightsPanel { padding: var(--dsh-space-3); }
+.dshWakatimeSectionHint,
+.dshWakatimeNotice,
+.dshWakatimeField small,
+.dshWakatimeCheck small { font-size: 11px; }
+.dshWakatimeCardTitle { margin-bottom: var(--dsh-space-2); font-size: 13px; }
+.dshWakatimeOfficialHeader { gap: var(--dsh-space-4); margin-bottom: var(--dsh-space-4); }
+.dshWakatimeOfficialBrand { gap: var(--dsh-space-2); }
+.dshWakatimeOfficialRange { gap: var(--dsh-space-1); }
+.dshWakatimeOfficialMetrics,
+.dshWakatimeOfficialSplit,
+.dshWakatimeOfficialChartGrid { gap: var(--dsh-space-3); }
+.dshWakatimeOfficialMetrics { gap: var(--dsh-space-2); }
+.dshWakatimeOfficialOverview { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--dsh-space-2); padding: var(--dsh-space-2); }
+.dshWakatimeOfficialOverviewTotal { padding: 10px 12px; border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricLabel { margin-bottom: 5px; }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue,
+.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { font-size: 16px; }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricMeta { margin-top: 4px; }
+.dshWakatimeOfficialMetricLabel { font-size: 10px; }
+.dshWakatimeOfficialMetricValue { font-size: 16px; }
+.dshWakatimeOfficialSection { margin-top: var(--dsh-space-4); }
+.dshWakatimeOfficialSectionHeading { gap: var(--dsh-space-3); margin-bottom: 10px; }
+.dshWakatimeOfficialSectionHeading h2 { font-size: 14px; }
+.dshWakatimeOfficialAiBlock { padding: var(--dsh-space-3); border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
+.dshWakatimeOfficialAiLayout { gap: var(--dsh-space-3); }
+.dshWakatimeOfficialAiGrid { gap: var(--dsh-space-2); }
+.dshWakatimeOfficialAiMetric { padding: var(--dsh-space-2) 10px; border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
+.dshWakatimeOfficialAiMetricValue { font-size: 16px; }
+.dshWakatimeOfficialPanel h3,
+.dshWakatimeOfficialChartPanel h3 { margin-bottom: 10px; font-size: 13px; }
+.dshWakatimeOfficialList,
+.dshWakatimeOfficialTimelineRows,
+.dshWakatimeInsightsModels,
+.dshWakatimeInsightsList { gap: var(--dsh-space-2); }
+.dshWakatimeOfficialChartGrid { margin-top: var(--dsh-space-4); }
+.dshWakatimeOfficialCategoryBlock > .dshWakatimeOfficialChartGrid { margin-top: var(--dsh-space-3); }
+.dshWakatimeOfficialLegend { gap: var(--dsh-space-1) var(--dsh-space-3); margin-top: var(--dsh-space-3); }
+.dshWakatimeOfficialProjectChartRows { gap: var(--dsh-space-2); }
+.dshWakatimeOfficialTimelineRow,
+.dshWakatimeOfficialWeekdayRow { gap: var(--dsh-space-2); }
+.dshWakatimeOfficialTimelineHeader { gap: var(--dsh-space-3); margin-bottom: 10px; }
+.dshWakatimeOfficialTimelineTitle { font-size: 13px; }
+.dshWakatimeProjectGrid { gap: var(--dsh-space-2); }
+.dshWakatimeProjectCard { gap: var(--dsh-space-3); padding: var(--dsh-space-3); }
+.dshWakatimeProjectStats { gap: var(--dsh-space-2); }
+.dshWakatimeRow,
+.dshWakatimeRowLabel,
+.dshWakatimeRowValue,
+.dshWakatimeComparisonHead { font-size: 11px; }
+.dshWakatimeInsightsSummary { gap: var(--dsh-space-2); }
+.dshWakatimeInsightsColumns,
+.dshWakatimeInsightsTwoCol { gap: var(--dsh-space-3); margin-top: var(--dsh-space-3); }
+.dshWakatimeInsightsColumns > .dshWakatimeInsightsPanel { margin-top: 0; }
+.dshWakatimeInsightsPanelHeader { gap: var(--dsh-space-3); margin-bottom: 10px; }
+.dshWakatimeInsightsPanelHeader h2 { font-size: 14px; }
+.dshWakatimeInsightsDonuts { gap: var(--dsh-space-2); }
+.dshWakatimeInsightsDonutCard { gap: var(--dsh-space-2); padding: var(--dsh-space-3) var(--dsh-space-2); }
+.dshWakatimeInsightsListRow { gap: var(--dsh-space-3); padding-bottom: var(--dsh-space-2); }
+.dshWakatimeGrid { gap: var(--dsh-space-3); }
+.dshWakatimeCard + .dshWakatimeGrid,
+.dshWakatimeGrid + .dshWakatimeCard,
+.dshWakatimeGrid + .dshWakatimeGrid { margin-top: var(--dsh-space-3); }
+.dshWakatimeForm { gap: var(--dsh-space-4); }
+.dshWakatimeField { gap: var(--dsh-space-2); }
+.dshWakatimeFormGrid { gap: var(--dsh-space-3); }
+.dshWakatimeChecks { gap: var(--dsh-space-3); }
+.dshWakatimeCheck { gap: var(--dsh-space-2); }
+.dshWakatimeAdvanced { padding-top: var(--dsh-space-3); }
+.dshWakatimeAdvanced[open] summary { margin-bottom: var(--dsh-space-3); }
+.dshWakatimeFormActions { gap: var(--dsh-space-3); }
 @media (max-width: 820px) {
   .dshWakatimePage { padding: 0 0 24px; }
   .dshWakatimeToolbar { align-items: flex-start; flex-direction: column; }
@@ -647,10 +778,18 @@ const STYLE = `
   .dshWakatimeMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeOfficialHeader { align-items: flex-start; gap: 8px; }
   .dshWakatimeOfficialRange { justify-content: flex-end; margin-left: auto; }
-  .dshWakatimeOfficialMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dshWakatimeOfficialOverview { grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr)); }
+  .dshWakatimeOfficialMetrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .dshWakatimeOfficialOverview { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .dshWakatimeOfficialOverviewTotal { grid-column: auto; }
-  .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue { font-size: 24px; }
+  .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue { font-size: 14px; }
+  .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric,
+  .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetric { padding: 10px 12px; }
+  .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricLabel,
+  .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetricLabel { margin-bottom: 5px; font-size: 10px; }
+  .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue,
+  .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetricValue { font-size: 14px; }
+  .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricMeta,
+  .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetricMeta { font-size: 10px; }
   .dshWakatimeOfficialAiGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeOfficialChartGrid { grid-template-columns: 1fr; }
   .dshWakatimeOfficialSplit { grid-template-columns: 1fr; }
@@ -930,7 +1069,7 @@ function emptyBreakdown(t: Translator) {
 
 type ActivityBreakdownMode = 'projects' | 'categories' | 'all'
 
-function OfficialTimeline({ usage, t, mode = 'all' }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode }) {
+function OfficialTimeline({ usage, t, mode = 'all', embedded = false }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode; embedded?: boolean }) {
   const today = usage.dashboard.todayText ?? formatDuration(usage.dashboard.todaySeconds)
   const renderRows = (items: WakatimeUsageBucket[]) => {
     const max = Math.max(1, ...items.map(item => item.totalSeconds))
@@ -948,21 +1087,19 @@ function OfficialTimeline({ usage, t, mode = 'all' }: { usage: WakatimeUsageData
       )))
   }
   const modes: Array<'projects' | 'categories'> = mode === 'all' ? ['projects', 'categories'] : [mode]
-  return h('section', { className: 'dshWakatimeOfficialSection' },
-    h('div', { className: `dshWakatimeOfficialSplit${modes.length === 1 ? ' dshWakatimeOfficialSplitSingle' : ''}` },
-      ...modes.map(breakdownMode => h('div', { className: 'dshWakatimeOfficialTimeline', key: breakdownMode },
-        h('div', { className: 'dshWakatimeOfficialTimelineHeader' },
-          h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, tr(t, breakdownMode === 'projects' ? 'projectsOverview' : 'categoriesOverview', breakdownMode === 'projects' ? 'Projects' : 'Categories')),
-          h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, `${today} · ${tr(t, 'today', 'Today')}`),
-        ),
-        breakdownMode === 'categories' ? h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'segmentHint', 'Segment by category, language, editor, or operating system')) : null,
-        renderRows(breakdownMode === 'projects' ? usage.todayBreakdown.projects : usage.todayBreakdown.categories),
-      )),
-    ),
+  const content = h('div', { className: `dshWakatimeOfficialSplit${modes.length === 1 ? ' dshWakatimeOfficialSplitSingle' : ''}` },
+    ...modes.map(breakdownMode => h('div', { className: 'dshWakatimeOfficialTimeline', key: breakdownMode },
+      h('div', { className: 'dshWakatimeOfficialTimelineHeader' },
+        h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, tr(t, breakdownMode === 'projects' ? 'projectsOverview' : 'categoriesOverview', breakdownMode === 'projects' ? 'Projects' : 'Categories')),
+        h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, `${today} · ${tr(t, 'today', 'Today')}`),
+      ),
+      renderRows(breakdownMode === 'projects' ? usage.todayBreakdown.projects : usage.todayBreakdown.categories),
+    )),
   )
+  return embedded ? content : h('section', { className: 'dshWakatimeOfficialSection' }, content)
 }
 
-function OfficialActivityCharts({ usage, t, mode = 'all' }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode }) {
+function OfficialActivityCharts({ usage, t, mode = 'all', embedded = false }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode; embedded?: boolean }) {
   const renderChart = (chartMode: 'projects' | 'categories') => {
     const source = chartMode === 'projects' ? usage.projects : usage.categories
     if (chartMode === 'projects') {
@@ -997,10 +1134,11 @@ function OfficialActivityCharts({ usage, t, mode = 'all' }: { usage: WakatimeUsa
     return h(React.Fragment, null, chart, legend)
   }
   const modes: Array<'projects' | 'categories'> = mode === 'all' ? ['projects', 'categories'] : [mode]
-  return h('section', { className: `dshWakatimeOfficialChartGrid${modes.length === 1 ? ' dshWakatimeOfficialChartGridSingle' : ''}` }, modes.map(chartMode => h('div', { className: 'dshWakatimeOfficialChartPanel', key: chartMode },
+  const content = h('div', { className: `dshWakatimeOfficialChartGrid${modes.length === 1 ? ' dshWakatimeOfficialChartGridSingle' : ''}` }, modes.map(chartMode => h('div', { className: 'dshWakatimeOfficialChartPanel', key: chartMode },
     h('h3', null, tr(t, chartMode === 'projects' ? 'projectsOverview' : 'categoriesOverview', chartMode === 'projects' ? 'Projects' : 'Categories')),
     renderChart(chartMode),
   )))
+  return embedded ? content : h('section', { className: 'dshWakatimeOfficialSection' }, content)
 }
 
 function OfficialAiHumanByDay({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
@@ -1104,6 +1242,15 @@ function DashboardView({
   const bestDay = dashboard.bestDay
   const today = dashboard.todayText ?? formatDuration(dashboard.todaySeconds)
   const dailyAverage = dashboard.dailyAverageIncludingOtherText ?? formatDuration(dashboard.dailyAverageIncludingOtherSeconds)
+  const rangeDayCount = Math.max(1, Math.round((Date.parse(`${range.end}T12:00:00`) - Date.parse(`${range.start}T12:00:00`)) / 86400000) + 1)
+  const selectedRangeLabel = rangeDayCount <= 1
+    ? tr(t, 'today', 'Today')
+    : rangeDayCount >= 14
+      ? tr(t, 'last14Days', 'Last 14 Days')
+      : tr(t, 'last7Days', 'Last 7 Days')
+  const bestDayMeta = bestDay === undefined
+    ? undefined
+    : tr(t, 'bestDayDuration', 'That day {time}').replace('{time}', bestDay.text ?? formatDuration(bestDay.totalSeconds))
   const aiLines = usage.totals.aiAdditions + usage.totals.aiDeletions
   const humanLines = usage.totals.humanAdditions + usage.totals.humanDeletions
   const changedLines = aiLines + humanLines
@@ -1127,10 +1274,7 @@ function DashboardView({
     h('header', { className: 'dshWakatimeOfficialHeader' },
       h('div', { className: 'dshWakatimeOfficialBrand' },
         h('div', { className: 'dshWakatimeOfficialMark', 'aria-hidden': 'true' }, 'W'),
-        h('div', null,
-          h('p', { className: 'dshWakatimeOfficialEyebrow' }, 'WakaTime Dashboard'),
-          h('h1', { className: 'dshWakatimeOfficialTitle' }, tr(t, 'activityOverview', 'Activity Overview')),
-        ),
+        h('h1', { className: 'dshWakatimeOfficialTitle' }, tr(t, 'activityOverview', 'Activity Overview')),
       ),
       h('div', { className: 'dshWakatimeOfficialRange' },
         h(OfficialRangeMenu, { range, t, onPreset }),
@@ -1138,35 +1282,40 @@ function DashboardView({
     ),
     h('section', { className: 'dshWakatimeOfficialOverview' },
       h('div', { className: 'dshWakatimeOfficialOverviewTotal' },
+        h('div', { className: 'dshWakatimeOfficialMetricLabel' }, tr(t, 'totalCodingTime', 'Total coding time')),
         h('div', { className: 'dshWakatimeOfficialMetricValue' }, dashboard.cumulativeText ?? formatDuration(dashboard.cumulativeSeconds)),
-        h('div', { className: 'dshWakatimeOfficialMetricMeta' }, tr(t, 'overLast7Days', 'over the Last 7 Days')),
+        h('div', { className: 'dshWakatimeOfficialMetricMeta' }, selectedRangeLabel),
       ),
-      officialMetric({ label: tr(t, 'currentDay', 'Current day'), value: today, meta: tr(t, 'today', 'Today') }),
-      officialMetric({ label: tr(t, 'dailyAverage', 'Daily average'), value: dailyAverage, meta: tr(t, 'overLast7Days', 'over the Last 7 Days') }),
-      officialMetric({ label: tr(t, 'bestDay', 'Most active'), value: bestDay === undefined ? '—' : dayLabel(bestDay.date), meta: tr(t, 'topDay', 'top day') }),
+      officialMetric({ label: tr(t, 'todayCodingTime', 'Today coding time'), value: today, meta: tr(t, 'today', 'Today') }),
+      officialMetric({ label: tr(t, 'dailyAverageCoding', 'Average coding time'), value: dailyAverage, meta: selectedRangeLabel }),
+      officialMetric({ label: tr(t, 'bestDay', 'Most active day'), value: bestDay === undefined ? '—' : dayLabel(bestDay.date), meta: bestDayMeta }),
     ),
     h('section', { className: 'dshWakatimeOfficialSection' },
-      h('div', { className: 'dshWakatimeOfficialSectionHeading' },
-        h('h2', null, tr(t, 'aiActivity', 'AI Coding')),
-        h('button', { className: 'dshWakatimeOfficialLink', type: 'button', onClick: onOpenAi }, tr(t, 'openAiDashboard', 'Open AI dashboard')),
-      ),
-      h('div', { className: 'dshWakatimeOfficialAiLayout' },
-        h('div', null,
-          h('div', { className: 'dshWakatimeOfficialDonutFrame' },
-            h('div', { className: 'dshWakatimeOfficialDonut', 'data-percent': changedLines > 0 ? formatPercent(aiPercent) : '—', style: { background: `conic-gradient(#5b7cff ${aiPercent}%, color-mix(in srgb, currentColor 12%, transparent) 0)` } }),
-            h('div', { className: 'dshWakatimeOfficialDonutLabel' }, tr(t, 'aiDrivenLabel', 'AI-driven')),
-          ),
+      h('div', { className: 'dshWakatimeOfficialAiBlock' },
+        h('div', { className: 'dshWakatimeOfficialSectionHeading' },
+          h('h2', null, tr(t, 'aiActivity', 'AI Coding')),
+          h('button', { className: 'dshWakatimeOfficialLink', type: 'button', onClick: onOpenAi }, tr(t, 'openAiDashboard', 'Open AI dashboard')),
         ),
-        h('div', { className: 'dshWakatimeOfficialAiGrid' },
-          officialAiMetric({ label: tr(t, 'aiLinesLabel', 'AI lines'), value: compactNumber(aiLines) }),
-          officialAiMetric({ label: tr(t, 'humanLinesLabel', 'Human lines'), value: compactNumber(humanLines) }),
-          officialAiMetric({ label: tr(t, 'tokens', 'Tokens'), value: compactNumber(totalInputTokens + usage.totals.aiOutputTokens), meta: `${compactNumber(totalInputTokens)} in · ${compactNumber(usage.totals.aiOutputTokens)} out` }),
-          officialAiMetric({ label: tr(t, 'cost', 'Cost'), value: formatCost(usage.totals.aiModelTotalCost), meta: tr(t, 'aiModelSpend', 'AI model spend') }),
+        h('div', { className: 'dshWakatimeOfficialAiLayout' },
+          h('div', null,
+            h('div', { className: 'dshWakatimeOfficialDonutFrame' },
+              h('div', { className: 'dshWakatimeOfficialDonut', 'data-percent': changedLines > 0 ? formatPercent(aiPercent) : '—', style: { background: `conic-gradient(#5b7cff ${aiPercent}%, color-mix(in srgb, currentColor 12%, transparent) 0)` } }),
+              h('div', { className: 'dshWakatimeOfficialDonutLabel' }, tr(t, 'aiDrivenLabel', 'AI-driven')),
+            ),
+          ),
+          h('div', { className: 'dshWakatimeOfficialAiGrid' },
+            officialAiMetric({ label: tr(t, 'aiLinesLabel', 'AI lines'), value: compactNumber(aiLines) }),
+            officialAiMetric({ label: tr(t, 'humanLinesLabel', 'Human lines'), value: compactNumber(humanLines) }),
+            officialAiMetric({ label: tr(t, 'tokens', 'Tokens'), value: compactNumber(totalInputTokens + usage.totals.aiOutputTokens), meta: `${compactNumber(totalInputTokens)} in · ${compactNumber(usage.totals.aiOutputTokens)} out` }),
+            officialAiMetric({ label: tr(t, 'cost', 'Cost'), value: formatCost(usage.totals.aiModelTotalCost), meta: tr(t, 'aiModelSpend', 'AI model spend') }),
+          ),
         ),
       ),
     ),
-    h(OfficialActivityCharts, { usage, t, mode: 'categories' }),
-    h(OfficialTimeline, { usage, t, mode: 'categories' }),
+    h('section', { className: 'dshWakatimeOfficialSection dshWakatimeOfficialCategoryBlock' },
+      h(OfficialTimeline, { usage, t, mode: 'categories', embedded: true }),
+      h(OfficialActivityCharts, { usage, t, mode: 'categories', embedded: true }),
+    ),
     h('section', { className: 'dshWakatimeOfficialSection dshWakatimeOfficialSplit' },
       h('div', { className: 'dshWakatimeOfficialPanel' },
         h('h3', null, tr(t, 'models', 'Models')),
@@ -1194,11 +1343,19 @@ function DashboardView({
       ),
     ),
     h('section', { className: 'dshWakatimeOfficialSection' },
-      h('div', { className: 'dshWakatimeOfficialMetrics' },
-        officialMetric({ label: tr(t, 'today', 'Today'), value: today, meta: tr(t, 'today', 'Today') }),
-        officialMetric({ label: changePercent === undefined ? tr(t, 'decrease', 'Decrease') : changePercent < 0 ? tr(t, 'decrease', 'Decrease') : tr(t, 'increase', 'Increase'), value: changePercent === undefined ? '—' : formatPercent(Math.abs(changePercent)) }),
-        officialMetric({ label: tr(t, 'dailyAverage', 'Daily Average'), value: dailyAverage }),
-        officialMetric({ label: tr(t, 'bestDay', 'Most Active Day'), value: bestDay === undefined ? '—' : dayLabel(bestDay.date) }),
+      h('div', { className: 'dshWakatimeOfficialMetrics dshWakatimeOfficialMetricStrip' },
+        officialMetric({ label: tr(t, 'todayCodingTime', 'Today coding time'), value: today, meta: tr(t, 'today', 'Today') }),
+        officialMetric({
+          label: tr(t, 'comparedWithPreviousDay', 'Compared with previous day'),
+          value: changePercent === undefined
+            ? tr(t, 'noComparison', 'No comparison')
+            : changePercent === 0
+              ? tr(t, 'noChange', 'No change')
+              : `${changePercent < 0 ? tr(t, 'decrease', 'Decrease') : tr(t, 'increase', 'Increase')} ${formatPercent(Math.abs(changePercent))}`,
+          meta: changePercent === undefined ? tr(t, 'comparisonUnavailable', 'At least two days are needed') : tr(t, 'comparisonMeta', 'vs. previous day'),
+        }),
+        officialMetric({ label: tr(t, 'dailyAverageCoding', 'Average coding time'), value: dailyAverage, meta: selectedRangeLabel }),
+        officialMetric({ label: tr(t, 'mostActiveDayShort', 'Most active day'), value: bestDay === undefined ? '—' : dayLabel(bestDay.date), meta: bestDayMeta }),
       ),
     ),
     h('section', { className: 'dshWakatimeOfficialSection dshWakatimeOfficialSplit' },
