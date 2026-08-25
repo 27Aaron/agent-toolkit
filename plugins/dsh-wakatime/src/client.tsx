@@ -579,6 +579,16 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeOfficialListRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline; min-width: 0; font-size: 11px; }
 .dshWakatimeOfficialListRow span:first-child { overflow: hidden; color: currentColor; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeOfficialListRow span:last-child { color: currentColor; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.dshWakatimeAlignedList { display: grid; grid-template-columns: minmax(0, 1fr) repeat(var(--dsh-aligned-column-count), max-content); column-gap: 12px; row-gap: var(--dsh-space-2); }
+.dshWakatimeAlignedRow { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; grid-template-rows: auto; column-gap: 12px; row-gap: 4px; min-width: 0; padding-bottom: var(--dsh-space-2); border-bottom: 1px solid var(--dsh-border); }
+.dshWakatimeAlignedRow:last-child { padding-bottom: 0; border-bottom: 0; }
+.dshWakatimeAlignedRow[data-has-progress="true"] { grid-template-rows: auto 5px; }
+.dshWakatimeAlignedHead { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; min-width: 0; }
+.dshWakatimeAlignedHead span { min-width: 0; overflow: hidden; color: currentColor; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeAlignedHead span:first-child { opacity: .72; }
+.dshWakatimeAlignedHead span:not(:first-child) { width: 100%; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; }
+.dshWakatimeAlignedTrack { grid-column: 1 / -1; grid-row: 2; height: 5px; overflow: hidden; border-radius: 3px; background: var(--dsh-surface-raised); }
+.dshWakatimeAlignedTrack span { display: block; height: 100%; border-radius: inherit; background: var(--dsh-accent); opacity: .78; }
 .dshWakatimeOfficialChartGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--dsh-panel-gap); margin-top: var(--dsh-space-4); }
 .dshWakatimeOfficialChartGridSingle { grid-template-columns: 1fr; }
 .dshWakatimeOfficialCategoryBlock > .dshWakatimeOfficialSplit { margin-top: 0; }
@@ -623,17 +633,19 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeOfficialDayBar span { display: block; width: min(22px, 62%); min-height: 3px; border-radius: 3px 3px 1px 1px; background: currentColor; opacity: .62; }
 .dshWakatimeOfficialDayLabel { overflow: hidden; color: currentColor; opacity: .55; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeOfficialDayValue { overflow-wrap: anywhere; font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 650; line-height: 1.2; }
-.dshWakatimeProjectGrid { display: grid; gap: 9px; overflow: visible; padding-right: 0; }
-.dshWakatimeProjectCard { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
-.dshWakatimeProjectSummary { display: grid; gap: 6px; }
-.dshWakatimeProjectHeader { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.dshWakatimeProjectHeaderButton { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 12px; border: 0; padding: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.dshWakatimeProjectGrid { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content max-content; column-gap: 12px; row-gap: 9px; overflow: visible; padding-right: 0; }
+.dshWakatimeProjectCard { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; row-gap: 8px; padding: 10px; border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
+.dshWakatimeProjectSummary { display: contents; }
+.dshWakatimeProjectHeader { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; gap: 12px; }
+.dshWakatimeProjectHeaderButton { display: grid; width: 100%; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; gap: 12px; border: 0; padding: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
 .dshWakatimeProjectHeaderButton:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-.dshWakatimeProjectChevron { color: currentColor; opacity: .56; font-size: 11px; }
-.dshWakatimeProjectName { overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.dshWakatimeProjectTime { color: currentColor; opacity: .68; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dshWakatimeProjectPercent { color: currentColor; opacity: .58; font-size: 10px; }
-.dshWakatimeProjectStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dshWakatimeProjectName { grid-column: 1; overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeProjectTime { grid-column: 2; color: currentColor; opacity: .68; font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.dshWakatimeProjectPercent { grid-column: 3; color: currentColor; opacity: .58; font-size: 10px; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.dshWakatimeProjectChevron { grid-column: 4; color: currentColor; opacity: .56; font-size: 11px; text-align: right; }
+.dshWakatimeProjectChevronPlaceholder { visibility: hidden; }
+.dshWakatimeProjectSummary > .dshWakatimeOfficialCompareTrack { grid-column: 1 / -1; }
+.dshWakatimeProjectStats { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .dshWakatimeProjectStat { min-width: 0; }
 .dshWakatimeProjectStatLabel { color: currentColor; opacity: .55; font-size: 9px; line-height: 1.25; }
 .dshWakatimeProjectStatValue { margin-top: 3px; overflow-wrap: anywhere; font-size: 11px; font-weight: 650; line-height: 1.2; }
@@ -643,6 +655,15 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeOfficialCompareHead { display: flex; justify-content: space-between; gap: 10px; color: currentColor; font-size: 10px; }
 .dshWakatimeOfficialCompareHead span:first-child { opacity: .65; }
 .dshWakatimeOfficialCompareHead span:last-child { font-variant-numeric: tabular-nums; font-weight: 650; }
+.dshWakatimeOfficialAiHumanByDay { grid-template-columns: minmax(0, 1fr) max-content max-content; column-gap: 12px; row-gap: var(--dsh-space-2); }
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareRow { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; grid-template-rows: auto 5px; column-gap: 12px; row-gap: 4px; padding-bottom: var(--dsh-space-2); border-bottom: 1px solid var(--dsh-border); }
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareRow:last-child { padding-bottom: 0; border-bottom: 0; }
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareHead { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; }
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareHead span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareHead span:nth-child(2),
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareHead span:last-child { width: 100%; font-variant-numeric: tabular-nums; text-align: right; }
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareHead span:nth-child(2) { color: currentColor; opacity: .68; }
+.dshWakatimeOfficialAiHumanByDay .dshWakatimeOfficialCompareTrack { grid-column: 1 / -1; grid-row: 2; }
 .dshWakatimeOfficialCompareTrack { display: flex; height: 5px; overflow: hidden; border-radius: 3px; background: var(--dsh-surface-raised); }
 .dshWakatimeOfficialCompareTrack span { display: block; height: 100%; }
 .dshWakatimeOfficialCompareTrack .dshWakatimeAiPart { background: var(--dsh-ai); opacity: .78; }
@@ -711,11 +732,11 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeInsightsColumns { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 12px; margin-top: 12px; }
 .dshWakatimeInsightsColumns > .dshWakatimeInsightsPanel { margin-top: 0; }
 .dshWakatimeInsightsDonuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.dshWakatimeInsightsDonutCard { display: grid; min-width: 0; place-items: center; gap: var(--dsh-space-2); padding: var(--dsh-space-3) var(--dsh-space-2); border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
+.dshWakatimeInsightsDonutCard { display: grid; grid-template-rows: 112px auto auto; align-content: space-between; align-items: start; justify-items: center; min-width: 0; min-height: 190px; box-sizing: border-box; row-gap: 0; padding: var(--dsh-space-3) var(--dsh-space-2); border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
 .dshWakatimeInsightsDonut { display: grid; width: 112px; height: 112px; place-items: center; border-radius: 50%; }
 .dshWakatimeInsightsDonut::after { display: grid; width: 76px; height: 76px; place-items: center; border-radius: 50%; background: var(--dsh-surface); content: attr(data-value); font-size: 18px; font-weight: 750; }
-.dshWakatimeInsightsDonutTitle { color: currentColor; opacity: .7; font-size: 10px; text-align: center; }
-.dshWakatimeInsightsDonutLegend { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 8px; color: currentColor; opacity: .62; font-size: 9px; }
+.dshWakatimeInsightsDonutTitle { align-self: start; color: currentColor; opacity: .7; font-size: 10px; line-height: 12px; text-align: center; }
+.dshWakatimeInsightsDonutLegend { align-self: start; display: flex; flex-wrap: wrap; justify-content: center; align-content: start; gap: 5px 8px; min-height: 0; color: currentColor; opacity: .62; font-size: 9px; line-height: 11px; }
 .dshWakatimeInsightsDonutLegend span { display: inline-flex; align-items: center; gap: 4px; }
 .dshWakatimeInsightsDonutLegendGrid { display: grid; width: auto; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 5px 8px; }
 .dshWakatimeInsightsDonutLegendGrid span { min-width: 0; justify-content: flex-start; white-space: nowrap; }
@@ -730,10 +751,10 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeInsightsModelDetail,
 .dshWakatimeInsightsModelValue { min-width: 0; color: currentColor; font-size: 10px; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dshWakatimeInsightsModelLabel { overflow: hidden; opacity: .74; text-overflow: ellipsis; }
-.dshWakatimeInsightsModelDetail { color: currentColor; opacity: .68; text-align: right; }
-.dshWakatimeInsightsModelValue { grid-column: 3; grid-row: 1 / -1; align-self: center; opacity: .68; text-align: right; }
+.dshWakatimeInsightsModelDetail { grid-column: 3; grid-row: 1; color: currentColor; opacity: .62; text-align: right; }
+.dshWakatimeInsightsModelValue { grid-column: 2; grid-row: 1; align-self: center; opacity: .82; text-align: right; }
 .dshWakatimeInsightsModelTrack { height: 5px; overflow: hidden; border-radius: 3px; background: var(--dsh-surface-raised); }
-.dshWakatimeInsightsModelRow > .dshWakatimeInsightsModelTrack { grid-column: 1 / 3; width: 100%; min-width: 0; }
+.dshWakatimeInsightsModelRow > .dshWakatimeInsightsModelTrack { grid-column: 1 / -1; grid-row: 2; width: 100%; min-width: 0; }
 .dshWakatimeInsightsModelTrack span { display: block; height: 100%; border-radius: inherit; background: var(--dsh-accent); }
 .dshWakatimeInsightsModelSummary { margin: 0 0 12px; color: currentColor; opacity: .62; font-size: 10px; line-height: 1.45; }
 .dshWakatimeInsightsTwoCol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -944,7 +965,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeInsightsPanelHeader { gap: var(--dsh-space-3); margin-bottom: var(--dsh-space-2); }
 .dshWakatimeInsightsPanelHeader h2 { font-size: 14px; }
 .dshWakatimeInsightsDonuts { gap: var(--dsh-panel-gap); }
-.dshWakatimeInsightsDonutCard { gap: var(--dsh-space-2); padding: var(--dsh-space-3) var(--dsh-space-2); }
+.dshWakatimeInsightsDonutCard { row-gap: 0; padding: var(--dsh-space-3) var(--dsh-space-2); }
 .dshWakatimeInsightsListRow { gap: var(--dsh-space-3); padding-bottom: var(--dsh-space-2); }
 .dshWakatimeGrid { gap: var(--dsh-panel-gap); }
 .dshWakatimeCard + .dshWakatimeGrid,
@@ -1434,15 +1455,34 @@ function OfficialList({
   items,
   empty,
 }: {
-  items: Array<{ name: string; value: string }>
+  items: Array<{ name: string; columns: string[]; progress?: number }>
   empty: string
 }) {
-  return items.length === 0
-    ? h('p', { className: 'dshWakatimeNotice' }, empty)
-    : h('div', { className: 'dshWakatimeOfficialList' }, items.map(item => h('div', { className: 'dshWakatimeOfficialListRow', key: item.name },
-      h('span', { title: item.name }, item.name),
-      h('span', null, item.value),
-    )))
+  return AlignedList({ items, empty })
+}
+
+function AlignedList({
+  items,
+  empty,
+  className = '',
+}: {
+  items: Array<{ name: string; columns: string[]; progress?: number }>
+  empty: string
+  className?: string
+}) {
+  if (items.length === 0) return h('p', { className: 'dshWakatimeNotice' }, empty)
+  const columnCount = Math.max(1, ...items.map(item => item.columns.length))
+  const style = { '--dsh-aligned-column-count': String(columnCount) } as React.CSSProperties
+  return h('div', { className: `dshWakatimeAlignedList${className.length > 0 ? ` ${className}` : ''}`, style }, items.map(item => {
+    const progress = item.progress === undefined ? undefined : Math.max(0, Math.min(100, item.progress))
+    return h('div', { className: 'dshWakatimeAlignedRow', 'data-has-progress': progress === undefined ? 'false' : 'true', key: item.name },
+      h('div', { className: 'dshWakatimeAlignedHead' },
+        h('span', { title: item.name }, item.name),
+        ...item.columns.map((column, index) => h('span', { key: `${item.name}-${index}`, title: column }, column)),
+      ),
+      progress === undefined ? null : h('div', { className: 'dshWakatimeAlignedTrack' }, h('span', { style: { width: `${Math.max(4, progress)}%` } })),
+    )
+  }))
 }
 
 function Breakdown({
@@ -1453,16 +1493,15 @@ function Breakdown({
   formatValue: (value: number) => string
 }) {
   const max = Math.max(1, ...items.map(item => item.value))
-  if (items.length === 0) return h('p', { className: 'dshWakatimeNotice' }, '—')
-  return h('div', { className: 'dshWakatimeOfficialCompare' }, items.map(item => h('div', { className: 'dshWakatimeOfficialCompareRow', key: item.name },
-    h('div', { className: 'dshWakatimeOfficialCompareHead' },
-      h('span', { title: item.name }, item.name),
-      h('span', null, item.detail === undefined ? formatValue(item.value) : `${item.detail} · ${formatValue(item.value)}`),
-    ),
-    h('div', { className: 'dshWakatimeOfficialCompareTrack' },
-      h('span', { className: 'dshWakatimeBreakdownPart', style: { width: `${Math.max(4, item.value / max * 100)}%` } }),
-    ),
-  )))
+  return AlignedList({
+    items: items.map(item => ({
+      name: item.name,
+      columns: item.detail === undefined ? [formatValue(item.value)] : [item.detail, formatValue(item.value)],
+      progress: item.value / max * 100,
+    })),
+    empty: '—',
+    className: 'dshWakatimeBreakdownAligned',
+  })
 }
 
 function AiDailyChart({ days, t }: { days: WakatimeDailyUsage[]; t: Translator }) {
@@ -1530,7 +1569,7 @@ function OfficialActivityCharts({ usage, t, mode = 'all', embedded = false }: { 
 }
 
 function OfficialAiHumanByDay({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
-  return h('div', { className: 'dshWakatimeOfficialCompare' }, usage.days.map(day => {
+  return h('div', { className: 'dshWakatimeOfficialCompare dshWakatimeOfficialAiHumanByDay' }, usage.days.map(day => {
     const aiLines = day.aiAdditions + day.aiDeletions
     const humanLines = day.humanAdditions + day.humanDeletions
     const total = aiLines + humanLines
@@ -1538,7 +1577,8 @@ function OfficialAiHumanByDay({ usage, t }: { usage: WakatimeUsageData; t: Trans
     return h('div', { className: 'dshWakatimeOfficialCompareRow', key: day.date },
       h('div', { className: 'dshWakatimeOfficialCompareHead' },
         h('span', null, dayLabel(day.date)),
-        h('span', null, `${formatPercent(aiPercent)} AI · ${compactNumber(total)} ${tr(t, 'lines', 'lines')}`),
+        h('span', null, `${compactNumber(total)} ${tr(t, 'lines', 'lines')}`),
+        h('span', null, `${formatPercent(aiPercent)} AI`),
       ),
       h('div', { className: 'dshWakatimeOfficialCompareTrack' },
         h('span', { className: 'dshWakatimeAiPart', style: { width: `${aiPercent}%` } }),
@@ -1556,15 +1596,15 @@ function OfficialWeekdays({ usage }: { usage: WakatimeUsageData }) {
   })
   const maxSeconds = Math.max(1, ...items.map(item => item.average))
   const dayPercentBaseSeconds = 24 * 60 * 60
-  return h('div', { className: 'dshWakatimeOfficialCompare' }, items.map(item => h('div', { className: 'dshWakatimeOfficialCompareRow', key: item.name },
-    h('div', { className: 'dshWakatimeOfficialCompareHead' },
-      h('span', null, item.name),
-      h('span', null, `${formatDuration(item.average)} (${item.average > 0 ? formatPercent(item.average / dayPercentBaseSeconds * 100) : '0%'})`),
-    ),
-    h('div', { className: 'dshWakatimeOfficialCompareTrack' },
-      h('span', { className: 'dshWakatimeWeekdayPart', style: { width: `${Math.min(100, item.average / maxSeconds * 100)}%` } }),
-    ),
-  )))
+  return AlignedList({
+    items: items.map(item => ({
+      name: item.name,
+      columns: [formatDuration(item.average), item.average > 0 ? formatPercent(item.average / dayPercentBaseSeconds * 100) : '0%'],
+      progress: item.average / maxSeconds * 100,
+    })),
+    empty: '—',
+    className: 'dshWakatimeWeekdaysAligned',
+  })
 }
 
 function OfficialProjectCard({ project, t, maxTotalSeconds }: { project: WakatimeUsageBucket; t: Translator; maxTotalSeconds: number }) {
@@ -1588,12 +1628,16 @@ function OfficialProjectCard({ project, t, maxTotalSeconds }: { project: Wakatim
     h('div', { className: 'dshWakatimeProjectSummary' },
       hasAiDetails
         ? h('button', { className: 'dshWakatimeProjectHeaderButton', type: 'button', 'aria-expanded': expanded, onClick: () => setExpanded(current => !current) },
-          h('div', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
-          h('div', { className: 'dshWakatimeProjectTime' }, `${formatDuration(project.totalSeconds)} · ${project.percent.toFixed(2)}%`, h('span', { className: 'dshWakatimeProjectChevron', 'aria-hidden': 'true' }, expanded ? ' ↑' : ' ↓')),
+          h('span', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
+          h('span', { className: 'dshWakatimeProjectTime' }, formatDuration(project.totalSeconds)),
+          h('span', { className: 'dshWakatimeProjectPercent' }, `${project.percent.toFixed(2)}%`),
+          h('span', { className: 'dshWakatimeProjectChevron', 'aria-hidden': 'true' }, expanded ? '↑' : '↓'),
         )
         : h('div', { className: 'dshWakatimeProjectHeader' },
-          h('div', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
-          h('div', { className: 'dshWakatimeProjectTime' }, `${formatDuration(project.totalSeconds)} · ${project.percent.toFixed(2)}%`),
+          h('span', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
+          h('span', { className: 'dshWakatimeProjectTime' }, formatDuration(project.totalSeconds)),
+          h('span', { className: 'dshWakatimeProjectPercent' }, `${project.percent.toFixed(2)}%`),
+          h('span', { className: 'dshWakatimeProjectChevron dshWakatimeProjectChevronPlaceholder', 'aria-hidden': 'true' }, '↓'),
         ),
       h('div', { className: 'dshWakatimeOfficialCompareTrack' },
         h('span', { className: 'dshWakatimeProjectPart', style: { width: `${Math.max(2, project.totalSeconds / Math.max(1, maxTotalSeconds) * 100)}%` } }),
@@ -1678,11 +1722,14 @@ function DashboardView({
   const modelLines = usage.aiModels.reduce((sum, model) => sum + Math.abs(model.lines), 0)
   const modelItems = usage.aiModels.map(model => ({
     name: model.name,
-    value: `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')} (${(modelLines > 0 ? Math.abs(model.lines) / modelLines * 100 : 0).toFixed(2)}%)`,
+    columns: [
+      `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')}`,
+      `${(modelLines > 0 ? Math.abs(model.lines) / modelLines * 100 : 0).toFixed(2)}%`,
+    ],
   }))
   const bucketItems = (items: WakatimeUsageBucket[]) => items.map(item => ({
     name: item.name,
-    value: `${formatDuration(item.totalSeconds)} (${item.percent.toFixed(2)}%)`,
+    columns: [formatDuration(item.totalSeconds), `${item.percent.toFixed(2)}%`],
   }))
   return h(React.Fragment, null,
     h('header', { className: 'dshWakatimeOfficialHeader' },
@@ -2039,18 +2086,19 @@ function InsightsModels({ insights, t }: { insights: WakatimeInsightsData; t: Tr
   const totalLines = models.reduce((sum, model) => sum + Math.abs(model.lines), 0)
   return h('section', { className: 'dshWakatimeInsightsPanel' },
     h('div', { className: 'dshWakatimeInsightsPanelHeader' }, h('h2', null, tr(t, 'models', 'Models'))),
-    models.length === 0 ? emptyBreakdown(t) : h(React.Fragment, null,
-    h('div', { className: 'dshWakatimeInsightsModels' }, models.map(model => h('div', { className: 'dshWakatimeInsightsModelRow', key: model.name },
-        h('span', { className: 'dshWakatimeInsightsModelLabel', title: model.name }, model.name),
-        h('span', { className: 'dshWakatimeInsightsModelDetail' }, `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')}`),
-        h('span', { className: 'dshWakatimeInsightsModelValue' }, formatCost(model.cost)),
-        h('div', { className: 'dshWakatimeInsightsModelTrack' }, h('span', { style: { width: `${Math.max(2, totalLines > 0 ? Math.abs(model.lines) / totalLines * 100 : 2)}%` } })),
-      ))),
-    ),
+    AlignedList({
+      items: models.map(model => ({
+        name: model.name,
+        columns: [formatCost(model.cost), `${formatNumber(Math.abs(model.lines))} ${tr(t, 'lines', 'lines')}`],
+        progress: totalLines > 0 ? Math.abs(model.lines) / totalLines * 100 : 0,
+      })),
+      empty: tr(t, 'noBreakdown', 'No breakdown yet'),
+      className: 'dshWakatimeInsightsModelsAligned',
+    }),
   )
 }
 
-function InsightsView({ insights, t, loading }: { insights: WakatimeInsightsData | undefined; t: Translator; loading: boolean }) {
+const InsightsView = React.memo(function InsightsView({ insights, t, loading }: { insights: WakatimeInsightsData | undefined; t: Translator; loading: boolean }) {
   if (loading && insights === undefined) return h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'loading', 'Loading…'))
   if (insights === undefined || !insights.available) return h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'insightNoData', 'There is no insight data for this range yet.'))
   const summary = insights.summary
@@ -2111,7 +2159,7 @@ function InsightsView({ insights, t, loading }: { insights: WakatimeInsightsData
       h(InsightsModels, { insights, t }),
     ),
   )
-}
+})
 
 function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Translator }) {
   const [tab, setTab] = React.useState<Tab>('dashboard')
@@ -2163,10 +2211,12 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     setNotice('')
     setCliUpdateState(undefined)
     try {
-      const next = await callValue<WakatimeUiStatus>(rpcCall, 'status')
+      const [next] = await Promise.all([
+        callValue<WakatimeUiStatus>(rpcCall, 'status'),
+        loadUsage(range),
+      ])
       setStatus(next)
       setForm(current => current ?? formFromStatus(next))
-      await loadUsage(range)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : tr(t, 'loadFailed', 'Could not read WakaTime status.'))
     } finally {
