@@ -594,6 +594,32 @@ export class CliManager {
     }
   }
 
+  /**
+   * Install the managed CLI only when the user explicitly asks for it.
+   * System and explicitly configured binaries are never replaced.
+   */
+  async download(): Promise<WakatimeCliStatus> {
+    const inspected = await this.inspect()
+    if (inspected.source === 'configured' || inspected.source === 'path') return inspected
+    await this.installManagedCli()
+    const next = await this.inspect()
+    if (next.state !== 'ready' || next.source !== 'managed') {
+      throw new Error('wakatime-cli could not be installed in the WakaTime directory')
+    }
+    return next
+  }
+
+  /**
+   * Check the managed CLI for an update without touching PATH or configured
+   * installations. Manual checks bypass the normal update interval.
+   */
+  async update(): Promise<WakatimeCliStatus> {
+    const inspected = await this.inspect()
+    if (inspected.source !== 'managed' || inspected.state !== 'ready') return inspected
+    await this.maybeUpdateManagedCli(true)
+    return this.inspect()
+  }
+
   private sourceFor(binary: string): WakatimeCliStatus['source'] {
     if (this.config.cliPath === binary) return 'configured'
     if (binary === this.managedPath) return 'managed'
@@ -642,9 +668,9 @@ export class CliManager {
     }
   }
 
-  private async maybeUpdateManagedCli(): Promise<void> {
+  private async maybeUpdateManagedCli(force = false): Promise<void> {
     const state = readCliState(this.stateFile)
-    if (typeof state.lastCheckedAt === 'number'
+    if (!force && typeof state.lastCheckedAt === 'number'
       && Date.now() - state.lastCheckedAt < this.config.cliUpdateCheckIntervalMs) return
 
     let currentVersion: string

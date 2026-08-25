@@ -63,6 +63,14 @@ describe('WakaTime settings RPC', () => {
     expect(unknown.ok).toBe(false)
     expect(unknown.error.code).toBe('internal')
 
+    const downloaded = await handler!('download-cli', {}, { aborted: false })
+    expect(downloaded.ok).toBe(true)
+    expect(downloaded.value.cli.source).toBe('configured')
+
+    const updated = await handler!('update-cli', {}, { aborted: false })
+    expect(updated.ok).toBe(true)
+    expect(updated.value.cli.source).toBe('configured')
+
     const saved = await handler!('save', {
       config: { category: 'coding', cliPath: '' },
       apiKey: 'waka_test_key',

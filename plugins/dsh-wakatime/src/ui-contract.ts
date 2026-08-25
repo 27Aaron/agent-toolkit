@@ -29,7 +29,6 @@ export const UI_CATEGORIES: readonly WakatimeCategory[] = [
 export interface WakatimeUiConfig {
   category: WakatimeCategory
   trackReads: boolean
-  autoInstall: boolean
   cliPath?: string
   debug: boolean
   heartbeatIntervalMs: number
