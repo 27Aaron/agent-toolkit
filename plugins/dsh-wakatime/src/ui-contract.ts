@@ -27,6 +27,7 @@ export const UI_CATEGORIES: readonly WakatimeCategory[] = [
 ]
 
 export interface WakatimeUiConfig {
+  baseUrl: string
   category: WakatimeCategory
   trackReads: boolean
   cliPath?: string

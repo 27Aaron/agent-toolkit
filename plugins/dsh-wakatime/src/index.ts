@@ -26,7 +26,13 @@ import {
 } from './config.ts'
 import { HeartbeatDispatcher } from './heartbeat.ts'
 import { PluginLogger } from './logger.ts'
-import { readWakatimeSettings } from './settings.ts'
+import {
+  DEFAULT_WAKATIME_API_URL,
+  normalizeWakatimeApiUrl,
+  readWakatimeSettings,
+  writeWakatimeApiKey,
+  writeWakatimeApiUrl,
+} from './settings.ts'
 import { HeartbeatRateLimiter } from './state.ts'
 import { WakatimeTracker } from './tracker.ts'
 import {
@@ -43,7 +49,6 @@ import {
   type WakatimeUiStatus,
 } from './ui-contract.ts'
 import { getPluginLogFilePath, getWakatimeConfigFilePath } from './paths.ts'
-import { writeWakatimeApiKey } from './settings.ts'
 import { fetchWakatimeInsights, validateInsightRange } from './insights.ts'
 import { fetchWakatimeUsage, validateUsageRange } from './usage.ts'
 import type { WakatimeInsightsData, WakatimeUsageData } from './ui-contract.ts'
@@ -130,6 +135,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   logger.info(`initialized (${pluginTag})`)
 
   const uiConfig = (): WakatimeUiConfig => ({
+    baseUrl: settings.apiUrl ?? DEFAULT_WAKATIME_API_URL,
     category: config.category,
     trackReads: config.trackReads,
     ...(config.cliPath === undefined ? {} : { cliPath: config.cliPath }),
@@ -234,10 +240,20 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
           return publicError('invalid_config', error instanceof Error ? error.message : String(error))
         }
 
+        let baseUrl = settings.apiUrl ?? DEFAULT_WAKATIME_API_URL
+        if (typeof input.baseUrl === 'string') {
+          try {
+            baseUrl = normalizeWakatimeApiUrl(input.baseUrl)
+          } catch (error) {
+            return publicError('invalid_config', error instanceof Error ? error.message : String(error))
+          }
+        }
+
         if (input.clearApiKey === true) writeWakatimeApiKey(null)
         else if (typeof input.apiKey === 'string' && input.apiKey.trim().length > 0) {
           writeWakatimeApiKey(input.apiKey)
         }
+        if (typeof input.baseUrl === 'string') writeWakatimeApiUrl(baseUrl)
         writePersistedWakatimeConfig(patch)
         config = next
         settings = readWakatimeSettings()

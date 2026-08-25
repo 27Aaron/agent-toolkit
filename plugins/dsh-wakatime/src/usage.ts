@@ -1,5 +1,5 @@
 import { requestWakatimeJson, type WakatimeRequestPolicy } from './cli.ts'
-import { readWakatimeApiKey, type WakatimeSettings } from './settings.ts'
+import { DEFAULT_WAKATIME_API_URL, readWakatimeApiKey, type WakatimeSettings } from './settings.ts'
 import type {
   WakatimeAiModelUsage,
   WakatimeDailyUsage,
@@ -8,8 +8,6 @@ import type {
   WakatimeUsageTotals,
 } from './ui-contract.ts'
 
-const API_URL = 'https://api.wakatime.com/api/v1/users/current/summaries'
-const DURATIONS_URL = 'https://api.wakatime.com/api/v1/users/current/durations'
 const API_TIMEOUT_MS = 15_000
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
@@ -218,11 +216,12 @@ function mergeDurationBuckets(target: Map<string, WakatimeUsageBucket>, values: 
 
 async function fetchDurationBreakdown(
   apiKey: string,
+  baseUrl: string,
   date: string,
   sliceBy: 'project' | 'language' | 'category',
   policy: WakatimeRequestPolicy,
 ): Promise<WakatimeUsageBucket[]> {
-  const url = new URL(DURATIONS_URL)
+  const url = new URL(`${baseUrl}/users/current/durations`)
   url.searchParams.set('date', date)
   url.searchParams.set('slice_by', sliceBy)
   try {
@@ -444,9 +443,10 @@ export async function fetchWakatimeUsage(
   const policy: WakatimeRequestPolicy = {
     timeoutMs: API_TIMEOUT_MS,
     noSSLVerify: settings.noSSLVerify,
+    allowInsecureHttp: true,
     ...(settings.proxy === undefined ? {} : { proxy: settings.proxy }),
   }
-  const url = new URL(API_URL)
+  const url = new URL(`${settings.apiUrl ?? DEFAULT_WAKATIME_API_URL}/users/current/summaries`)
   url.searchParams.set('start', start)
   url.searchParams.set('end', end)
   const raw = await requestWakatimeJson(url.toString(), policy, {
@@ -455,9 +455,9 @@ export async function fetchWakatimeUsage(
   })
   const usage = normalizeWakatimeSummaries(raw, start, end)
   const [projects, languages, categories] = await Promise.all([
-    fetchDurationBreakdown(apiKey, end, 'project', policy),
-    fetchDurationBreakdown(apiKey, end, 'language', policy),
-    fetchDurationBreakdown(apiKey, end, 'category', policy),
+    fetchDurationBreakdown(apiKey, settings.apiUrl ?? DEFAULT_WAKATIME_API_URL, end, 'project', policy),
+    fetchDurationBreakdown(apiKey, settings.apiUrl ?? DEFAULT_WAKATIME_API_URL, end, 'language', policy),
+    fetchDurationBreakdown(apiKey, settings.apiUrl ?? DEFAULT_WAKATIME_API_URL, end, 'category', policy),
   ])
   return {
     ...usage,

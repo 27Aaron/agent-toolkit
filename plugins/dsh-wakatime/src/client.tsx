@@ -22,6 +22,7 @@ type Translator = (key: string) => string
 type Tab = 'dashboard' | 'ai' | 'projects' | 'insights' | 'settings'
 
 interface FormState {
+  baseUrl: string
   category: WakatimeUiConfig['category']
   trackReads: boolean
   cliPath: string
@@ -173,9 +174,12 @@ const zh = {
   apiKeyPending: '待保存',
   apiKeyWillClear: '保存后清除',
   apiKeyPlaceholder: '请输入 API Key',
+  baseUrl: 'Base URL',
+  baseUrlPlaceholder: 'https://api.wakatime.com/api/v1',
+  baseUrlInvalid: '请输入有效的 HTTP(S) Base URL。',
   clearApiKey: '清除',
   undoClearApiKey: '撤销清除',
-  cli: 'CLI',
+  cli: 'WakaTime CLI',
   ready: '可用',
   missing: '未找到',
   invalid: '不可用',
@@ -196,10 +200,10 @@ const zh = {
   cliDownloaded: 'CLI 已安装',
   cliChecked: '已完成检查',
   cliActionFailed: 'CLI 操作失败',
-  category: '活动分类',
+  category: '活动类型',
   trackReads: '记录读取活动',
   debug: '调试日志',
-  heartbeatInterval: 'Heartbeat 间隔（毫秒）',
+  heartbeatInterval: '心跳间隔（毫秒）',
   heartbeatIntervalInvalid: '请输入不小于 1000 毫秒的间隔。',
   advanced: '高级选项',
   save: '保存配置',
@@ -346,9 +350,12 @@ const en = {
   apiKeyPending: 'Unsaved',
   apiKeyWillClear: 'Will clear on save',
   apiKeyPlaceholder: 'Enter API key',
+  baseUrl: 'Base URL',
+  baseUrlPlaceholder: 'https://api.wakatime.com/api/v1',
+  baseUrlInvalid: 'Enter a valid HTTP(S) base URL.',
   clearApiKey: 'Clear',
   undoClearApiKey: 'Undo clear',
-  cli: 'CLI',
+  cli: 'WakaTime CLI',
   ready: 'Ready',
   missing: 'Missing',
   invalid: 'Unavailable',
@@ -369,7 +376,7 @@ const en = {
   cliDownloaded: 'CLI installed',
   cliChecked: 'Check complete',
   cliActionFailed: 'CLI action failed',
-  category: 'Activity category',
+  category: 'Activity type',
   trackReads: 'Track reads',
   debug: 'Debug logging',
   heartbeatInterval: 'Heartbeat interval (ms)',
@@ -451,6 +458,15 @@ body[data-color-scheme="light"] .dshWakatimePage {
   --dsh-tooltip-bg: #fff;
   --dsh-tooltip-fg: #1f2329;
 }
+
+/* The host marks dark mode on the body; an absent marker means light mode. */
+:root:not([data-ds-dark-theme]) .dshWakatimePage,
+body:not([data-ds-dark-theme]) .dshWakatimePage {
+  --dsh-menu-bg: #fff;
+  --dsh-menu-fg: #1f2329;
+  --dsh-tooltip-bg: #fff;
+  --dsh-tooltip-fg: #1f2329;
+}
 .dshWakatimePage *, .dshWakatimePage *::before, .dshWakatimePage *::after { box-sizing: border-box; min-width: 0; }
 .dshWakatimeButton { appearance: none; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 8px 12px; color: inherit; background: transparent; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; transition: border-color 140ms ease, background-color 140ms ease; }
 .dshWakatimeButton:hover { border-color: currentColor; background: var(--dsh-surface-input); }
@@ -494,7 +510,7 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeOfficialRangeMenu { position: relative; }
 .dshWakatimeOfficialRangeMenuButton { min-width: 72px; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 7px 10px; color: inherit; background: var(--dsh-surface-input); font: inherit; font-size: 11px; font-weight: 650; text-align: left; cursor: pointer; }
 .dshWakatimeOfficialRangeMenuButton::after { float: right; margin-left: 9px; content: '⌄'; opacity: .62; }
-.dshWakatimeOfficialRangePopover { position: absolute; z-index: 5; top: calc(100% + 5px); right: 0; display: grid; min-width: 112px; gap: 2px; padding: 4px; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); background: var(--dsh-menu-bg); box-shadow: 0 8px 20px rgb(0 0 0 / 20%); }
+.dshWakatimeOfficialRangePopover { position: absolute; z-index: 5; top: calc(100% + 5px); right: 0; display: grid; min-width: 112px; gap: 2px; padding: 4px; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); color: var(--dsh-menu-fg); background: var(--dsh-menu-bg); box-shadow: 0 8px 20px rgb(0 0 0 / 20%); }
 .dshWakatimeOfficialRangePopover button { border: 0; border-radius: 4px; padding: 7px 8px; color: var(--dsh-menu-fg); background: transparent; font: inherit; font-size: 11px; text-align: left; cursor: pointer; }
 .dshWakatimeOfficialRangePopover button:hover { background: var(--dsh-menu-hover-bg); }
 .dshWakatimeOfficialRangePopover button[aria-current="true"] { background: var(--dsh-menu-active-bg); }
@@ -524,7 +540,7 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeOfficialDonutFrame { display: flex; width: 100%; aspect-ratio: 1; min-height: 0; flex-direction: column; align-items: center; justify-content: center; gap: var(--dsh-space-2); margin: auto; border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
 .dshWakatimeOfficialDonut { display: grid; width: 104px; height: 104px; place-items: center; border-radius: 50%; background: conic-gradient(var(--dsh-ai) var(--dsh-ai-percent), var(--dsh-surface-raised) 0); }
 .dshWakatimeOfficialDonut::after { display: grid; width: 70px; height: 70px; place-items: center; border-radius: 50%; background: var(--dsh-surface); content: attr(data-percent); font-size: 21px; font-weight: 750; }
-.dshWakatimeOfficialDonutLabel { margin-top: 0; color: currentColor; opacity: .68; font-size: 10px; line-height: 1.2; text-align: center; }
+.dshWakatimeOfficialDonutLabel { margin-top: 0; color: currentColor; opacity: .78; font-size: 10px; font-weight: 600; letter-spacing: .01em; line-height: 1.2; text-align: center; }
 .dshWakatimeOfficialAiMetric { min-width: 0; padding: var(--dsh-space-2) 10px; border: 1px solid var(--dsh-border); border-radius: var(--dsh-radius); background: var(--dsh-surface); }
 .dshWakatimeOfficialAiMetricLabel { color: currentColor; opacity: .56; font-size: 10px; }
 .dshWakatimeOfficialAiMetricValue { margin-top: 4px; overflow-wrap: anywhere; font-size: 16px; font-weight: 700; line-height: 1.1; }
@@ -712,16 +728,17 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeInsightBar span { display: block; width: min(22px, 60%); min-height: 3px; border-radius: 3px 3px 1px 1px; background: currentColor; opacity: .62; }
 .dshWakatimeInsightLabel { overflow: hidden; color: currentColor; opacity: .58; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeInsightValue { font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 650; }
-.dshWakatimeDailyChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; min-height: 156px; align-items: start; }
-.dshWakatimeDay { display: grid; min-width: 0; grid-template-rows: 104px 16px 16px 28px; gap: 4px; text-align: center; }
-.dshWakatimeDayBar { display: flex; height: 104px; align-items: end; justify-content: center; }
-.dshWakatimeDayBar span { display: block; width: min(24px, 58%); min-height: 3px; border-radius: 3px 3px 1px 1px; background: currentColor; opacity: .64; }
+.dshWakatimeDailyChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; min-height: 0; align-items: start; padding: 8px 4px 2px; }
+.dshWakatimeDay { display: grid; min-width: 0; grid-template-rows: 88px 16px 16px 18px; gap: 5px; text-align: center; }
+.dshWakatimeDayBar { position: relative; display: flex; height: 88px; align-items: end; justify-content: center; }
+.dshWakatimeDayBar::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--dsh-border); content: ''; }
+.dshWakatimeDayBar span { position: relative; z-index: 1; display: block; width: min(28px, 64%); min-height: 3px; border-radius: 4px 4px 2px 2px; background: var(--dsh-accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--dsh-accent) 18%, transparent); opacity: .86; }
 .dshWakatimeDayLabel,
 .dshWakatimeDayTotal,
 .dshWakatimeDayAi { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dshWakatimeDayLabel { color: currentColor; opacity: .58; font-size: 10px; line-height: 16px; }
-.dshWakatimeDayTotal { overflow-wrap: normal; font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 650; line-height: 16px; }
-.dshWakatimeDayAi { color: currentColor; opacity: .56; font-size: 10px; line-height: 14px; }
+.dshWakatimeDayLabel { color: currentColor; opacity: .62; font-size: 10px; line-height: 16px; }
+.dshWakatimeDayTotal { overflow-wrap: normal; font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 16px; }
+.dshWakatimeDayAi { color: currentColor; opacity: .62; font-size: 10px; line-height: 14px; }
 .dshWakatimeRows { display: grid; gap: 8px; }
 .dshWakatimeRow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--dsh-border); }
 .dshWakatimeRow:last-child { padding-bottom: 0; border-bottom: 0; }
@@ -781,7 +798,6 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeCheck input { width: 15px; height: 15px; margin: 1px 0 0; accent-color: currentColor; }
 .dshWakatimeCheck small { display: block; margin-top: 4px; }
 .dshWakatimeAdvanced { border-top: 1px solid var(--dsh-border); padding-top: var(--dsh-space-3); }
-.dshWakatimeAdvancedTitle { margin: 0 0 15px; color: inherit; opacity: .7; font-size: 12px; font-weight: 650; }
 .dshWakatimeFormActions { display: flex; align-items: center; justify-content: flex-end; gap: 11px; padding-top: 2px; }
 .dshWakatimeFormActions .dshWakatimeButton { margin-left: auto; }
 .dshWakatimeSaved { color: inherit; opacity: .68; font-size: 12px; font-weight: 650; }
@@ -919,37 +935,39 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeCheck { gap: var(--dsh-space-2); }
 .dshWakatimeAdvanced { padding-top: var(--dsh-space-3); }
 .dshWakatimeFormActions { gap: var(--dsh-space-3); }
-.dshWakatimeConfigCard { max-width: 760px; overflow: hidden; padding: 0; }
+.dshWakatimeConfigCard { max-width: 760px; overflow: visible; border: 0; border-radius: 0; padding: 0; background: transparent; }
 .dshWakatimeConfigCard > .dshWakatimeForm { gap: 0; }
-.dshWakatimeConfigCard .dshWakatimeKeyRow { grid-template-columns: 104px minmax(0, 1fr); gap: var(--dsh-space-3); padding: 10px 12px; }
-.dshWakatimeConfigCard .dshWakatimeKeyMeta { align-self: start; padding-top: 5px; }
-.dshWakatimeConfigCard .dshWakatimeKeyMeta label { font-size: 12px; }
+.dshWakatimeConfigCard .dshWakatimeKeyRow { grid-template-columns: 1fr; gap: 7px; padding: 8px 0 10px; }
+.dshWakatimeConfigCard .dshWakatimeKeyMeta { display: flex; align-items: baseline; align-self: start; gap: 8px; padding-top: 0; }
+.dshWakatimeConfigCard .dshWakatimeKeyMeta label { font-size: 11px; letter-spacing: .015em; }
 .dshWakatimeConfigCard .dshWakatimeKeyStatus { font-size: 10px; }
-.dshWakatimeConfigCard .dshWakatimeInlineActions { gap: var(--dsh-space-2); }
-.dshWakatimeConfigCard .dshWakatimeInlineActions { justify-self: end; width: min(100%, 520px); }
-.dshWakatimeConfigCard .dshWakatimeInlineActions input { height: 32px; padding: 0 10px; border-radius: 6px; background: var(--dsh-surface-input); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dshWakatimeConfigCard .dshWakatimeBaseUrlRow { display: grid; grid-template-columns: 1fr; gap: 7px; align-items: start; padding: 0 0 10px; }
+.dshWakatimeConfigCard .dshWakatimeBaseUrlRow label { padding-top: 0; font-size: 11px; letter-spacing: .015em; }
+.dshWakatimeConfigCard .dshWakatimeInlineActions { gap: 10px; }
+.dshWakatimeConfigCard .dshWakatimeInlineActions { justify-self: stretch; width: 100%; }
+.dshWakatimeConfigCard .dshWakatimeInlineActions input { height: 34px; padding: 0 11px; border-radius: 6px; background: var(--dsh-surface-input); font-size: 12px; font-variant-numeric: tabular-nums; }
 .dshWakatimeConfigCard .dshWakatimeInlineActions input:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 2px; }
-.dshWakatimeConfigCard input:not([type="checkbox"]) { height: 32px; border-color: var(--dsh-border-strong); border-radius: 8px; padding: 0 10px; background: var(--dsh-surface-input); font-size: 12px; }
+.dshWakatimeConfigCard input:not([type="checkbox"]) { height: 34px; border-color: var(--dsh-border-strong); border-radius: 6px; padding: 0 11px; background: var(--dsh-surface-input); font-size: 12px; letter-spacing: .005em; }
 .dshWakatimeConfigCard input:not([type="checkbox"])::placeholder { color: currentColor; opacity: .52; }
 .dshWakatimeConfigCard input:not([type="checkbox"]):focus { border-color: var(--dsh-accent); box-shadow: 0 0 0 1px var(--dsh-accent); outline: 0; }
 .dshWakatimeConfigCard input:not([type="checkbox"]):focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; }
 .dshWakatimeConfigCard .dshWakatimeButton,
-.dshWakatimeConfigCard .dshWakatimeCategoryButton { min-height: 32px; padding-top: 0; padding-bottom: 0; font-size: 11px; line-height: 1.2; }
+.dshWakatimeConfigCard .dshWakatimeCategoryButton { min-height: 34px; padding: 0 10px; font-size: 11px; line-height: 1.2; }
 .dshWakatimeConfigCard .dshWakatimeButton:disabled { cursor: default; }
-.dshWakatimeConfigCard .dshWakatimeCliPanel { margin: 0 12px; padding: 10px 0 12px; border: 0; border-radius: 0; background: transparent; }
+.dshWakatimeConfigCard .dshWakatimeCliPanel { margin: 0; padding: 4px 0 8px; border: 0; border-radius: 0; background: transparent; }
 .dshWakatimeConfigCard .dshWakatimeCliBadge { display: inline-flex; align-items: center; max-width: 100%; gap: 6px; padding: 0; font-size: 11px; }
 .dshWakatimeConfigCard .dshWakatimeCliBadge::before { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--dsh-accent); content: ''; }
 .dshWakatimeConfigCard .dshWakatimeCliBadge[data-state="invalid"]::before { background: var(--dsh-human-delete); }
 .dshWakatimeConfigCard .dshWakatimeCliBadge[data-state="missing"]::before { background: currentColor; opacity: .45; }
-.dshWakatimeConfigCard .dshWakatimeCliHeaderActions { display: flex; min-width: 0; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
-.dshWakatimeConfigCard .dshWakatimeCliHeaderActions .dshWakatimeButton { min-height: 32px; }
+.dshWakatimeConfigCard .dshWakatimeCliHeaderActions { display: flex; min-width: 0; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.dshWakatimeConfigCard .dshWakatimeCliHeaderActions .dshWakatimeButton { min-height: 34px; }
 .dshWakatimeConfigCard .dshWakatimeCliPath { grid-column: 1 / -1; margin-top: 5px; overflow-wrap: anywhere; }
 .dshWakatimeConfigCard .dshWakatimeCliHint { grid-column: 1 / -1; margin-top: 5px; }
-.dshWakatimeConfigCard .dshWakatimeAdvanced { margin: 0 12px; padding: 9px 0 5px; border-top: 0; }
-.dshWakatimeConfigCard .dshWakatimeAdvancedTitle { margin-bottom: 8px; font-size: 11px; opacity: 1; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced { margin: 0; padding: 0; border-top: 0; }
 .dshWakatimeConfigCard .dshWakatimeAdvanced > .dshWakatimeForm { gap: var(--dsh-space-3); }
-.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeField { gap: 6px; }
-.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeFormGrid { gap: 10px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeField { gap: 7px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeField > label { font-size: 11px; letter-spacing: .015em; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeFormGrid { gap: 14px 12px; }
 .dshWakatimeAdvancedFooter { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--dsh-space-4); }
 .dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeChecks { gap: var(--dsh-space-2); }
 .dshWakatimeConfigCard .dshWakatimeAdvancedFooter .dshWakatimeFormActions { margin: 0; padding: 0 0 2px; background: transparent; }
@@ -1081,6 +1099,7 @@ function hydrateUsageData(value: WakatimeUsageData): WakatimeUsageData {
 
 function formFromStatus(status: WakatimeUiStatus): FormState {
   return {
+    baseUrl: status.config.baseUrl,
     category: status.config.category,
     trackReads: status.config.trackReads,
     cliPath: status.config.cliPath ?? '',
@@ -2133,7 +2152,14 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     setError('')
     setNotice('')
     try {
+      const baseUrl = form.baseUrl.trim()
+      if (baseUrl.length === 0) {
+        setError(tr(t, 'baseUrlInvalid', 'Enter a valid HTTP(S) base URL.'))
+        setNotice('')
+        return
+      }
       const next = await callValue<WakatimeUiStatus>(rpcCall, 'save', {
+        baseUrl,
         config: {
           category: form.category,
           trackReads: form.trackReads,
@@ -2201,7 +2227,8 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const busy = loading || usageLoading || saving || cliAction !== undefined
   const config = form
   const settingsDirty = config !== undefined && status !== undefined && (
-    apiKey.trim().length > 0
+    config.baseUrl.trim() !== status.config.baseUrl
+    || apiKey.trim().length > 0
     || clearApiKey
     || config.category !== status.config.category
     || config.trackReads !== status.config.trackReads
@@ -2255,26 +2282,9 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     ? h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'loading', 'Loading…'))
     : h('section', { className: 'dshWakatimeCard dshWakatimeConfigCard' },
       h('div', { className: 'dshWakatimeForm' },
-        h('div', { className: 'dshWakatimeKeyRow' },
-          h('div', { className: 'dshWakatimeKeyMeta' },
-            h('label', { htmlFor: 'dsh-wakatime-api-key' }, tr(t, 'apiKey', 'API key')),
-            h('span', { className: 'dshWakatimeKeyStatus' }, apiKeyStatus),
-          ),
-          h('div', { className: 'dshWakatimeInlineActions' },
-            h('input', {
-              id: 'dsh-wakatime-api-key',
-              type: 'password',
-              autoComplete: 'off',
-              value: apiKey,
-              placeholder: status?.apiKeyConfigured ? '••••••••' : tr(t, 'apiKeyPlaceholder', 'Enter API key'),
-              onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setApiKey(event.target.value); setClearApiKey(false) },
-            }),
-            status?.apiKeyConfigured === true ? h('button', { className: 'dshWakatimeButton', type: 'button', 'aria-pressed': clearApiKey, disabled: busy, onClick: () => { setApiKey(''); setClearApiKey(current => !current) } }, clearApiKey ? tr(t, 'undoClearApiKey', 'Undo clear') : tr(t, 'clearApiKey', 'Clear')) : null,
-          ),
-        ),
         h('section', { className: 'dshWakatimeCliPanel', 'aria-labelledby': 'dsh-wakatime-cli-title' },
           h('div', { className: 'dshWakatimeCliHeader' },
-            h('h3', { id: 'dsh-wakatime-cli-title', className: 'dshWakatimeCliTitle' }, tr(t, 'cli', 'CLI')),
+            h('h3', { id: 'dsh-wakatime-cli-title', className: 'dshWakatimeCliTitle' }, tr(t, 'cli', 'WakaTime CLI')),
             h('div', { className: 'dshWakatimeCliHeaderActions' },
               h('span', { className: 'dshWakatimeCliBadge', 'data-state': state }, `${cliSourceLabel(t, source)} · ${cliLabel(t, state)}${status?.cli.version === undefined ? '' : ` · ${status.cli.version}`}`),
               canDownloadCli
@@ -2300,12 +2310,40 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
                 ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliInvalidPath', 'The CLI found on PATH is not executable.'))
                 : null,
         ),
-        h('section', { className: 'dshWakatimeAdvanced', 'aria-labelledby': 'dsh-wakatime-advanced-title' },
-          h('h3', { id: 'dsh-wakatime-advanced-title', className: 'dshWakatimeAdvancedTitle' }, tr(t, 'advanced', 'Advanced options')),
+        h('div', { className: 'dshWakatimeKeyRow' },
+          h('div', { className: 'dshWakatimeKeyMeta' },
+            h('label', { htmlFor: 'dsh-wakatime-api-key' }, tr(t, 'apiKey', 'API key')),
+            h('span', { className: 'dshWakatimeKeyStatus' }, apiKeyStatus),
+          ),
+          h('div', { className: 'dshWakatimeInlineActions' },
+            h('input', {
+              id: 'dsh-wakatime-api-key',
+              type: 'password',
+              autoComplete: 'off',
+              value: apiKey,
+              placeholder: status?.apiKeyConfigured ? '••••••••' : '',
+              onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setApiKey(event.target.value); setClearApiKey(false) },
+            }),
+            status?.apiKeyConfigured === true ? h('button', { className: 'dshWakatimeButton', type: 'button', 'aria-pressed': clearApiKey, disabled: busy, onClick: () => { setApiKey(''); setClearApiKey(current => !current) } }, clearApiKey ? tr(t, 'undoClearApiKey', 'Undo clear') : tr(t, 'clearApiKey', 'Clear')) : null,
+          ),
+        ),
+        h('div', { className: 'dshWakatimeBaseUrlRow' },
+          h('label', { htmlFor: 'dsh-wakatime-base-url' }, tr(t, 'baseUrl', 'Base URL')),
+          h('input', {
+            id: 'dsh-wakatime-base-url',
+            type: 'url',
+            inputMode: 'url',
+            autoComplete: 'url',
+            value: config.baseUrl,
+            placeholder: tr(t, 'baseUrlPlaceholder', 'https://api.wakatime.com/api/v1'),
+            onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('baseUrl', event.target.value),
+          }),
+        ),
+        h('section', { className: 'dshWakatimeAdvanced', 'aria-label': tr(t, 'advanced', 'Advanced options') },
           h('div', { className: 'dshWakatimeForm' },
             h('div', { className: 'dshWakatimeFormGrid' },
               h('div', { className: 'dshWakatimeField' },
-                h('label', { id: 'dsh-wakatime-category-label' }, tr(t, 'category', 'Activity category')),
+                h('label', { id: 'dsh-wakatime-category-label' }, tr(t, 'category', 'Activity type')),
                 h(CategoryMenu, { id: 'dsh-wakatime-category', value: config.category, onChange: value => input('category', value) }),
               ),
               h('div', { className: 'dshWakatimeField' },

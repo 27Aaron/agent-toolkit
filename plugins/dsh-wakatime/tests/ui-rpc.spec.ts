@@ -45,6 +45,7 @@ describe('WakaTime settings RPC', () => {
     const result = await handler!('status', {}, { aborted: false })
     expect(result.ok).toBe(true)
     expect(result.value.apiKeyConfigured).toBe(false)
+    expect(result.value.config.baseUrl).toBe('https://api.wakatime.com/api/v1')
     expect(result.value.cli.state).toBe('ready')
     expect(result.value.paths.config).toBe(join(directory, '.wakatime.cfg'))
 
@@ -72,11 +73,13 @@ describe('WakaTime settings RPC', () => {
     expect(updated.value.cli.source).toBe('configured')
 
     const saved = await handler!('save', {
+      baseUrl: 'https://wakapi.example.com/api',
       config: { category: 'coding', cliPath: '' },
       apiKey: 'waka_test_key',
     }, { aborted: false })
     expect(saved.ok).toBe(true)
     expect(saved.value.config.category).toBe('coding')
+    expect(saved.value.config.baseUrl).toBe('https://wakapi.example.com/api')
     expect(saved.value.config.cliPath).toBeUndefined()
     expect(saved.value.apiKeyConfigured).toBe(true)
 

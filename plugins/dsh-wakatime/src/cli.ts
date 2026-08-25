@@ -55,6 +55,7 @@ interface CliState {
 export interface WakatimeRequestPolicy {
   timeoutMs: number
   noSSLVerify: boolean
+  allowInsecureHttp?: boolean
   proxy?: string
 }
 
@@ -211,9 +212,22 @@ async function sendRequest(
   extraHeaders: Record<string, string> = {},
 ): Promise<http.IncomingMessage> {
   const target = new URL(url)
-  if (target.protocol !== 'https:') throw new Error(`refusing non-HTTPS download URL: ${target.protocol}`)
+  const isHttp = target.protocol === 'http:'
+  if (target.protocol !== 'https:' && !(isHttp && policy.allowInsecureHttp === true)) {
+    throw new Error(`refusing non-HTTPS request URL: ${target.protocol}`)
+  }
   const proxy = policy.proxy === undefined ? undefined : new URL(policy.proxy)
   const headers = { 'User-Agent': 'github.com/27Aaron/agent-toolkit/dsh-wakatime', ...extraHeaders }
+
+  if (isHttp) {
+    if (proxy !== undefined) throw new Error('HTTP API requests do not support a configured proxy')
+    return new Promise((resolve, reject) => {
+      const request = http.request(target, { method: 'GET', headers }, resolve)
+      request.setTimeout(policy.timeoutMs, () => request.destroy(new Error(`request timed out after ${policy.timeoutMs}ms`)))
+      request.once('error', reject)
+      request.end()
+    })
+  }
 
   if (proxy !== undefined) {
     const tunnel = await createProxyTunnel(proxy, target, policy)
