@@ -14,7 +14,7 @@ import type { ResolvedConfig } from './config.ts'
 import type { PluginLogger } from './logger.ts'
 import { getPluginDataDir, getWakatimeResourcesDir } from './paths.ts'
 import type { WakatimeSettings } from './settings.ts'
-import type { WakatimeCliStatus } from './ui-contract.ts'
+import type { WakatimeCliStatus, WakatimeCliUpdateCheck } from './ui-contract.ts'
 
 const GITHUB_RELEASES_URL = 'https://api.github.com/repos/wakatime/wakatime-cli/releases/latest'
 const GITHUB_DOWNLOAD_URL = 'https://github.com/wakatime/wakatime-cli/releases/latest/download'
@@ -618,6 +618,21 @@ export class CliManager {
     if (inspected.source !== 'managed' || inspected.state !== 'ready') return inspected
     await this.maybeUpdateManagedCli(true)
     return this.inspect()
+  }
+
+  /**
+   * Check the managed CLI for an update without downloading or replacing it.
+   * System and explicitly configured binaries are never checked or changed.
+   */
+  async checkUpdate(): Promise<Omit<WakatimeCliUpdateCheck, 'status'>> {
+    const inspected = await this.inspect()
+    if (inspected.source !== 'managed' || inspected.state !== 'ready' || inspected.version === undefined || inspected.version === '<local-build>') {
+      return { updateAvailable: false }
+    }
+    const latestVersion = await getLatestVersion(this.requestPolicy())
+    writeCliState(this.stateFile, { lastCheckedAt: Date.now(), version: inspected.version })
+    if (latestVersion === undefined) return { updateAvailable: false }
+    return { updateAvailable: latestVersion !== inspected.version, latestVersion }
   }
 
   private sourceFor(binary: string): WakatimeCliStatus['source'] {

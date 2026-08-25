@@ -42,6 +42,12 @@ export interface WakatimeCliStatus {
   managedPath: string
 }
 
+export interface WakatimeCliUpdateCheck {
+  status: WakatimeUiStatus
+  updateAvailable: boolean
+  latestVersion?: string
+}
+
 export interface WakatimeTrackingStatus {
   projectCount: number
   pendingFiles: number

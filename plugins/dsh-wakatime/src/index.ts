@@ -37,6 +37,7 @@ import {
 } from './ui-settings.ts'
 import {
   WAKATIME_RPC_CHANNEL,
+  type WakatimeCliUpdateCheck,
   type WakatimeUiConfig,
   type WakatimeUiRpcResult,
   type WakatimeUiStatus,
@@ -206,6 +207,12 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
       if (endpoint === 'update-cli') {
         await cli.update()
         return { ok: true, value: await status() }
+      }
+
+      if (endpoint === 'check-cli-update') {
+        const result = await cli.checkUpdate()
+        const value: WakatimeCliUpdateCheck = { ...result, status: await status() }
+        return { ok: true, value }
       }
 
       if (endpoint === 'flush') {
