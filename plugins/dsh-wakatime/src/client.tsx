@@ -120,11 +120,6 @@ const zh = {
   aiHumanHint: '按代码行变更对比 AI 生成和人工输入。',
   human: '人工',
   topProjects: '项目',
-  topProjectsHint: '按编码时间排序的项目。',
-  todayBreakdown: '今天的活动分布',
-  todayProjects: '项目',
-  todayLanguages: '语言',
-  todayCategories: '分类',
   weekdayAverage: '工作日平均',
   aiPercentage: 'AI 占比趋势',
   insightActivity: '活动',
@@ -156,7 +151,6 @@ const zh = {
   insightModelSummary: 'AI 模型共改动 {lines} 行，估算支出 {cost}。',
   insightUpdating: 'WakaTime 正在生成这段长期数据，当前显示的是缓存结果。',
   insightNoData: '这段时间还没有可用的洞察数据。',
-  workspaceHint: '编码工具、语言、设备和项目的时间占比。',
   noBreakdown: '暂无明细',
   apiKey: 'API Key',
   apiKeyConfigured: '已配置',
@@ -274,11 +268,6 @@ const en = {
   aiHumanHint: 'AI-generated and human-typed line changes.',
   human: 'Human',
   topProjects: 'Projects',
-  topProjectsHint: 'Projects ordered by coding time.',
-  todayBreakdown: 'Today’s activity breakdown',
-  todayProjects: 'Projects',
-  todayLanguages: 'Languages',
-  todayCategories: 'Categories',
   weekdayAverage: 'Weekday average',
   aiPercentage: 'AI share trend',
   insightActivity: 'Activity',
@@ -310,7 +299,6 @@ const en = {
   insightModelSummary: 'AI models changed {lines} lines with {cost} estimated spend.',
   insightUpdating: 'WakaTime is preparing this long-range data; cached results are shown for now.',
   insightNoData: 'There is no insight data for this range yet.',
-  workspaceHint: 'Time share across coding tools, languages, machines, and projects.',
   noBreakdown: 'No breakdown yet',
   apiKey: 'API key',
   apiKeyConfigured: 'Configured',
@@ -425,6 +413,7 @@ const STYLE = `
 .dshWakatimeOfficialAiMetricValue { margin-top: 4px; overflow-wrap: anywhere; font-size: 16px; font-weight: 700; line-height: 1.1; }
 .dshWakatimeOfficialAiMetricMeta { margin-top: 3px; overflow-wrap: anywhere; color: currentColor; opacity: .54; font-size: 10px; line-height: 1.25; }
 .dshWakatimeOfficialSplit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dshWakatimeOfficialSplitSingle { grid-template-columns: 1fr; }
 .dshWakatimeOfficialPanel { min-width: 0; padding: 14px 15px; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
 .dshWakatimeOfficialPanel h3 { margin: 0 0 10px; font-size: 13px; }
 .dshWakatimeOfficialList { display: grid; gap: 7px; }
@@ -432,6 +421,7 @@ const STYLE = `
 .dshWakatimeOfficialListRow span:first-child { overflow: hidden; color: currentColor; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeOfficialListRow span:last-child { color: currentColor; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .dshWakatimeOfficialChartGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.dshWakatimeOfficialChartGridSingle { grid-template-columns: 1fr; }
 .dshWakatimeOfficialChartPanel { min-width: 0; padding: 14px 15px; border: 1px solid color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 2%, transparent); }
 .dshWakatimeOfficialChartPanel h3 { margin: 0 0 12px; font-size: 13px; }
 .dshWakatimeOfficialProjectChartRows { display: grid; max-height: 212px; gap: 7px; overflow: auto; }
@@ -588,12 +578,6 @@ const STYLE = `
 .dshWakatimeCard + .dshWakatimeGrid,
 .dshWakatimeGrid + .dshWakatimeCard,
 .dshWakatimeGrid + .dshWakatimeGrid { margin-top: 12px; }
-.dshWakatimeOverviewGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
-.dshWakatimeOverviewCard { min-width: 0; }
-.dshWakatimeMiniGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
-.dshWakatimeMiniSection { min-width: 0; }
-.dshWakatimeMiniTitle { margin: 0; color: currentColor; opacity: .58; font-size: 11px; font-weight: 650; }
-.dshWakatimeMiniSection .dshWakatimeBreakdown { margin-top: 8px; }
 .dshWakatimeInsightChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; min-height: 168px; align-items: end; }
 .dshWakatimeInsightDay { display: grid; grid-template-rows: 112px auto auto; gap: 5px; min-width: 0; text-align: center; }
 .dshWakatimeInsightBar { display: flex; align-items: end; justify-content: center; height: 112px; }
@@ -673,7 +657,6 @@ const STYLE = `
   .dshWakatimeProjectStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeInsightsColumns, .dshWakatimeInsightsTwoCol { grid-template-columns: 1fr; }
   .dshWakatimeCard { padding: 15px; }
-  .dshWakatimeMiniGrid { grid-template-columns: 1fr; gap: 12px; }
   .dshWakatimeDailyChart { gap: 3px; }
   .dshWakatimeDayBar span { width: 16px; }
 }
@@ -941,49 +924,13 @@ function AiDailyChart({ days, t }: { days: WakatimeDailyUsage[]; t: Translator }
   )
 }
 
-function OverviewCard({ title, children }: { title: string; children?: React.ReactNode }) {
-  return h('section', { className: 'dshWakatimeCard dshWakatimeOverviewCard' },
-    h('h2', { className: 'dshWakatimeCardTitle' }, title),
-    children,
-  )
-}
-
-function TodayBreakdownCard({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
-  const today = usage.todayBreakdown
-  return h(OverviewCard, { title: `${tr(t, 'todayBreakdown', 'Today’s activity breakdown')} · ${dayLabel(today.date)}` },
-    h('div', { className: 'dshWakatimeMiniGrid' },
-      h('div', { className: 'dshWakatimeMiniSection' },
-        h('h3', { className: 'dshWakatimeMiniTitle' }, tr(t, 'todayProjects', 'Projects')),
-        bucketBreakdown(today.projects, formatDuration, t),
-      ),
-      h('div', { className: 'dshWakatimeMiniSection' },
-        h('h3', { className: 'dshWakatimeMiniTitle' }, tr(t, 'todayLanguages', 'Languages')),
-        bucketBreakdown(today.languages, formatDuration, t),
-      ),
-      h('div', { className: 'dshWakatimeMiniSection' },
-        h('h3', { className: 'dshWakatimeMiniTitle' }, tr(t, 'todayCategories', 'Categories')),
-        bucketBreakdown(today.categories, formatDuration, t),
-      ),
-    ),
-  )
-}
-
 function emptyBreakdown(t: Translator) {
   return h('p', { className: 'dshWakatimeNotice' }, tr(t, 'noBreakdown', 'No breakdown yet'))
 }
 
-function bucketBreakdown(
-  items: WakatimeUsageData['projects'],
-  formatValue: (value: number) => string,
-  t: Translator,
-) {
-  return items.length === 0 ? emptyBreakdown(t) : h(Breakdown, {
-    items: items.map(item => ({ name: item.name, value: item.totalSeconds, detail: `${item.percent.toFixed(0)}%` })),
-    formatValue,
-  })
-}
+type ActivityBreakdownMode = 'projects' | 'categories' | 'all'
 
-function OfficialTimeline({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+function OfficialTimeline({ usage, t, mode = 'all' }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode }) {
   const today = usage.dashboard.todayText ?? formatDuration(usage.dashboard.todaySeconds)
   const renderRows = (items: WakatimeUsageBucket[]) => {
     const max = Math.max(1, ...items.map(item => item.totalSeconds))
@@ -1000,24 +947,25 @@ function OfficialTimeline({ usage, t }: { usage: WakatimeUsageData; t: Translato
         h('span', { className: 'dshWakatimeBreakdownValue' }, `${item.percent.toFixed(2)}%`),
       )))
   }
+  const modes: Array<'projects' | 'categories'> = mode === 'all' ? ['projects', 'categories'] : [mode]
   return h('section', { className: 'dshWakatimeOfficialSection' },
-    h('div', { className: 'dshWakatimeOfficialSplit' },
-      ...(['projects', 'categories'] as const).map(mode => h('div', { className: 'dshWakatimeOfficialTimeline', key: mode },
+    h('div', { className: `dshWakatimeOfficialSplit${modes.length === 1 ? ' dshWakatimeOfficialSplitSingle' : ''}` },
+      ...modes.map(breakdownMode => h('div', { className: 'dshWakatimeOfficialTimeline', key: breakdownMode },
         h('div', { className: 'dshWakatimeOfficialTimelineHeader' },
-          h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, tr(t, mode === 'projects' ? 'projectsOverview' : 'categoriesOverview', mode === 'projects' ? 'Projects' : 'Categories')),
+          h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, tr(t, breakdownMode === 'projects' ? 'projectsOverview' : 'categoriesOverview', breakdownMode === 'projects' ? 'Projects' : 'Categories')),
           h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, `${today} · ${tr(t, 'today', 'Today')}`),
         ),
-        mode === 'categories' ? h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'segmentHint', 'Segment by category, language, editor, or operating system')) : null,
-        renderRows(mode === 'projects' ? usage.todayBreakdown.projects : usage.todayBreakdown.categories),
+        breakdownMode === 'categories' ? h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'segmentHint', 'Segment by category, language, editor, or operating system')) : null,
+        renderRows(breakdownMode === 'projects' ? usage.todayBreakdown.projects : usage.todayBreakdown.categories),
       )),
     ),
   )
 }
 
-function OfficialActivityCharts({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
-  const renderChart = (mode: 'projects' | 'categories') => {
-    const source = mode === 'projects' ? usage.projects : usage.categories
-    if (mode === 'projects') {
+function OfficialActivityCharts({ usage, t, mode = 'all' }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode }) {
+  const renderChart = (chartMode: 'projects' | 'categories') => {
+    const source = chartMode === 'projects' ? usage.projects : usage.categories
+    if (chartMode === 'projects') {
       const max = Math.max(1, ...source.map(item => item.totalSeconds))
       return h('div', { className: 'dshWakatimeOfficialProjectChartRows' }, source.map(item => h('div', { className: 'dshWakatimeOfficialProjectChartRow', key: item.name },
         h('div', null,
@@ -1048,16 +996,11 @@ function OfficialActivityCharts({ usage, t }: { usage: WakatimeUsageData; t: Tra
     )))
     return h(React.Fragment, null, chart, legend)
   }
-  return h('section', { className: 'dshWakatimeOfficialChartGrid' },
-    h('div', { className: 'dshWakatimeOfficialChartPanel' },
-      h('h3', null, tr(t, 'projectsOverview', 'Projects')),
-      renderChart('projects'),
-    ),
-    h('div', { className: 'dshWakatimeOfficialChartPanel' },
-      h('h3', null, tr(t, 'categoriesOverview', 'Categories')),
-      renderChart('categories'),
-    ),
-  )
+  const modes: Array<'projects' | 'categories'> = mode === 'all' ? ['projects', 'categories'] : [mode]
+  return h('section', { className: `dshWakatimeOfficialChartGrid${modes.length === 1 ? ' dshWakatimeOfficialChartGridSingle' : ''}` }, modes.map(chartMode => h('div', { className: 'dshWakatimeOfficialChartPanel', key: chartMode },
+    h('h3', null, tr(t, chartMode === 'projects' ? 'projectsOverview' : 'categoriesOverview', chartMode === 'projects' ? 'Projects' : 'Categories')),
+    renderChart(chartMode),
+  )))
 }
 
 function OfficialAiHumanByDay({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
@@ -1222,8 +1165,8 @@ function DashboardView({
         ),
       ),
     ),
-    h(OfficialActivityCharts, { usage, t }),
-    h(OfficialTimeline, { usage, t }),
+    h(OfficialActivityCharts, { usage, t, mode: 'categories' }),
+    h(OfficialTimeline, { usage, t, mode: 'categories' }),
     h('section', { className: 'dshWakatimeOfficialSection dshWakatimeOfficialSplit' },
       h('div', { className: 'dshWakatimeOfficialPanel' },
         h('h3', null, tr(t, 'models', 'Models')),
@@ -1268,6 +1211,14 @@ function DashboardView({
         h(OfficialWeekdays, { usage }),
       ),
     ),
+    usage.isUpToDate === false ? h('p', { className: 'dshWakatimeNotice', role: 'status' }, tr(t, 'stale', 'WakaTime is updating this range.')) : null,
+  )
+}
+
+function ProjectsView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
+  return h(React.Fragment, null,
+    h(OfficialActivityCharts, { usage, t, mode: 'projects' }),
+    h(OfficialTimeline, { usage, t, mode: 'projects' }),
     h('section', { className: 'dshWakatimeOfficialSection' },
       h('div', { className: 'dshWakatimeOfficialSectionHeading' },
         h('h2', null, tr(t, 'projectsOverview', 'Projects')),
@@ -1341,42 +1292,6 @@ function AiView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
       h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'aiDailyHint', 'Bar height represents daily AI line changes.')),
       h(AiDailyChart, { days: usage.days, t }),
     ),
-  )
-}
-
-function WorkspaceView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
-  return h(React.Fragment, null,
-    h('p', { className: 'dshWakatimeSectionHint' }, tr(t, 'workspaceHint', 'Time share across coding tools, languages, machines, and projects.')),
-    h('section', { className: 'dshWakatimeCard' },
-      h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'topProjects', 'Projects')),
-      h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'topProjectsHint', 'Projects ordered by coding time.')),
-      bucketBreakdown(usage.projects, formatDuration, t),
-    ),
-    h('div', { className: 'dshWakatimeGrid' },
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'editors', 'Coding tools')),
-        bucketBreakdown(usage.editors, formatDuration, t),
-      ),
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'languages', 'Languages')),
-        bucketBreakdown(usage.languages, formatDuration, t),
-      ),
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'categories', 'Activity categories')),
-        bucketBreakdown(usage.categories, formatDuration, t),
-      ),
-    ),
-    h('div', { className: 'dshWakatimeGrid' },
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'machines', 'Machines')),
-        bucketBreakdown(usage.machines, formatDuration, t),
-      ),
-      h('section', { className: 'dshWakatimeCard' },
-        h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'operatingSystems', 'Operating systems')),
-        bucketBreakdown(usage.operatingSystems, formatDuration, t),
-      ),
-    ),
-    h(TodayBreakdownCard, { usage, t }),
   )
 }
 
@@ -1761,7 +1676,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
           ? h(DashboardView, { usage, t, range, onPreset: setPreset, onOpenAi: () => setTab('ai') })
           : tab === 'ai'
             ? h(AiView, { usage, t })
-            : h(WorkspaceView, { usage, t })
+            : h(ProjectsView, { usage, t })
 
   const settings = config === undefined
     ? h('div', { className: 'dshWakatimeEmpty' }, tr(t, 'loading', 'Loading…'))

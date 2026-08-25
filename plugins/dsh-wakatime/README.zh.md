@@ -51,7 +51,7 @@ dsh plugin --profile headless add ./plugins/dsh-wakatime
 
 ### 设置页面
 
-将插件安装到 web Profile 后重启 DSH，然后打开 **设置 → 插件 → WakaTime**。页面按官方 Dashboard 结构展示：活动概览、AI Coding、项目／分类、模型、编辑器、语言、操作系统、设备机器、AI／人工趋势，以及包含 AI 明细的项目卡片；项目页补充今天的项目／语言／分类分布，AI 和洞察页提供提示词、Token、模型、工作日以及每日 AI 占比等明细。
+将插件安装到 web Profile 后重启 DSH，然后打开 **设置 → 插件 → WakaTime**。页面按官方 Dashboard 结构展示：活动概览、AI Coding、模型、编辑器、语言、操作系统、设备机器、AI／人工趋势；项目页集中展示项目、分类、今天的活动分布以及包含 AI 明细的项目卡片，AI 和洞察页提供提示词、Token、模型、工作日以及每日 AI 占比等明细。
 
 API Key 会以受限的本机文件权限写入 WakaTime 标准 `.wakatime.cfg`；页面管理的插件选项保存在 WakaTime 数据目录下。页面只会收到“是否已配置 API Key”的布尔值，不会把已有密钥读回浏览器。数据请求由 Host 进程发起，并短暂缓存以避免重复请求。仪表盘等短周期数据来自 summaries，选定结束日期还会通过 WakaTime durations 接口获取更细的“今天”分布；洞察页默认使用过去 1 年，并通过只读的 `stats`、`days`、`ai_days` 和 `weekdays` 接口生成长期热力图，不会调用团队、账单或其他付费专属 API。
 
