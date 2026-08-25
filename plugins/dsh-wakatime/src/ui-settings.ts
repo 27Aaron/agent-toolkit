@@ -9,6 +9,8 @@ export interface PersistedWakatimeConfig {
   cliPath?: string
   debug?: boolean
   heartbeatIntervalMs?: number
+  dashboardRefreshIntervalMs?: number
+  insightsRefreshIntervalMs?: number
 }
 
 const categories = new Set<WakatimeCategory>([
@@ -45,6 +47,12 @@ function readNumber(value: unknown): number | undefined {
     : undefined
 }
 
+function readRefreshInterval(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 60_000 && value <= 2_147_483_647
+    ? value
+    : undefined
+}
+
 function sanitize(value: unknown): PersistedWakatimeConfig {
   if (!isRecord(value)) return {}
   const result: PersistedWakatimeConfig = {}
@@ -61,6 +69,10 @@ function sanitize(value: unknown): PersistedWakatimeConfig {
   if (typeof value.debug === 'boolean') result.debug = value.debug
   const heartbeatIntervalMs = readNumber(value.heartbeatIntervalMs)
   if (heartbeatIntervalMs !== undefined) result.heartbeatIntervalMs = heartbeatIntervalMs
+  const dashboardRefreshIntervalMs = readRefreshInterval(value.dashboardRefreshIntervalMs)
+  if (dashboardRefreshIntervalMs !== undefined) result.dashboardRefreshIntervalMs = dashboardRefreshIntervalMs
+  const insightsRefreshIntervalMs = readRefreshInterval(value.insightsRefreshIntervalMs)
+  if (insightsRefreshIntervalMs !== undefined) result.insightsRefreshIntervalMs = insightsRefreshIntervalMs
   return result
 }
 

@@ -1,4 +1,4 @@
-import { requestWakatimeJson, type WakatimeRequestPolicy } from './cli.ts'
+import { requestWakatimeJson, WakatimeApiError, type WakatimeRequestPolicy } from './cli.ts'
 import { DEFAULT_WAKATIME_API_URL, readWakatimeApiKey, type WakatimeSettings } from './settings.ts'
 import type {
   WakatimeAiModelUsage,
@@ -235,7 +235,8 @@ async function fetchDurationBreakdown(
     mergeDurationBuckets(map, items, sliceBy)
     const totalSeconds = [...map.values()].reduce((sum, item) => sum + item.totalSeconds, 0)
     return sortBuckets(map, totalSeconds)
-  } catch {
+  } catch (error) {
+    if (error instanceof WakatimeApiError && error.statusCode === 429) throw error
     // A durations request can be unavailable for older accounts or while the
     // selected day is still being processed. Summary data remains useful.
     return []

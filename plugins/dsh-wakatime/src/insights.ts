@@ -1,4 +1,4 @@
-import { requestWakatimeJson, type WakatimeRequestPolicy } from './cli.ts'
+import { requestWakatimeJson, WakatimeApiError, type WakatimeRequestPolicy } from './cli.ts'
 import { DEFAULT_WAKATIME_API_URL, readWakatimeApiKey, type WakatimeSettings } from './settings.ts'
 import type {
   WakatimeAiModelUsage,
@@ -424,9 +424,18 @@ export async function fetchWakatimeInsights(
   const baseUrl = settings.apiUrl ?? DEFAULT_WAKATIME_API_URL
   const stats = await fetchInsight(apiKey, baseUrl, 'stats', range, policy)
   const [days, aiDays, weekdays] = await Promise.all([
-    fetchInsight(apiKey, baseUrl, 'days', range, policy).catch(() => undefined),
-    fetchInsight(apiKey, baseUrl, 'ai_days', range, policy).catch(() => undefined),
-    fetchInsight(apiKey, baseUrl, 'weekdays', range, policy).catch(() => undefined),
+    fetchInsight(apiKey, baseUrl, 'days', range, policy).catch(error => {
+      if (error instanceof WakatimeApiError && error.statusCode === 429) throw error
+      return undefined
+    }),
+    fetchInsight(apiKey, baseUrl, 'ai_days', range, policy).catch(error => {
+      if (error instanceof WakatimeApiError && error.statusCode === 429) throw error
+      return undefined
+    }),
+    fetchInsight(apiKey, baseUrl, 'weekdays', range, policy).catch(error => {
+      if (error instanceof WakatimeApiError && error.statusCode === 429) throw error
+      return undefined
+    }),
   ])
   return normalizeWakatimeInsights(stats, days, aiDays, weekdays, range)
 }

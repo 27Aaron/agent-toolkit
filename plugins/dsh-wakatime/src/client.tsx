@@ -28,6 +28,8 @@ interface FormState {
   cliPath: string
   debug: boolean
   heartbeatIntervalMs: string
+  dashboardRefreshIntervalMinutes: string
+  insightsRefreshIntervalMinutes: string
 }
 
 interface UsageRange {
@@ -205,6 +207,9 @@ const zh = {
   debug: '调试日志',
   heartbeatInterval: '心跳间隔（毫秒）',
   heartbeatIntervalInvalid: '请输入不小于 1000 毫秒的间隔。',
+  dashboardRefreshInterval: '仪表盘刷新间隔（分钟）',
+  insightsRefreshInterval: '洞察刷新间隔（分钟）',
+  refreshIntervalInvalid: '刷新间隔请输入不小于 1 分钟的数字。',
   advanced: '高级选项',
   save: '保存配置',
   saving: '保存中…',
@@ -381,6 +386,9 @@ const en = {
   debug: 'Debug logging',
   heartbeatInterval: 'Heartbeat interval (ms)',
   heartbeatIntervalInvalid: 'Enter an interval of at least 1000 ms.',
+  dashboardRefreshInterval: 'Dashboard refresh interval (minutes)',
+  insightsRefreshInterval: 'Insights refresh interval (minutes)',
+  refreshIntervalInvalid: 'Refresh intervals must be numbers of at least 1 minute.',
   advanced: 'Advanced options',
   save: 'Save settings',
   saving: 'Saving…',
@@ -417,6 +425,8 @@ const STYLE = `
   --dsh-surface: color-mix(in srgb, currentColor 3%, transparent);
   --dsh-surface-raised: color-mix(in srgb, currentColor 6%, transparent);
   --dsh-surface-input: color-mix(in srgb, currentColor 5%, transparent);
+  --dsh-control-border: var(--dsh-border-strong);
+  --dsh-control-bg: var(--dsh-surface-input);
   --dsh-menu-bg: #2e3137;
   --dsh-menu-fg: #f4f5f7;
   --dsh-menu-accent: #3b82f6;
@@ -456,17 +466,32 @@ body[data-theme="light"] .dshWakatimePage,
 body[data-color-scheme="light"] .dshWakatimePage {
   --dsh-menu-bg: #fff;
   --dsh-menu-fg: #1f2329;
+  --dsh-control-border: #cbd2dc;
+  --dsh-control-bg: #fff;
   --dsh-tooltip-bg: #fff;
   --dsh-tooltip-fg: #1f2329;
 }
 
 /* The host marks dark mode on the body; an absent marker means light mode. */
-:root:not([data-ds-dark-theme]) .dshWakatimePage,
 body:not([data-ds-dark-theme]) .dshWakatimePage {
   --dsh-menu-bg: #fff;
   --dsh-menu-fg: #1f2329;
+  --dsh-control-border: #cbd2dc;
+  --dsh-control-bg: #fff;
   --dsh-tooltip-bg: #fff;
   --dsh-tooltip-fg: #1f2329;
+}
+
+/* Restore the neutral dark control surfaces when the host marks dark mode on
+ * either the document root or body. This must win over light-theme fallbacks. */
+:root[data-ds-dark-theme] .dshWakatimePage,
+body[data-ds-dark-theme] .dshWakatimePage,
+:root[data-theme="dark"] .dshWakatimePage,
+body[data-theme="dark"] .dshWakatimePage,
+:root[data-color-scheme="dark"] .dshWakatimePage,
+body[data-color-scheme="dark"] .dshWakatimePage {
+  --dsh-control-border: var(--dsh-border-strong);
+  --dsh-control-bg: var(--dsh-surface-input);
 }
 .dshWakatimePage *, .dshWakatimePage *::before, .dshWakatimePage *::after { box-sizing: border-box; min-width: 0; }
 .dshWakatimeButton { appearance: none; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 8px 12px; color: inherit; background: transparent; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; transition: border-color 140ms ease, background-color 140ms ease; }
@@ -942,12 +967,18 @@ body:not([data-ds-dark-theme]) .dshWakatimePage {
 .dshWakatimeConfigCard .dshWakatimeBaseUrlRow label { padding-top: 0; font-size: 11px; letter-spacing: .015em; }
 .dshWakatimeConfigCard .dshWakatimeInlineActions { gap: 10px; }
 .dshWakatimeConfigCard .dshWakatimeInlineActions { justify-self: stretch; width: 100%; }
-.dshWakatimeConfigCard .dshWakatimeInlineActions input { height: 34px; padding: 0 11px; border-radius: 6px; background: var(--dsh-surface-input); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dshWakatimeConfigCard .dshWakatimeInlineActions input { height: 34px; padding: 0 11px; border-radius: 6px; background: var(--dsh-control-bg); font-size: 12px; font-variant-numeric: tabular-nums; }
 .dshWakatimeConfigCard .dshWakatimeInlineActions input:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 2px; }
-.dshWakatimeConfigCard input:not([type="checkbox"]) { height: 34px; border-color: var(--dsh-border-strong); border-radius: 6px; padding: 0 11px; background: var(--dsh-surface-input); font-size: 12px; letter-spacing: .005em; }
-.dshWakatimeConfigCard input:not([type="checkbox"])::placeholder { color: currentColor; opacity: .52; }
-.dshWakatimeConfigCard input:not([type="checkbox"]):focus { border-color: var(--dsh-accent); box-shadow: 0 0 0 1px var(--dsh-accent); outline: 0; }
-.dshWakatimeConfigCard input:not([type="checkbox"]):focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; }
+.dshWakatimeConfigCard .dshWakatimeConfigInput { height: 34px; border: 1px solid var(--dsh-control-border); border-radius: 6px; padding: 0 11px; background: var(--dsh-control-bg); font-size: 12px; letter-spacing: .005em; }
+.dshWakatimeConfigCard .dshWakatimeConfigInput::placeholder { color: currentColor; opacity: .52; }
+.dshWakatimeConfigCard .dshWakatimeConfigInput,
+.dshWakatimeConfigCard .dshWakatimeCategoryButton { box-shadow: inset 0 1px 2px rgb(30 41 59 / 4%); transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease; }
+.dshWakatimeConfigCard .dshWakatimeCategoryButton { border-color: var(--dsh-control-border); background: var(--dsh-control-bg); }
+.dshWakatimeConfigCard .dshWakatimeConfigInput:hover,
+.dshWakatimeConfigCard .dshWakatimeCategoryButton:hover { border-color: color-mix(in srgb, var(--dsh-accent) 34%, var(--dsh-control-border)); background: color-mix(in srgb, var(--dsh-accent) 3%, var(--dsh-control-bg)); }
+.dshWakatimeConfigCard .dshWakatimeConfigInput:focus { border-color: var(--dsh-accent); box-shadow: 0 0 0 1px var(--dsh-accent); outline: 0; }
+.dshWakatimeConfigCard .dshWakatimeConfigInput:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; }
+.dshWakatimeConfigCard .dshWakatimeCategoryButton:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; box-shadow: 0 0 0 1px var(--dsh-accent); }
 .dshWakatimeConfigCard .dshWakatimeButton,
 .dshWakatimeConfigCard .dshWakatimeCategoryButton { min-height: 34px; padding: 0 10px; font-size: 11px; line-height: 1.2; }
 .dshWakatimeConfigCard .dshWakatimeButton:disabled { cursor: default; }
@@ -1102,6 +1133,8 @@ function formFromStatus(status: WakatimeUiStatus): FormState {
     cliPath: status.config.cliPath ?? '',
     debug: status.config.debug,
     heartbeatIntervalMs: String(status.config.heartbeatIntervalMs),
+    dashboardRefreshIntervalMinutes: String(status.config.dashboardRefreshIntervalMs / 60_000),
+    insightsRefreshIntervalMinutes: String(status.config.insightsRefreshIntervalMs / 60_000),
   }
 }
 
@@ -2098,10 +2131,10 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const [notice, setNotice] = React.useState('')
   const [error, setError] = React.useState('')
 
-  const loadUsage = React.useCallback(async (nextRange: UsageRange = range) => {
+  const loadUsage = React.useCallback(async (nextRange: UsageRange = range, force: boolean = false) => {
     setUsageLoading(true)
     try {
-      const next = await callValue<WakatimeUsageData>(rpcCall, 'usage', nextRange)
+      const next = await callValue<WakatimeUsageData>(rpcCall, 'usage', { ...nextRange, force })
       setUsage(hydrateUsageData(next))
       setError('')
     } catch (reason) {
@@ -2111,10 +2144,10 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     }
   }, [range, rpcCall, t])
 
-  const loadInsights = React.useCallback(async () => {
+  const loadInsights = React.useCallback(async (force: boolean = false) => {
     setInsightsLoading(true)
     try {
-      const next = await callValue<WakatimeInsightsData>(rpcCall, 'insights', { range: 'last_year' })
+      const next = await callValue<WakatimeInsightsData>(rpcCall, 'insights', { range: 'last_year', force })
       setInsights(next)
       setError('')
     } catch (reason) {
@@ -2146,12 +2179,30 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     if (tab !== 'insights' || status?.apiKeyConfigured !== true || insights !== undefined) return
     void loadInsights()
   }, [insights, loadInsights, status?.apiKeyConfigured, tab])
+  React.useEffect(() => {
+    if (status?.apiKeyConfigured !== true || status.config.dashboardRefreshIntervalMs <= 0) return undefined
+    const timer = window.setInterval(() => { void loadUsage(range) }, status.config.dashboardRefreshIntervalMs)
+    return () => window.clearInterval(timer)
+  }, [loadUsage, range, status?.apiKeyConfigured, status?.config.dashboardRefreshIntervalMs])
+  React.useEffect(() => {
+    if (tab !== 'insights' || status?.apiKeyConfigured !== true || status.config.insightsRefreshIntervalMs <= 0) return undefined
+    const timer = window.setInterval(() => { void loadInsights() }, status.config.insightsRefreshIntervalMs)
+    return () => window.clearInterval(timer)
+  }, [loadInsights, status?.apiKeyConfigured, status?.config.insightsRefreshIntervalMs, tab])
 
   const save = async () => {
     if (form === undefined) return
     const heartbeatIntervalMs = Number(form.heartbeatIntervalMs)
     if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 1000) {
       setError(tr(t, 'heartbeatIntervalInvalid', 'Enter an interval of at least 1000 ms.'))
+      setNotice('')
+      return
+    }
+    const dashboardRefreshIntervalMinutes = Number(form.dashboardRefreshIntervalMinutes)
+    const insightsRefreshIntervalMinutes = Number(form.insightsRefreshIntervalMinutes)
+    if (!Number.isFinite(dashboardRefreshIntervalMinutes) || dashboardRefreshIntervalMinutes < 1
+      || !Number.isFinite(insightsRefreshIntervalMinutes) || insightsRefreshIntervalMinutes < 1) {
+      setError(tr(t, 'refreshIntervalInvalid', 'Refresh intervals must be numbers of at least 1 minute.'))
       setNotice('')
       return
     }
@@ -2173,6 +2224,8 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
           cliPath: form.cliPath.trim(),
           debug: form.debug,
           heartbeatIntervalMs,
+          dashboardRefreshIntervalMs: Math.round(dashboardRefreshIntervalMinutes * 60_000),
+          insightsRefreshIntervalMs: Math.round(insightsRefreshIntervalMinutes * 60_000),
         },
         ...(clearApiKey
           ? { clearApiKey: true }
@@ -2229,7 +2282,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const setPreset = (days: number) => {
     const next = rangeForDays(days)
     setRange(next)
-    void loadUsage(next)
+    void loadUsage(next, true)
   }
   const busy = loading || usageLoading || saving || cliAction !== undefined
   const config = form
@@ -2242,6 +2295,8 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     || config.cliPath.trim() !== (status.config.cliPath ?? '')
     || config.debug !== status.config.debug
     || Number(config.heartbeatIntervalMs) !== status.config.heartbeatIntervalMs
+    || Math.round(Number(config.dashboardRefreshIntervalMinutes) * 60_000) !== status.config.dashboardRefreshIntervalMs
+    || Math.round(Number(config.insightsRefreshIntervalMinutes) * 60_000) !== status.config.insightsRefreshIntervalMs
   )
   const apiKeyStatus = clearApiKey
     ? tr(t, 'apiKeyWillClear', 'Will clear on save')
@@ -2325,6 +2380,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
           h('div', { className: 'dshWakatimeInlineActions' },
             h('input', {
               id: 'dsh-wakatime-api-key',
+              className: 'dshWakatimeConfigInput',
               type: 'password',
               autoComplete: 'off',
               value: apiKey,
@@ -2338,6 +2394,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
           h('label', { htmlFor: 'dsh-wakatime-base-url' }, tr(t, 'baseUrl', 'Base URL')),
           h('input', {
             id: 'dsh-wakatime-base-url',
+            className: 'dshWakatimeConfigInput',
             type: 'url',
             inputMode: 'url',
             autoComplete: 'url',
@@ -2355,12 +2412,22 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
               ),
               h('div', { className: 'dshWakatimeField' },
                 h('label', { htmlFor: 'dsh-wakatime-interval' }, tr(t, 'heartbeatInterval', 'Heartbeat interval (ms)')),
-                h('input', { id: 'dsh-wakatime-interval', type: 'number', min: 1000, step: 1000, value: config.heartbeatIntervalMs, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('heartbeatIntervalMs', event.target.value) }),
+                h('input', { id: 'dsh-wakatime-interval', className: 'dshWakatimeConfigInput', type: 'number', min: 1000, step: 1000, value: config.heartbeatIntervalMs, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('heartbeatIntervalMs', event.target.value) }),
+              ),
+            ),
+            h('div', { className: 'dshWakatimeFormGrid' },
+              h('div', { className: 'dshWakatimeField' },
+                h('label', { htmlFor: 'dsh-wakatime-dashboard-refresh' }, tr(t, 'dashboardRefreshInterval', 'Dashboard refresh interval (minutes)')),
+                h('input', { id: 'dsh-wakatime-dashboard-refresh', className: 'dshWakatimeConfigInput', type: 'number', min: 1, step: 1, value: config.dashboardRefreshIntervalMinutes, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('dashboardRefreshIntervalMinutes', event.target.value) }),
+              ),
+              h('div', { className: 'dshWakatimeField' },
+                h('label', { htmlFor: 'dsh-wakatime-insights-refresh' }, tr(t, 'insightsRefreshInterval', 'Insights refresh interval (minutes)')),
+                h('input', { id: 'dsh-wakatime-insights-refresh', className: 'dshWakatimeConfigInput', type: 'number', min: 1, step: 1, value: config.insightsRefreshIntervalMinutes, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('insightsRefreshIntervalMinutes', event.target.value) }),
               ),
             ),
             h('div', { className: 'dshWakatimeField' },
               h('label', { htmlFor: 'dsh-wakatime-cli-path' }, tr(t, 'cliPath', 'CLI path')),
-              h('input', { id: 'dsh-wakatime-cli-path', type: 'text', value: config.cliPath, placeholder: config.cliPath.trim().length === 0 && cliPath !== undefined ? cliPath : '~/.wakatime/wakatime-cli-*', onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('cliPath', event.target.value) }),
+              h('input', { id: 'dsh-wakatime-cli-path', className: 'dshWakatimeConfigInput', type: 'text', value: config.cliPath, placeholder: config.cliPath.trim().length === 0 && cliPath !== undefined ? cliPath : '~/.wakatime/wakatime-cli-*', onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('cliPath', event.target.value) }),
             ),
             h('div', { className: 'dshWakatimeAdvancedFooter' },
               h('div', { className: 'dshWakatimeChecks' },

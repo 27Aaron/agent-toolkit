@@ -79,6 +79,8 @@ Bundle 会插入 id 为 `wakatime` 的行。可在 `$DSH_HOME/profiles/<name>/co
 | `heartbeatIntervalMs`      |     `60000` | 同一项目两批心跳之间的最短间隔。               |
 | `heartbeatTimeoutMs`       |     `30000` | 单个心跳进程的最长运行时间。                   |
 | `cliUpdateCheckIntervalMs` |  `14400000` | 托管 CLI 的更新检查间隔。                      |
+| `dashboardRefreshIntervalMs` | `300000` | 仪表盘后台刷新间隔；设置页按分钟展示。          |
+| `insightsRefreshIntervalMs` | `1800000` | 洞察后台刷新间隔；设置页按分钟展示。            |
 | `cliDownloadTimeoutMs`     |    `120000` | GitHub 请求或 CLI 下载的超时。                 |
 | `cliPath`                  |      未设置 | CLI 绝对路径，支持 `~`；设置后禁用发现和托管。 |
 | `autoInstall`              |     `false` | 是否允许 Host 在心跳时自动下载或更新托管 CLI；默认关闭。 |

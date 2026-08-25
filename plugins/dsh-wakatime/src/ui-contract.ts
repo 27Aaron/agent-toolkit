@@ -33,6 +33,8 @@ export interface WakatimeUiConfig {
   cliPath?: string
   debug: boolean
   heartbeatIntervalMs: number
+  dashboardRefreshIntervalMs: number
+  insightsRefreshIntervalMs: number
 }
 
 export interface WakatimeCliStatus {
@@ -241,7 +243,7 @@ export interface WakatimeUsageData {
 export interface WakatimeUiRpcResult<T> {
   ok: boolean
   value?: T
-  error?: { code: string; message: string }
+  error?: { code: string; message: string; details?: Record<string, unknown> }
 }
 
 export type WakatimeUiRpcCall = (
