@@ -6,7 +6,6 @@ import { getPluginDataDir, getPluginSettingsFilePath } from './paths.ts'
 export interface PersistedWakatimeConfig {
   category?: WakatimeCategory
   trackReads?: boolean
-  autoInstall?: boolean
   cliPath?: string
   debug?: boolean
   heartbeatIntervalMs?: number
@@ -53,7 +52,6 @@ function sanitize(value: unknown): PersistedWakatimeConfig {
     result.category = value.category as WakatimeCategory
   }
   if (typeof value.trackReads === 'boolean') result.trackReads = value.trackReads
-  if (typeof value.autoInstall === 'boolean') result.autoInstall = value.autoInstall
   if (typeof value.cliPath === 'string' && value.cliPath.trim().length > 0) {
     const cliPath = value.cliPath.trim()
     if (path.isAbsolute(cliPath) || cliPath === '~' || cliPath.startsWith('~/') || cliPath.startsWith('~\\')) {

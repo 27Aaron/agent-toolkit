@@ -10,7 +10,7 @@ describe('configuration', () => {
       heartbeatTimeoutMs: 30_000,
       cliUpdateCheckIntervalMs: 14_400_000,
       cliDownloadTimeoutMs: 120_000,
-      autoInstall: true,
+      autoInstall: false,
       trackReads: true,
       category: 'ai coding',
       client: 'dsh',

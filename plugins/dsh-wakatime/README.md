@@ -12,7 +12,7 @@ WakaTime integration for [DeepSeek Harness](https://github.com/deepseek-ai/deeps
 - Batches files through WakaTime's `--extra-heartbeats` protocol and preserves each activity timestamp.
 - Applies a per-project, cross-process rate limit with an exclusive state lock and retries pending data after transient failures.
 - Uses an explicit CLI path, a global `wakatime-cli`, or a managed download in that order.
-- Resolves or installs the CLI lazily after tracked activity, so Harness startup never waits on the network.
+- Resolves the CLI lazily after tracked activity, so Harness startup never waits on the network; managed downloads require a settings-page action or explicit `autoInstall: true`.
 - Reads WakaTime's standard HTTP(S) `proxy`, `no_ssl_verify`, and `debug` settings; the CLI continues to own filtering and project settings.
 - Flushes pending activity on session disposal and plugin teardown, including one-shot headless runs.
 
@@ -64,7 +64,7 @@ The bundle inserts a row with id `wakatime`. Override that id in `$DSH_HOME/prof
     heartbeatTimeoutMs: 30000
     cliUpdateCheckIntervalMs: 14400000
     cliDownloadTimeoutMs: 120000
-    autoInstall: true
+    autoInstall: false
     trackReads: true
     category: "ai coding"
     client: dsh
@@ -81,7 +81,7 @@ All keys are optional because defaults live in the exported Schemastery schema. 
 | `cliUpdateCheckIntervalMs` |  `14400000` | Managed CLI update-check interval.                                     |
 | `cliDownloadTimeoutMs`     |    `120000` | Timeout for each GitHub request or CLI download.                       |
 | `cliPath`                  |       unset | Absolute CLI path; `~` is expanded. Disables discovery and management. |
-| `autoInstall`              |      `true` | Download/update a managed CLI when no explicit or PATH CLI exists.     |
+| `autoInstall`              |     `false` | Allow background download/update of a managed CLI during heartbeats.   |
 | `trackReads`               |      `true` | Include successful reads as zero-line-change AI activity.              |
 | `category`                 | `ai coding` | WakaTime category for emitted heartbeats.                              |
 | `client`                   |       `dsh` | Safe identifier added to the WakaTime plugin tag.                      |
@@ -106,7 +106,7 @@ Resolution order is:
 2. `wakatime-cli` found on `PATH`.
 3. Platform-specific managed CLI under `~/.wakatime/` or `$WAKATIME_HOME`.
 
-Managed downloads use HTTPS, honor standard HTTP(S) WakaTime proxy settings, validate ZIP structure, size, CRC-32, expected binary name, and the downloaded executable's `--version` output, then replace the prior binary atomically. Set `autoInstall: false` in environments where executable downloads are prohibited.
+By default the page only inspects the configured path, PATH, and WakaTime directory; it does not make network requests or write files. The settings page provides **Download WakaTime CLI** and **Check and update** actions: the former installs a managed copy only after an explicit click, while the latter only operates on the managed copy and never changes a system or package-manager installation. Managed downloads use HTTPS, honor standard HTTP(S) WakaTime proxy settings, validate ZIP structure, size, CRC-32, expected binary name, and the downloaded executable's `--version` output, then replace the prior binary atomically. Set `autoInstall: true` in Host configuration only when background management is desired.
 
 ## Data and privacy
 

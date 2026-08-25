@@ -86,7 +86,6 @@ function configPatch(value: unknown): PersistedWakatimeConfig {
     patch.category = value.category as NonNullable<PersistedWakatimeConfig['category']>
   }
   if (typeof value.trackReads === 'boolean') patch.trackReads = value.trackReads
-  if (typeof value.autoInstall === 'boolean') patch.autoInstall = value.autoInstall
   if (typeof value.cliPath === 'string') patch.cliPath = value.cliPath
   if (typeof value.debug === 'boolean') patch.debug = value.debug
   if (typeof value.heartbeatIntervalMs === 'number') patch.heartbeatIntervalMs = value.heartbeatIntervalMs
@@ -132,7 +131,6 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   const uiConfig = (): WakatimeUiConfig => ({
     category: config.category,
     trackReads: config.trackReads,
-    autoInstall: config.autoInstall,
     ...(config.cliPath === undefined ? {} : { cliPath: config.cliPath }),
     debug: config.debug,
     heartbeatIntervalMs: config.heartbeatIntervalMs,
@@ -197,6 +195,16 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
 
       if (endpoint === 'test-cli') {
         await cli.test()
+        return { ok: true, value: await status() }
+      }
+
+      if (endpoint === 'download-cli') {
+        await cli.download()
+        return { ok: true, value: await status() }
+      }
+
+      if (endpoint === 'update-cli') {
+        await cli.update()
         return { ok: true, value: await status() }
       }
 

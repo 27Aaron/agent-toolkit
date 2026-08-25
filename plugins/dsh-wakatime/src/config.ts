@@ -42,7 +42,7 @@ export interface Config {
   cliDownloadTimeoutMs?: number
   /** Explicit absolute wakatime-cli path. Disables discovery and management. */
   cliPath?: string
-  /** Download and update a managed CLI when no explicit or PATH CLI exists. */
+  /** Opt in to background download/update when no explicit or PATH CLI exists. */
   autoInstall?: boolean
   /** Include successful read and read_image operations. */
   trackReads?: boolean
@@ -64,7 +64,9 @@ export const Config: z<Config> = z.object({
   cliUpdateCheckIntervalMs: z.number().step(1).min(60_000).max(MAX_TIMER_MS).default(14_400_000),
   cliDownloadTimeoutMs: z.number().step(1).min(1_000).max(MAX_TIMER_MS).default(120_000),
   cliPath: z.string().min(1),
-  autoInstall: z.boolean().default(true),
+  // Downloads are opt-in. The settings page exposes explicit download and
+  // update actions instead of managing executables in the background.
+  autoInstall: z.boolean().default(false),
   trackReads: z.boolean().default(true),
   category: z.union([...WAKATIME_CATEGORIES]).default('ai coding'),
   client: z.string().min(1).pattern(/^[A-Za-z0-9][A-Za-z0-9._-]*$/).default('dsh'),
@@ -97,7 +99,7 @@ export function resolveConfig(config: Config): ResolvedConfig {
     cliUpdateCheckIntervalMs: config.cliUpdateCheckIntervalMs ?? 14_400_000,
     cliDownloadTimeoutMs: config.cliDownloadTimeoutMs ?? 120_000,
     ...(cliPath === undefined ? {} : { cliPath }),
-    autoInstall: config.autoInstall ?? true,
+    autoInstall: config.autoInstall ?? false,
     trackReads: config.trackReads ?? true,
     category: config.category ?? 'ai coding',
     client: config.client ?? 'dsh',

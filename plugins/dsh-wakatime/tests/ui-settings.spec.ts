@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -37,5 +37,14 @@ describe('WakaTime UI settings persistence', () => {
       trackReads: false,
       heartbeatIntervalMs: 60_000,
     })
+  })
+
+  it('does not carry the legacy automatic-download setting forward', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-waka-ui-settings-'))
+    directories.push(directory)
+    const file = join(directory, 'settings.json')
+    writeFileSync(file, JSON.stringify({ autoInstall: true, category: 'coding' }))
+
+    expect(readPersistedWakatimeConfig(file)).toEqual({ category: 'coding' })
   })
 })

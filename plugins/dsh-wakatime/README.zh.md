@@ -12,7 +12,7 @@
 - 通过 WakaTime `--extra-heartbeats` 协议批量发送，并保留每个文件操作的原始时间。
 - 使用带独占锁的跨进程、按项目限流；暂时失败时保留并重试数据。
 - 按“显式路径、全局 CLI、托管下载”的优先级选择 `wakatime-cli`。
-- 首次捕获文件活动后才按需解析或安装 CLI，因此 Harness 启动不会等待网络。
+- 首次捕获文件活动后才按需检测 CLI，因此 Harness 启动不会等待网络；托管下载只由配置页按钮或显式 `autoInstall: true` 触发。
 - 读取 WakaTime 标准 HTTP(S) `proxy`、`no_ssl_verify` 与 `debug` 设置；过滤和项目识别继续由 CLI 负责。
 - 在 Session 销毁和插件卸载时刷新数据，兼容一次性 headless 任务。
 
@@ -64,7 +64,7 @@ Bundle 会插入 id 为 `wakatime` 的行。可在 `$DSH_HOME/profiles/<name>/co
     heartbeatTimeoutMs: 30000
     cliUpdateCheckIntervalMs: 14400000
     cliDownloadTimeoutMs: 120000
-    autoInstall: true
+    autoInstall: false
     trackReads: true
     category: "ai coding"
     client: dsh
@@ -81,7 +81,7 @@ Bundle 会插入 id 为 `wakatime` 的行。可在 `$DSH_HOME/profiles/<name>/co
 | `cliUpdateCheckIntervalMs` |  `14400000` | 托管 CLI 的更新检查间隔。                      |
 | `cliDownloadTimeoutMs`     |    `120000` | GitHub 请求或 CLI 下载的超时。                 |
 | `cliPath`                  |      未设置 | CLI 绝对路径，支持 `~`；设置后禁用发现和托管。 |
-| `autoInstall`              |      `true` | 找不到显式或全局 CLI 时自动下载并更新。        |
+| `autoInstall`              |     `false` | 是否允许 Host 在心跳时自动下载或更新托管 CLI；默认关闭。 |
 | `trackReads`               |      `true` | 将成功读取记录为净行数为零的 AI 活动。         |
 | `category`                 | `ai coding` | WakaTime 心跳分类。                            |
 | `client`                   |       `dsh` | 加入 WakaTime plugin tag 的安全标识。          |
@@ -106,7 +106,7 @@ CLI 解析顺序为：
 2. `PATH` 中的 `wakatime-cli`。
 3. `~/.wakatime/` 或 `$WAKATIME_HOME` 下的平台专用托管 CLI。
 
-托管下载只接受 HTTPS，并遵循 WakaTime 标准 HTTP(S) 代理设置；安装前会校验 ZIP 结构、体积、CRC-32、目标文件名和二进制 `--version` 输出，然后原子替换旧版本。禁止下载可执行文件的环境应设置 `autoInstall: false`。
+默认情况下页面只检测显式路径、PATH 和 WakaTime 目录，不会联网或写入文件。配置页提供“下载 WakaTime CLI”和“检查并更新”按钮：前者只在用户点击后安装托管版本，后者只处理托管版本，不会修改系统或包管理器安装的 CLI。托管下载只接受 HTTPS，并遵循 WakaTime 标准 HTTP(S) 代理设置；安装前会校验 ZIP 结构、体积、CRC-32、目标文件名和二进制 `--version` 输出，然后原子替换旧版本。需要后台自动管理时，才在 Host 配置中显式设置 `autoInstall: true`。
 
 ## 数据与隐私
 
