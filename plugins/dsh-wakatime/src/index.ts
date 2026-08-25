@@ -152,6 +152,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   let insightsBackoffUntil = 0
   let backgroundRefreshTimer: ReturnType<typeof setTimeout> | undefined
   let backgroundRefreshDisposed = false
+  let cachePersistTimer: ReturnType<typeof setTimeout> | undefined
   const tracker = new WakatimeTracker(
     config,
     new HeartbeatRateLimiter(),
@@ -194,11 +195,19 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   const insightsKey = (range: string): string => `${settings.apiUrl ?? DEFAULT_WAKATIME_API_URL}|${range}`
 
   const persistCache = (): void => {
-    try {
-      writeWakatimeCache(persistedCache)
-    } catch (error) {
-      logger.exception('WARN', error, 'could not persist WakaTime dashboard cache')
-    }
+    // Cache persistence contains the long-range Insights payload. Debounce it
+    // and let the RPC response finish before JSON.stringify/writeFileSync runs
+    // so a refresh cannot make the web connection wait on disk I/O.
+    if (cachePersistTimer !== undefined) return
+    cachePersistTimer = setTimeout(() => {
+      cachePersistTimer = undefined
+      try {
+        writeWakatimeCache(persistedCache)
+      } catch (error) {
+        logger.exception('WARN', error, 'could not persist WakaTime dashboard cache')
+      }
+    }, 100)
+    cachePersistTimer.unref?.()
   }
 
   const rateLimitBackoff = (error: unknown): number | undefined => {
@@ -478,7 +487,10 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   ctx.effect(
     () => {
       const startupPrefetchTimer = setTimeout(() => {
-        void refreshUsage(defaultUsageRange(), true)
+        // A persisted cache is already useful at startup. Only refresh when
+        // the normal freshness policy says it is needed instead of forcing a
+        // request on every DSH launch.
+        void refreshUsage(defaultUsageRange())
           .catch(error => logger.exception('WARN', error, 'startup WakaTime prefetch failed'))
       }, 2_000)
       scheduleBackgroundRefresh()
