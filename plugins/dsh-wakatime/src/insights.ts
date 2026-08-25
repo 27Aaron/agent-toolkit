@@ -1,5 +1,5 @@
 import { requestWakatimeJson, type WakatimeRequestPolicy } from './cli.ts'
-import { readWakatimeApiKey, type WakatimeSettings } from './settings.ts'
+import { DEFAULT_WAKATIME_API_URL, readWakatimeApiKey, type WakatimeSettings } from './settings.ts'
 import type {
   WakatimeAiModelUsage,
   WakatimeInsightDay,
@@ -11,7 +11,6 @@ import type {
   WakatimeUsageTotals,
 } from './ui-contract.ts'
 
-const INSIGHTS_URL = 'https://api.wakatime.com/api/v1/users/current/insights'
 const API_TIMEOUT_MS = 15_000
 const INSIGHT_RANGE_PATTERN = /^(?:last_7_days|last_30_days|last_6_months|last_year|all_time|\d{4}(?:-\d{2})?)$/
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
@@ -398,11 +397,12 @@ export function normalizeWakatimeInsights(
 
 async function fetchInsight(
   apiKey: string,
+  baseUrl: string,
   type: string,
   range: WakatimeInsightRange,
   policy: WakatimeRequestPolicy,
 ): Promise<unknown> {
-  const url = `${INSIGHTS_URL}/${type}/${encodeURIComponent(range)}`
+  const url = `${baseUrl}/users/current/insights/${type}/${encodeURIComponent(range)}`
   return requestWakatimeJson(url, policy, {
     Accept: 'application/json',
     Authorization: `Basic ${Buffer.from(apiKey).toString('base64')}`,
@@ -418,13 +418,15 @@ export async function fetchWakatimeInsights(
   const policy: WakatimeRequestPolicy = {
     timeoutMs: API_TIMEOUT_MS,
     noSSLVerify: settings.noSSLVerify,
+    allowInsecureHttp: true,
     ...(settings.proxy === undefined ? {} : { proxy: settings.proxy }),
   }
-  const stats = await fetchInsight(apiKey, 'stats', range, policy)
+  const baseUrl = settings.apiUrl ?? DEFAULT_WAKATIME_API_URL
+  const stats = await fetchInsight(apiKey, baseUrl, 'stats', range, policy)
   const [days, aiDays, weekdays] = await Promise.all([
-    fetchInsight(apiKey, 'days', range, policy).catch(() => undefined),
-    fetchInsight(apiKey, 'ai_days', range, policy).catch(() => undefined),
-    fetchInsight(apiKey, 'weekdays', range, policy).catch(() => undefined),
+    fetchInsight(apiKey, baseUrl, 'days', range, policy).catch(() => undefined),
+    fetchInsight(apiKey, baseUrl, 'ai_days', range, policy).catch(() => undefined),
+    fetchInsight(apiKey, baseUrl, 'weekdays', range, policy).catch(() => undefined),
   ])
   return normalizeWakatimeInsights(stats, days, aiDays, weekdays, range)
 }

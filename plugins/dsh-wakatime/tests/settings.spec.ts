@@ -7,7 +7,13 @@ import {
   getWakatimeConfigFilePath,
   getWakatimeResourcesDir,
 } from '../src/paths.ts'
-import { readIniSection, readWakatimeSettings, writeWakatimeApiKey } from '../src/settings.ts'
+import {
+  DEFAULT_WAKATIME_API_URL,
+  readIniSection,
+  readWakatimeSettings,
+  writeWakatimeApiKey,
+  writeWakatimeApiUrl,
+} from '../src/settings.ts'
 
 const originalHome = process.env.WAKATIME_HOME
 const originalApiKey = process.env.WAKATIME_API_KEY
@@ -49,6 +55,7 @@ describe('WakaTime paths and settings', () => {
     expect(readWakatimeSettings(file)).toEqual({
       debug: true,
       noSSLVerify: false,
+      apiUrl: DEFAULT_WAKATIME_API_URL,
       apiKeyConfigured: false,
       proxy: 'https://user:p=a=s=s@example.com:8080',
     })
@@ -69,5 +76,17 @@ describe('WakaTime paths and settings', () => {
     writeWakatimeApiKey(null, file)
     expect(readWakatimeSettings(file).apiKeyConfigured).toBe(false)
     expect(readFileSync(file, 'utf8')).not.toContain('api_key')
+  })
+
+  it('reads and writes a custom API base URL', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-waka-api-url-'))
+    directories.push(directory)
+    const file = join(directory, '.wakatime.cfg')
+    writeFileSync(file, '[settings]\napi_key = waka_test_key\n')
+
+    writeWakatimeApiUrl('https://wakapi.example.com/api/', file)
+    expect(readWakatimeSettings(file).apiUrl).toBe('https://wakapi.example.com/api')
+    expect(readFileSync(file, 'utf8')).toContain('api_url = https://wakapi.example.com/api')
+    expect(() => writeWakatimeApiUrl('not-a-url', file)).toThrow(/Base URL/)
   })
 })

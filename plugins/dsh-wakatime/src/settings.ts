@@ -2,9 +2,12 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { getWakatimeConfigFilePath } from './paths.ts'
 
+export const DEFAULT_WAKATIME_API_URL = 'https://api.wakatime.com/api/v1'
+
 export interface WakatimeSettings {
   debug: boolean
   noSSLVerify: boolean
+  apiUrl?: string
   apiKeyConfigured?: boolean
   proxy?: string
 }
@@ -41,12 +44,39 @@ function isTrue(value: string | undefined): boolean {
   return value?.toLowerCase() === 'true'
 }
 
+export function normalizeWakatimeApiUrl(value: string): string {
+  const candidate = value.trim().replace(/\/+$/, '')
+  let parsed: URL
+  try {
+    parsed = new URL(candidate)
+  } catch {
+    throw new Error('Base URL must be a valid HTTP(S) URL')
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Base URL must use HTTP or HTTPS')
+  }
+  if (parsed.username.length > 0 || parsed.password.length > 0 || parsed.search.length > 0 || parsed.hash.length > 0) {
+    throw new Error('Base URL must not contain credentials or query parameters')
+  }
+  return candidate
+}
+
 export function readWakatimeSettings(file: string = getWakatimeConfigFilePath()): WakatimeSettings {
   const settings = readIniSection(file, 'settings')
   const proxy = settings.get('proxy')?.trim()
+  let apiUrl = DEFAULT_WAKATIME_API_URL
+  const configuredApiUrl = settings.get('api_url')
+  if (configuredApiUrl !== undefined) {
+    try {
+      apiUrl = normalizeWakatimeApiUrl(configuredApiUrl)
+    } catch {
+      // Fall back to the official endpoint when a stale config is invalid.
+    }
+  }
   return {
     debug: isTrue(settings.get('debug')),
     noSSLVerify: isTrue(settings.get('no_ssl_verify')),
+    apiUrl,
     apiKeyConfigured: (settings.get('api_key')?.trim().length ?? 0) > 0
       || (process.env.WAKATIME_API_KEY?.trim().length ?? 0) > 0,
     ...(proxy === undefined || proxy.length === 0 ? {} : { proxy }),
@@ -71,11 +101,7 @@ function isSettingKey(line: string, key: string): boolean {
   return separator >= 0 && line.slice(0, separator).trim().toLowerCase() === key
 }
 
-/** Update only WakaTime's API key while preserving the rest of the user's config. */
-export function writeWakatimeApiKey(
-  apiKey: string | null,
-  file: string = getWakatimeConfigFilePath(),
-): void {
+function writeWakatimeSetting(key: string, value: string, file: string): void {
   let content = ''
   try {
     content = fs.readFileSync(file, 'utf8')
@@ -90,15 +116,14 @@ export function writeWakatimeApiKey(
     ? lines.findIndex((line, index) => index > settingsStart && isSectionHeader(line))
     : -1
   const end = sectionEnd >= 0 ? sectionEnd : lines.length
-  const existing = lines.findIndex((line, index) => index > sectionStart && index < end && isSettingKey(line, 'api_key'))
-  const value = apiKey?.trim() ?? ''
+  const existing = lines.findIndex((line, index) => index > sectionStart && index < end && isSettingKey(line, key))
 
   if (existing >= 0) {
     if (value.length === 0) lines.splice(existing, 1)
-    else lines[existing] = `api_key = ${value}`
+    else lines[existing] = `${key} = ${value}`
   } else if (value.length > 0) {
-    if (settingsStart >= 0) lines.splice(end, 0, `api_key = ${value}`)
-    else lines.push('[settings]', `api_key = ${value}`)
+    if (settingsStart >= 0) lines.splice(end, 0, `${key} = ${value}`)
+    else lines.push('[settings]', `${key} = ${value}`)
   }
 
   const next = lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()
@@ -115,4 +140,20 @@ export function writeWakatimeApiKey(
       // The rename normally consumed the temporary file.
     }
   }
+}
+
+/** Update only WakaTime's API key while preserving the rest of the user's config. */
+export function writeWakatimeApiKey(
+  apiKey: string | null,
+  file: string = getWakatimeConfigFilePath(),
+): void {
+  writeWakatimeSetting('api_key', apiKey?.trim() ?? '', file)
+}
+
+/** Update the API base URL used by both the host requests and wakatime-cli. */
+export function writeWakatimeApiUrl(
+  apiUrl: string,
+  file: string = getWakatimeConfigFilePath(),
+): void {
+  writeWakatimeSetting('api_url', normalizeWakatimeApiUrl(apiUrl), file)
 }
