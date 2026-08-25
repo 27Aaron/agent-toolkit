@@ -111,7 +111,6 @@ const zh = {
   dailyActivityHint: '柱高表示当天的编码时间；下方同时标出 AI 编程时间和行数。',
   aiDailyHint: '柱高表示当天 AI 改动的行数，下方显示 AI 编程时间。',
   aiActivity: 'AI 编程',
-  aiActivityHint: '来自 WakaTime summaries 的 AI 行变更、会话、提示词和模型数据。',
   aiProjects: 'AI 辅助项目',
   aiProjectsHint: '按 AI 改动行数排序的项目。',
   aiSessions: 'AI 会话',
@@ -165,8 +164,11 @@ const zh = {
   apiKey: 'API Key',
   apiKeyConfigured: '已配置',
   apiKeyMissing: '未配置',
+  apiKeyPending: '待保存',
+  apiKeyWillClear: '保存后清除',
   apiKeyPlaceholder: '请输入 API Key',
   clearApiKey: '清除',
+  undoClearApiKey: '撤销清除',
   cli: 'CLI',
   ready: '可用',
   missing: '未找到',
@@ -187,6 +189,7 @@ const zh = {
   trackReads: '记录读取活动',
   debug: '调试日志',
   heartbeatInterval: 'Heartbeat 间隔（毫秒）',
+  heartbeatIntervalInvalid: '请输入不小于 1000 毫秒的间隔。',
   advanced: '高级选项',
   save: '保存配置',
   saving: '保存中…',
@@ -276,7 +279,6 @@ const en = {
   dailyActivityHint: 'Bar height represents coding time; AI time and line changes are shown below each day.',
   aiDailyHint: 'Bar height represents daily AI line changes; AI coding time is shown below.',
   aiActivity: 'AI coding',
-  aiActivityHint: 'AI line changes, sessions, prompts, and model data from WakaTime summaries.',
   aiProjects: 'AI-assisted projects',
   aiProjectsHint: 'Projects ranked by AI line changes.',
   aiSessions: 'AI sessions',
@@ -330,8 +332,11 @@ const en = {
   apiKey: 'API key',
   apiKeyConfigured: 'Configured',
   apiKeyMissing: 'Not configured',
+  apiKeyPending: 'Unsaved',
+  apiKeyWillClear: 'Will clear on save',
   apiKeyPlaceholder: 'Enter API key',
   clearApiKey: 'Clear',
+  undoClearApiKey: 'Undo clear',
   cli: 'CLI',
   ready: 'Ready',
   missing: 'Missing',
@@ -352,6 +357,7 @@ const en = {
   trackReads: 'Track reads',
   debug: 'Debug logging',
   heartbeatInterval: 'Heartbeat interval (ms)',
+  heartbeatIntervalInvalid: 'Enter an interval of at least 1000 ms.',
   advanced: 'Advanced options',
   save: 'Save settings',
   saving: 'Saving…',
@@ -442,6 +448,7 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeError { margin-bottom: var(--dsh-space-3); border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 10px 12px; color: inherit; background: var(--dsh-surface-raised); font-size: 12px; line-height: 1.45; }
 .dshWakatimeNotice { color: inherit; opacity: .68; font-size: 12px; line-height: 1.45; }
 .dshWakatimeToolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--dsh-space-4); margin-bottom: var(--dsh-space-3); }
+.dshWakatimePageRangeToolbar { justify-content: flex-end; }
 .dshWakatimeRange { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .dshWakatimeRangeLabel { margin-right: 4px; color: currentColor; opacity: .56; font-size: 12px; }
 .dshWakatimeRangeButton { padding: 6px 9px; border-radius: 5px; font-size: 11px; font-weight: 600; }
@@ -847,6 +854,20 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeRowLabel,
 .dshWakatimeRowValue,
 .dshWakatimeComparisonHead { font-size: 11px; }
+#dsh-wakatime-panel-ai .dshWakatimeMetricLabel { margin-bottom: 5px; font-size: 10px; }
+#dsh-wakatime-panel-ai .dshWakatimeToolbar { justify-content: flex-end; }
+#dsh-wakatime-panel-ai .dshWakatimeRangeLabel { display: none; }
+#dsh-wakatime-panel-ai .dshWakatimeMetrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#dsh-wakatime-panel-ai .dshWakatimeMetric { min-height: 0; padding: 10px 12px; }
+#dsh-wakatime-panel-ai .dshWakatimeMetricValue { font-size: 16px; letter-spacing: -.01em; }
+#dsh-wakatime-panel-ai .dshWakatimeMetricMeta { margin-top: 4px; font-size: 10px; }
+#dsh-wakatime-panel-ai .dshWakatimeCardTitle { margin-bottom: var(--dsh-space-2); font-size: 14px; }
+#dsh-wakatime-panel-ai .dshWakatimeCardHint { font-size: 11px; line-height: 1.4; }
+#dsh-wakatime-panel-ai .dshWakatimeRowLabel,
+#dsh-wakatime-panel-ai .dshWakatimeRowValue,
+#dsh-wakatime-panel-ai .dshWakatimeBreakdownHead,
+#dsh-wakatime-panel-ai .dshWakatimeBreakdownValue,
+#dsh-wakatime-panel-ai .dshWakatimeComparisonHead { font-size: 11px; }
 .dshWakatimeInsightsStatus { margin-bottom: var(--dsh-section-gap); }
 .dshWakatimeInsightsSummary { gap: var(--dsh-panel-gap); }
 .dshWakatimeInsightsColumns,
@@ -870,6 +891,41 @@ body[data-color-scheme="light"] .dshWakatimePage {
 .dshWakatimeAdvanced { padding-top: var(--dsh-space-3); }
 .dshWakatimeAdvanced[open] summary { margin-bottom: var(--dsh-space-3); }
 .dshWakatimeFormActions { gap: var(--dsh-space-3); }
+.dshWakatimeConfigCard { max-width: 760px; overflow: hidden; padding: 0; }
+.dshWakatimeConfigCard > .dshWakatimeForm { gap: 0; }
+.dshWakatimeConfigCard .dshWakatimeKeyRow { grid-template-columns: 104px minmax(0, 1fr); gap: var(--dsh-space-3); padding: 10px 12px; }
+.dshWakatimeConfigCard .dshWakatimeKeyMeta { align-self: start; padding-top: 5px; }
+.dshWakatimeConfigCard .dshWakatimeKeyMeta label { font-size: 12px; }
+.dshWakatimeConfigCard .dshWakatimeKeyStatus { font-size: 10px; }
+.dshWakatimeConfigCard .dshWakatimeInlineActions { gap: var(--dsh-space-2); }
+.dshWakatimeConfigCard .dshWakatimeInlineActions { justify-self: end; width: min(100%, 520px); }
+.dshWakatimeConfigCard .dshWakatimeInlineActions input { height: 32px; padding: 0 10px; border-radius: 6px; background: var(--dsh-surface-input); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dshWakatimeConfigCard .dshWakatimeInlineActions input:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 2px; }
+.dshWakatimeConfigCard input:not([type="checkbox"]) { height: 32px; border-color: var(--dsh-border-strong); border-radius: 8px; padding: 0 10px; background: var(--dsh-surface-input); font-size: 12px; }
+.dshWakatimeConfigCard input:not([type="checkbox"])::placeholder { color: currentColor; opacity: .52; }
+.dshWakatimeConfigCard input:not([type="checkbox"]):focus { border-color: var(--dsh-accent); box-shadow: 0 0 0 1px var(--dsh-accent); outline: 0; }
+.dshWakatimeConfigCard input:not([type="checkbox"]):focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; }
+.dshWakatimeConfigCard .dshWakatimeButton,
+.dshWakatimeConfigCard .dshWakatimeCategoryButton { min-height: 32px; padding-top: 0; padding-bottom: 0; font-size: 11px; line-height: 1.2; }
+.dshWakatimeConfigCard .dshWakatimeButton:disabled { cursor: default; }
+.dshWakatimeConfigCard .dshWakatimeCliPanel { margin: 0 12px; padding: 10px 0 12px; border: 0; border-radius: 0; background: transparent; }
+.dshWakatimeConfigCard .dshWakatimeCliBadge { display: inline-flex; align-items: center; max-width: 100%; gap: 6px; padding: 0; font-size: 11px; }
+.dshWakatimeConfigCard .dshWakatimeCliBadge::before { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--dsh-accent); content: ''; }
+.dshWakatimeConfigCard .dshWakatimeCliBadge[data-state="invalid"]::before { background: var(--dsh-human-delete); }
+.dshWakatimeConfigCard .dshWakatimeCliBadge[data-state="missing"]::before { background: currentColor; opacity: .45; }
+.dshWakatimeConfigCard .dshWakatimeCliHeaderActions { display: flex; min-width: 0; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.dshWakatimeConfigCard .dshWakatimeCliHeaderActions .dshWakatimeButton { min-height: 32px; }
+.dshWakatimeConfigCard .dshWakatimeCliPath { grid-column: 1 / -1; margin-top: 5px; overflow-wrap: anywhere; }
+.dshWakatimeConfigCard .dshWakatimeCliHint { grid-column: 1 / -1; margin-top: 5px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced { margin: 0 12px; padding: 9px 0; border-top: 0; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced[open] summary { margin-bottom: 8px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced summary { font-size: 11px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced > .dshWakatimeForm { gap: var(--dsh-space-3); }
+.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeField { gap: 6px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeFormGrid { gap: 10px; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeChecks { gap: var(--dsh-space-2); }
+.dshWakatimeConfigCard .dshWakatimeFormActions { margin: 0 12px; padding: 8px 0 10px; background: transparent; }
+.dshWakatimeConfigCard .dshWakatimeSaved { margin-right: auto; font-size: 11px; }
 @media (max-width: 820px) {
   .dshWakatimePage { padding: 0 0 var(--dsh-space-5); }
   .dshWakatimeToolbar { align-items: flex-start; flex-direction: column; }
@@ -904,13 +960,17 @@ body[data-color-scheme="light"] .dshWakatimePage {
   .dshWakatimeProjectStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeInsightsColumns, .dshWakatimeInsightsTwoCol { grid-template-columns: 1fr; }
   .dshWakatimeCard { padding: var(--dsh-space-4); }
+  .dshWakatimeConfigCard { padding: 0; }
   .dshWakatimeDailyChart { gap: var(--dsh-space-1); }
   .dshWakatimeDayBar span { width: 16px; }
 }
 @container (max-width: 390px) {
   .dshWakatimeKeyRow { grid-template-columns: 1fr; gap: var(--dsh-space-2); }
+  .dshWakatimeConfigCard .dshWakatimeKeyRow { grid-template-columns: 1fr; gap: var(--dsh-space-2); }
+  .dshWakatimeConfigCard .dshWakatimeKeyMeta { padding-top: 0; }
   .dshWakatimeCliPanel { grid-template-columns: 1fr; }
   .dshWakatimeCliActions { grid-column: 1; grid-row: auto; justify-content: flex-start; }
+  #dsh-wakatime-panel-ai .dshWakatimeMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .dshWakatimeButton { transition: none; } }
 `
@@ -1350,36 +1410,6 @@ function emptyBreakdown(t: Translator) {
 
 type ActivityBreakdownMode = 'projects' | 'categories' | 'all'
 
-function OfficialTimeline({ usage, t, mode = 'all', embedded = false }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode; embedded?: boolean }) {
-  const today = localizedDuration(usage.dashboard.todaySeconds, usage.dashboard.todayText)
-  const renderRows = (items: WakatimeUsageBucket[], breakdownMode: 'projects' | 'categories') => {
-    const max = Math.max(1, ...items.map(item => item.totalSeconds))
-    return items.length === 0
-      ? h('p', { className: 'dshWakatimeNotice' }, tr(t, 'noBreakdown', 'No breakdown yet'))
-      : h('div', { className: 'dshWakatimeOfficialTimelineRows' }, items.map(item => h('div', { className: 'dshWakatimeOfficialTimelineRow', key: item.name },
-        h('div', null,
-          h('div', { className: 'dshWakatimeOfficialTimelineRowHead' },
-            h('span', { title: item.name }, breakdownMode === 'categories' ? categoryLabel(item.name) : item.name),
-            h('span', null, formatDuration(item.totalSeconds)),
-          ),
-          h('div', { className: 'dshWakatimeOfficialTimelineRowTrack' }, h('span', { style: { width: `${Math.max(2, item.totalSeconds / max * 100)}%` } })),
-        ),
-        h('span', { className: 'dshWakatimeBreakdownValue' }, `${item.percent.toFixed(2)}%`),
-      )))
-  }
-  const modes: Array<'projects' | 'categories'> = mode === 'all' ? ['projects', 'categories'] : [mode]
-  const content = h('div', { className: `dshWakatimeOfficialSplit${modes.length === 1 ? ' dshWakatimeOfficialSplitSingle' : ''}` },
-    ...modes.map(breakdownMode => h('div', { className: 'dshWakatimeOfficialTimeline', key: breakdownMode },
-      h('div', { className: 'dshWakatimeOfficialTimelineHeader' },
-        h('div', { className: 'dshWakatimeOfficialTimelineTitle' }, tr(t, breakdownMode === 'projects' ? 'projectsOverview' : 'categoriesOverview', breakdownMode === 'projects' ? 'Projects' : 'Categories')),
-        h('div', { className: 'dshWakatimeOfficialTimelineTitle dshWakatimeOfficialTimelineMeta' }, `${today} · ${tr(t, 'today', 'Today')}`),
-      ),
-      renderRows(breakdownMode === 'projects' ? usage.todayBreakdown.projects : usage.todayBreakdown.categories, breakdownMode),
-    )),
-  )
-  return embedded ? content : h('section', { className: 'dshWakatimeOfficialSection' }, content)
-}
-
 function OfficialActivityCharts({ usage, t, mode = 'all', embedded = false }: { usage: WakatimeUsageData; t: Translator; mode?: ActivityBreakdownMode; embedded?: boolean }) {
   const renderChart = (chartMode: 'projects' | 'categories') => {
     const source = chartMode === 'projects' ? usage.projects : usage.categories
@@ -1642,12 +1672,13 @@ function DashboardView({
 function ProjectsView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
   return h(React.Fragment, null,
     h(OfficialActivityCharts, { usage, t, mode: 'projects' }),
-    h(OfficialTimeline, { usage, t, mode: 'projects' }),
     h('section', { className: 'dshWakatimeOfficialSection' },
-      h('div', { className: 'dshWakatimeOfficialSectionHeading' },
-        h('h2', null, tr(t, 'projectsOverview', 'Projects')),
+      h('div', { className: 'dshWakatimeOfficialPanel' },
+        h('div', { className: 'dshWakatimeOfficialSectionHeading' },
+          h('h2', null, tr(t, 'projectsOverview', 'Projects')),
+        ),
+        h('div', { className: 'dshWakatimeProjectGrid' }, usage.projects.map(project => h(OfficialProjectCard, { project, t, key: project.name }))),
       ),
-      h('div', { className: 'dshWakatimeProjectGrid' }, usage.projects.map(project => h(OfficialProjectCard, { project, t, key: project.name }))),
     ),
     usage.isUpToDate === false ? h('p', { className: 'dshWakatimeNotice', role: 'status' }, tr(t, 'stale', 'WakaTime is updating this range.')) : null,
   )
@@ -1663,7 +1694,6 @@ function AiView({ usage, t }: { usage: WakatimeUsageData; t: Translator }) {
     ? formatNumber(totals.aiPromptLengthSum / totals.aiPromptEvents)
     : '—'
   return h(React.Fragment, null,
-    h('p', { className: 'dshWakatimeSectionHint' }, tr(t, 'aiActivityHint', 'AI line changes, sessions, prompts, and model data from WakaTime summaries.')),
     h('div', { className: 'dshWakatimeMetrics' },
       h(Metric, { label: tr(t, 'aiTime', 'AI coding time'), value: formatDuration(totals.aiSeconds), meta: totals.totalSeconds > 0 ? `${Math.round(totals.aiSeconds / totals.totalSeconds * 100)}% ${tr(t, 'ofTotal', 'of total')}` : '—' }),
       h(Metric, { label: tr(t, 'aiLines', 'AI line changes'), value: `${formatNumber(aiLines)} ${tr(t, 'lines', 'lines')}`, meta: `+${formatNumber(totals.aiAdditions)} / −${formatNumber(totals.aiDeletions)}` }),
@@ -2048,6 +2078,12 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
 
   const save = async () => {
     if (form === undefined) return
+    const heartbeatIntervalMs = Number(form.heartbeatIntervalMs)
+    if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 1000) {
+      setError(tr(t, 'heartbeatIntervalInvalid', 'Enter an interval of at least 1000 ms.'))
+      setNotice('')
+      return
+    }
     setSaving(true)
     setError('')
     setNotice('')
@@ -2056,9 +2092,9 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
         config: {
           category: form.category,
           trackReads: form.trackReads,
-          cliPath: form.cliPath,
+          cliPath: form.cliPath.trim(),
           debug: form.debug,
-          heartbeatIntervalMs: Number(form.heartbeatIntervalMs),
+          heartbeatIntervalMs,
         },
         ...(clearApiKey
           ? { clearApiKey: true }
@@ -2105,6 +2141,22 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   }
   const busy = loading || usageLoading || saving || cliAction !== undefined
   const config = form
+  const settingsDirty = config !== undefined && status !== undefined && (
+    apiKey.trim().length > 0
+    || clearApiKey
+    || config.category !== status.config.category
+    || config.trackReads !== status.config.trackReads
+    || config.cliPath.trim() !== (status.config.cliPath ?? '')
+    || config.debug !== status.config.debug
+    || Number(config.heartbeatIntervalMs) !== status.config.heartbeatIntervalMs
+  )
+  const apiKeyStatus = clearApiKey
+    ? tr(t, 'apiKeyWillClear', 'Will clear on save')
+    : apiKey.trim().length > 0
+      ? tr(t, 'apiKeyPending', 'Unsaved')
+      : status?.apiKeyConfigured
+        ? tr(t, 'apiKeyConfigured', 'Configured')
+        : tr(t, 'apiKeyMissing', 'Not configured')
   const state = status?.cli.state ?? 'missing'
   const source = status?.cli.source ?? 'none'
   const cliPath = status?.cli.path ?? status?.cli.managedPath
@@ -2145,7 +2197,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
         h('div', { className: 'dshWakatimeKeyRow' },
           h('div', { className: 'dshWakatimeKeyMeta' },
             h('label', { htmlFor: 'dsh-wakatime-api-key' }, tr(t, 'apiKey', 'API key')),
-            h('span', { className: 'dshWakatimeKeyStatus' }, status?.apiKeyConfigured ? tr(t, 'apiKeyConfigured', 'Configured') : tr(t, 'apiKeyMissing', 'Not configured')),
+            h('span', { className: 'dshWakatimeKeyStatus' }, apiKeyStatus),
           ),
           h('div', { className: 'dshWakatimeInlineActions' },
             h('input', {
@@ -2156,28 +2208,27 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
               placeholder: status?.apiKeyConfigured ? '••••••••' : tr(t, 'apiKeyPlaceholder', 'Enter API key'),
               onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setApiKey(event.target.value); setClearApiKey(false) },
             }),
-            status?.apiKeyConfigured === true ? h('button', { className: 'dshWakatimeButton', type: 'button', disabled: busy, onClick: () => { setApiKey(''); setClearApiKey(true) } }, tr(t, 'clearApiKey', 'Clear')) : null,
+            status?.apiKeyConfigured === true ? h('button', { className: 'dshWakatimeButton', type: 'button', 'aria-pressed': clearApiKey, disabled: busy, onClick: () => { setApiKey(''); setClearApiKey(current => !current) } }, clearApiKey ? tr(t, 'undoClearApiKey', 'Undo clear') : tr(t, 'clearApiKey', 'Clear')) : null,
           ),
         ),
         h('section', { className: 'dshWakatimeCliPanel', 'aria-labelledby': 'dsh-wakatime-cli-title' },
           h('div', { className: 'dshWakatimeCliHeader' },
             h('h3', { id: 'dsh-wakatime-cli-title', className: 'dshWakatimeCliTitle' }, tr(t, 'cli', 'CLI')),
-            h('span', { className: 'dshWakatimeCliBadge' }, `${cliSourceLabel(t, source)} · ${cliLabel(t, state)}${status?.cli.version === undefined ? '' : ` · ${status.cli.version}`}`),
+            h('div', { className: 'dshWakatimeCliHeaderActions' },
+              h('span', { className: 'dshWakatimeCliBadge', 'data-state': state }, `${cliSourceLabel(t, source)} · ${cliLabel(t, state)}${status?.cli.version === undefined ? '' : ` · ${status.cli.version}`}`),
+              canDownloadCli
+                ? h('button', { className: 'dshWakatimeButton', 'data-primary': 'true', type: 'button', disabled: busy, onClick: () => { void runCliAction('download') } }, cliAction === 'download' ? tr(t, 'saving', 'Saving…') : tr(t, 'cliDownload', 'Download WakaTime CLI'))
+                : null,
+              canUpdateCli
+                ? h('button', { className: 'dshWakatimeButton', type: 'button', disabled: busy, onClick: () => { void runCliAction('update') } }, cliAction === 'update' ? tr(t, 'saving', 'Saving…') : tr(t, 'cliUpdate', 'Check for updates'))
+              : null,
+            ),
           ),
-          cliPath === undefined ? null : h('div', { className: 'dshWakatimeCliPath', title: cliPath }, cliPath),
           source === 'configured' && state === 'invalid'
               ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliInvalidConfigured', 'The configured CLI path is not executable.'))
               : source === 'path' && state === 'invalid'
                 ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliInvalidPath', 'The CLI found on PATH is not executable.'))
                 : null,
-          h('div', { className: 'dshWakatimeCliActions' },
-            canDownloadCli
-              ? h('button', { className: 'dshWakatimeButton', 'data-primary': 'true', type: 'button', disabled: busy, onClick: () => { void runCliAction('download') } }, cliAction === 'download' ? tr(t, 'saving', 'Saving…') : tr(t, 'cliDownload', 'Download WakaTime CLI'))
-              : null,
-            canUpdateCli
-              ? h('button', { className: 'dshWakatimeButton', type: 'button', disabled: busy, onClick: () => { void runCliAction('update') } }, cliAction === 'update' ? tr(t, 'saving', 'Saving…') : tr(t, 'cliUpdate', 'Check for updates'))
-              : null,
-          ),
         ),
         h('details', { className: 'dshWakatimeAdvanced' },
           h('summary', null, tr(t, 'advanced', 'Advanced options')),
@@ -2194,7 +2245,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
             ),
             h('div', { className: 'dshWakatimeField' },
               h('label', { htmlFor: 'dsh-wakatime-cli-path' }, tr(t, 'cliPath', 'CLI path')),
-              h('input', { id: 'dsh-wakatime-cli-path', type: 'text', value: config.cliPath, placeholder: '~/.wakatime/wakatime-cli-*', onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('cliPath', event.target.value) }),
+              h('input', { id: 'dsh-wakatime-cli-path', type: 'text', value: config.cliPath, placeholder: config.cliPath.trim().length === 0 && cliPath !== undefined ? cliPath : '~/.wakatime/wakatime-cli-*', onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('cliPath', event.target.value) }),
             ),
             h('div', { className: 'dshWakatimeChecks' },
               h('div', { className: 'dshWakatimeCheck' }, h('input', { id: 'dsh-wakatime-track-reads', type: 'checkbox', checked: config.trackReads, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('trackReads', event.target.checked) }), h('div', null, h('label', { htmlFor: 'dsh-wakatime-track-reads' }, tr(t, 'trackReads', 'Track reads')))),
@@ -2204,7 +2255,7 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
         ),
         h('div', { className: 'dshWakatimeFormActions' },
           notice.length > 0 ? h('span', { className: 'dshWakatimeSaved', role: 'status' }, notice) : null,
-          h('button', { className: 'dshWakatimeButton', 'data-primary': 'true', type: 'button', disabled: busy, onClick: () => { void save() } }, saving ? tr(t, 'saving', 'Saving…') : tr(t, 'save', 'Save settings')),
+          h('button', { className: 'dshWakatimeButton', 'data-primary': 'true', type: 'button', disabled: busy || !settingsDirty, onClick: () => { void save() } }, saving ? tr(t, 'saving', 'Saving…') : tr(t, 'save', 'Save settings')),
         ),
       ),
     )
@@ -2224,12 +2275,9 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
     error.length > 0 ? h('div', { className: 'dshWakatimeError', role: 'alert' }, error) : null,
     tab !== 'settings'
       ? h('section', { id: `dsh-wakatime-panel-${tab}`, role: 'tabpanel', 'aria-labelledby': `dsh-wakatime-tab-${tab}` },
-        tab === 'dashboard' || tab === 'insights' ? null : h('div', { className: 'dshWakatimeToolbar' },
-          h('div', { className: 'dshWakatimeRange' },
-            h('span', { className: 'dshWakatimeRangeLabel' }, tr(t, 'range', 'Date range')),
-            h('button', { className: 'dshWakatimeButton dshWakatimeRangeButton', type: 'button', 'aria-pressed': range.start === rangeForDays(1).start, onClick: () => setPreset(1) }, tr(t, 'today', 'Today')),
-            h('button', { className: 'dshWakatimeButton dshWakatimeRangeButton', type: 'button', 'aria-pressed': range.start === rangeForDays(7).start, onClick: () => setPreset(7) }, tr(t, 'last7Days', 'Last 7 days')),
-            h('button', { className: 'dshWakatimeButton dshWakatimeRangeButton', type: 'button', 'aria-pressed': range.start === rangeForDays(14).start, onClick: () => setPreset(14) }, tr(t, 'last14Days', 'Last 14 days')),
+        tab === 'dashboard' || tab === 'insights' ? null : h('div', { className: 'dshWakatimeToolbar dshWakatimePageRangeToolbar' },
+          h('div', { className: 'dshWakatimeOfficialRange' },
+            h(OfficialRangeMenu, { range, t, onPreset: setPreset }),
           ),
         ),
         data,
