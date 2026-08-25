@@ -55,6 +55,14 @@ describe('WakaTime settings RPC', () => {
     expect(usage.ok).toBe(true)
     expect(usage.value.available).toBe(false)
 
+    const insights = await handler!('insights', { range: 'last_year' }, { aborted: false })
+    expect(insights.ok).toBe(true)
+    expect(insights.value.available).toBe(false)
+
+    const unknown = await handler!('unknown', {}, { aborted: false })
+    expect(unknown.ok).toBe(false)
+    expect(unknown.error.code).toBe('internal')
+
     const saved = await handler!('save', {
       config: { category: 'coding', cliPath: '' },
       apiKey: 'waka_test_key',

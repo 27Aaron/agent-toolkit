@@ -43,8 +43,9 @@ import {
 } from './ui-contract.ts'
 import { getPluginLogFilePath, getWakatimeConfigFilePath } from './paths.ts'
 import { writeWakatimeApiKey } from './settings.ts'
+import { fetchWakatimeInsights, validateInsightRange } from './insights.ts'
 import { fetchWakatimeUsage, validateUsageRange } from './usage.ts'
-import type { WakatimeUsageData } from './ui-contract.ts'
+import type { WakatimeInsightsData, WakatimeUsageData } from './ui-contract.ts'
 
 export { Config, name }
 export type { Config as WakatimeConfig, WakatimeCategory } from './config.ts'
@@ -119,6 +120,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
     logger,
   )
   let usageCache: { key: string; expiresAt: number; value: WakatimeUsageData } | undefined
+  let insightsCache: { key: string; expiresAt: number; value: WakatimeInsightsData } | undefined
   const tracker = new WakatimeTracker(
     config,
     new HeartbeatRateLimiter(),
@@ -181,6 +183,18 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
         return { ok: true, value }
       }
 
+      if (endpoint === 'insights') {
+        const input = isRecord(payload) ? payload : {}
+        const range = validateInsightRange(input.range)
+        const key = range
+        if (insightsCache !== undefined && insightsCache.key === key && insightsCache.expiresAt > Date.now()) {
+          return { ok: true, value: insightsCache.value }
+        }
+        const value = await fetchWakatimeInsights(settings, range)
+        insightsCache = { key, expiresAt: Date.now() + 5 * 60_000, value }
+        return { ok: true, value }
+      }
+
       if (endpoint === 'test-cli') {
         await cli.test()
         return { ok: true, value: await status() }
@@ -213,11 +227,15 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
         config = next
         settings = readWakatimeSettings()
         usageCache = undefined
+        insightsCache = undefined
         updateRuntimeConfig(next)
         return { ok: true, value: await status() }
       }
 
-      return publicError('unknown_endpoint', `Unknown WakaTime endpoint: ${endpoint}`)
+      // Keep the error code inside the host RPC error union so an old or
+      // mismatched bundle returns a readable error instead of failing schema
+      // validation in the surrounding connection layer.
+      return publicError('internal', `Unknown WakaTime endpoint: ${endpoint}`)
     } catch (error) {
       if (signal.aborted) throw error
       return publicError('internal', error instanceof Error ? error.message : String(error))
