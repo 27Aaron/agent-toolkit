@@ -1,6 +1,6 @@
 {
   "name": "@27aaron/dsh-wakatime",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "WakaTime integration for DeepSeek Harness",
   "author": "Aaron",
   "license": "MIT",

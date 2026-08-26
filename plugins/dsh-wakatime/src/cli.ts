@@ -501,6 +501,110 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
+/**
+ * Atomically claim a stale install lock by renaming it aside before removal.
+ * A plain stat-then-unlink has a TOCTOU window: another process could remove
+ * the stale lock and a third one recreate a fresh lock between our stat and
+ * unlink, and we would delete the fresh lock. Renaming first means we always
+ * delete the exact inode we judged stale; if the renamed file's mtime no
+ * longer matches (the lock was swapped under us), it is linked back without
+ * clobbering any newer lock.
+ * Returns true when a stale lock was claimed and removed.
+ */
+export function claimStaleLock(lockPath: string, staleAfterMs: number): boolean {
+  let observed: fs.Stats
+  try {
+    observed = fs.statSync(lockPath)
+  } catch {
+    return false
+  }
+  if (Date.now() - observed.mtimeMs <= staleAfterMs) return false
+  const claimPath = `${lockPath}.${process.pid}-${crypto.randomBytes(5).toString('hex')}.stale`
+  try {
+    fs.renameSync(lockPath, claimPath)
+  } catch {
+    // Another claimant got there first; treat as not stale.
+    return false
+  }
+  try {
+    const claimed = fs.statSync(claimPath)
+    if (claimed.mtimeMs !== observed.mtimeMs) {
+      // The lock was replaced between the stale check and the rename; the
+      // current holder must survive. Link the claim back atomically — link
+      // fails if a new lock already exists, so we never clobber one — and
+      // drop the claim path either way so no litter remains.
+      try {
+        fs.linkSync(claimPath, lockPath)
+      } catch {
+        // Someone else owns the lock path now.
+      }
+      try {
+        fs.unlinkSync(claimPath)
+      } catch {
+        // Best-effort litter cleanup.
+      }
+      return false
+    }
+    fs.unlinkSync(claimPath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Recover from a crash between the two renames that swap the managed binary:
+ * when the managed binary is missing but an orphaned `.backup` survives,
+ * restore the newest one; when the managed binary is healthy, drop orphans.
+ * Backup names embed a random token (not a timestamp), so "newest" follows
+ * the file mtime — a backup preserves the install time of the binary it
+ * still holds.
+ */
+export function recoverOrphanedCliBackup(managedPath: string, warn: (message: string) => void): void {
+  const directory = path.dirname(managedPath)
+  const prefix = `${path.basename(managedPath)}.`
+  let entries: string[]
+  try {
+    entries = fs.readdirSync(directory)
+  } catch {
+    return
+  }
+  const backups = entries
+    .filter(name => name.startsWith(prefix) && name.endsWith('.backup'))
+    .map(name => {
+      const filePath = path.join(directory, name)
+      let mtimeMs = 0
+      try {
+        mtimeMs = fs.statSync(filePath).mtimeMs
+      } catch {
+        // Unreadable entries sort first and are swept below.
+      }
+      return { name, filePath, mtimeMs }
+    })
+    .sort((a, b) => a.mtimeMs - b.mtimeMs)
+  if (backups.length === 0) return
+
+  if (!fs.existsSync(managedPath)) {
+    for (let index = backups.length - 1; index >= 0; index -= 1) {
+      const candidate = backups[index]!
+      try {
+        fs.renameSync(candidate.filePath, managedPath)
+        warn(`restored wakatime-cli from orphaned backup ${candidate.name} after an interrupted update`)
+        break
+      } catch {
+        // Try the next-newest backup.
+      }
+    }
+  }
+  for (const backup of backups) {
+    try {
+      fs.unlinkSync(backup.filePath)
+    } catch {
+      // Best-effort cleanup; retried on the next install.
+    }
+  }
+}
+
 export class CliManager {
   private readonly managedPath: string
   private readonly stateFile: string
@@ -754,6 +858,9 @@ export class CliManager {
       this.logger.warn('timed out waiting for another process to install wakatime-cli')
       return undefined
     }
+    // A previous process may have crashed between the two renames that swap
+    // the managed binary; recover any orphaned backup before installing.
+    recoverOrphanedCliBackup(this.managedPath, message => this.logger.warn(message))
 
     const token = `${process.pid}-${crypto.randomBytes(6).toString('hex')}`
     const archivePath = path.join(getPluginDataDir(), `wakatime-cli-${token}.zip`)
@@ -849,15 +956,7 @@ export class CliManager {
           ? (error as NodeJS.ErrnoException).code
           : undefined
         if (code !== 'EEXIST') throw error
-        try {
-          const stat = fs.statSync(this.installLock)
-          if (Date.now() - stat.mtimeMs > Math.max(this.config.cliDownloadTimeoutMs * 2, 300_000)) {
-            fs.unlinkSync(this.installLock)
-            continue
-          }
-        } catch {
-          continue
-        }
+        if (claimStaleLock(this.installLock, Math.max(this.config.cliDownloadTimeoutMs * 2, 300_000))) continue
         await sleep(250)
       }
     }
