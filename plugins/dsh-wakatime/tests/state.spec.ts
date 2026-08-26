@@ -60,4 +60,18 @@ describe('HeartbeatRateLimiter', () => {
     expect(file).not.toContain('private/project')
     writeFileSync(file, '{}')
   })
+
+  it('clamps retry delays when the clock steps backwards', async () => {
+    const directory = stateDir()
+    const limiter = new HeartbeatRateLimiter(directory)
+    const stateFile = stateFileFor('/repo', directory)
+    // Simulate an NTP correction after the last heartbeat: the stored
+    // timestamp is now in the future relative to the stepped-back clock.
+    writeFileSync(stateFile, JSON.stringify({ lastHeartbeatAt: Date.now() + 3_600_000 }))
+
+    const attempt = await limiter.acquire('/repo', 120_000, false)
+    expect(attempt.lease).toBeUndefined()
+    // The retry must stay bounded by one interval, not hours.
+    expect(attempt.retryAfterMs).toBeLessThanOrEqual(120_000)
+  })
 })

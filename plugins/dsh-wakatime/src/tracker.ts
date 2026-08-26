@@ -112,6 +112,11 @@ export class WakatimeTracker {
       buffer.retryTimer = undefined
     }
     await this.flushAll()
+    for (const [projectFolder, buffer] of this.projects) {
+      if (buffer.pending.size > 0) {
+        this.logger.warn(`discarding ${buffer.pending.size} unsent heartbeat ${buffer.pending.size === 1 ? 'entry' : 'entries'} for ${projectFolder} after final shutdown retries`)
+      }
+    }
   }
 
   private buffer(projectFolder: string): ProjectBuffer {
@@ -170,7 +175,13 @@ export class WakatimeTracker {
         this.config.heartbeatIntervalMs,
         force,
         force ? Math.min(this.config.heartbeatTimeoutMs, 5_000) : 0,
-        Math.max(this.config.heartbeatTimeoutMs, this.config.cliDownloadTimeoutMs),
+        // A lease may legitimately be held across the whole flush pipeline:
+        // a CLI install (download timeout) + version exec + an update-check
+        // fetch (another download-timeout-bound request) + the heartbeat
+        // process lifetime including its kill grace. The stale threshold
+        // must cover the entire serial window, or another session treats a
+        // live lock as abandoned and double-sends the batch.
+        this.config.cliDownloadTimeoutMs * 2 + this.config.heartbeatTimeoutMs + 10_000,
       )
     } catch (error) {
       this.logger.exception('WARN', error, 'failed to acquire heartbeat rate-limit state')

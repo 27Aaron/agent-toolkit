@@ -116,9 +116,13 @@ export class HeartbeatRateLimiter {
 
       const now = Date.now()
       const lastHeartbeatAt = readLastHeartbeatAt(stateFile)
-      if (!force && now - lastHeartbeatAt < intervalMs) {
+      // A clock rollback (e.g. an NTP correction) must not inflate the retry
+      // delay into hours: treat a future timestamp as elapsed-0, which caps
+      // the retry at one full interval.
+      const elapsedMs = Math.max(0, now - lastHeartbeatAt)
+      if (!force && elapsedMs < intervalMs) {
         release()
-        return { retryAfterMs: Math.max(1, intervalMs - (now - lastHeartbeatAt)) }
+        return { retryAfterMs: Math.min(intervalMs, Math.max(1, intervalMs - elapsedMs)) }
       }
 
       let finished = false
