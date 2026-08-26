@@ -118,10 +118,8 @@ const zh = {
   lines: '行',
   dailyActivity: '每日活动',
   dailyActivityHint: '柱高表示当天的编码时间；下方同时标出 AI 编程时间和行数。',
-  aiDailyHint: '柱高表示当天 AI 改动的行数，下方显示 AI 编程时间。',
   aiActivity: 'AI 编程',
   aiProjects: 'AI 辅助项目',
-  aiProjectsHint: '按 AI 改动行数排序的项目。',
   aiSessions: 'AI 会话',
   prompts: '提示词次数',
   avgPromptLength: '平均提示词长度',
@@ -298,10 +296,8 @@ const en = {
   lines: 'lines',
   dailyActivity: 'Daily activity',
   dailyActivityHint: 'Bar height represents coding time; AI time and line changes are shown below each day.',
-  aiDailyHint: 'Bar height represents daily AI line changes; AI coding time is shown below.',
   aiActivity: 'AI coding',
   aiProjects: 'AI-assisted projects',
-  aiProjectsHint: 'Projects ranked by AI line changes.',
   aiSessions: 'AI sessions',
   prompts: 'Prompt events',
   avgPromptLength: 'Avg. prompt length',
@@ -523,7 +519,6 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeSectionHint { margin: 0 0 14px; color: currentColor; opacity: .62; font-size: 13px; line-height: 1.5; }
 .dshWakatimeDashboardChart { margin-top: 12px; }
 .dshWakatimeCardTitle { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 5px; font-size: 14px; letter-spacing: -.01em; }
-.dshWakatimeCardHint { margin: 0 0 16px; color: currentColor; opacity: .56; font-size: 12px; line-height: 1.5; }
 .dshWakatimeOfficialHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 16px; }
 .dshWakatimeOfficialBrand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .dshWakatimeOfficialMark { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: var(--dsh-radius); color: #fff; background: #3b82f6; font-size: 14px; font-weight: 800; }
@@ -709,7 +704,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeInsightsLegend i:nth-of-type(2) { background: color-mix(in srgb, var(--dsh-accent) 48%, var(--dsh-surface)); }
 .dshWakatimeInsightsLegend i:nth-of-type(3) { background: color-mix(in srgb, var(--dsh-accent) 70%, var(--dsh-surface)); }
 .dshWakatimeInsightsLegend i:nth-of-type(4) { background: color-mix(in srgb, var(--dsh-accent) 92%, var(--dsh-surface)); }
-.dshWakatimeInsightsWeekdayChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; min-height: 146px; align-items: end; }
+.dshWakatimeInsightsWeekdayChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; min-height: 146px; align-items: start; }
 .dshWakatimeInsightsWeekday { position: relative; display: grid; grid-template-rows: 106px auto auto; gap: 5px; min-width: 0; text-align: center; }
 .dshWakatimeInsightsWeekdayBar { display: flex; height: 106px; flex-direction: column-reverse; justify-content: flex-start; overflow: hidden; border-radius: 3px 3px 1px 1px; background: var(--dsh-surface-raised); }
 .dshWakatimeInsightsWeekdayBar span { display: block; min-height: 1px; }
@@ -776,16 +771,15 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeInsightLabel { overflow: hidden; color: currentColor; opacity: .58; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeInsightValue { font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 650; }
 .dshWakatimeDailyChart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; min-height: 0; align-items: start; padding: 8px 4px 2px; }
-.dshWakatimeDay { display: grid; min-width: 0; grid-template-rows: 88px 16px 16px 18px; gap: 5px; text-align: center; }
+.dshWakatimeDay { display: grid; min-width: 0; grid-template-rows: 88px 16px 16px minmax(18px, auto); gap: 5px; text-align: center; }
 .dshWakatimeDayBar { position: relative; display: flex; height: 88px; align-items: end; justify-content: center; }
 .dshWakatimeDayBar::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--dsh-border); content: ''; }
 .dshWakatimeDayBar span { position: relative; z-index: 1; display: block; width: min(28px, 64%); min-height: 3px; border-radius: 4px 4px 2px 2px; background: var(--dsh-accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--dsh-accent) 18%, transparent); opacity: .86; }
 .dshWakatimeDayLabel,
-.dshWakatimeDayTotal,
-.dshWakatimeDayAi { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeDayTotal { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeDayLabel { color: currentColor; opacity: .62; font-size: 10px; line-height: 16px; }
 .dshWakatimeDayTotal { overflow-wrap: normal; font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 16px; }
-.dshWakatimeDayAi { color: currentColor; opacity: .62; font-size: 10px; line-height: 14px; }
+.dshWakatimeDayAi { min-width: 0; overflow: visible; color: currentColor; opacity: .62; font-size: 10px; line-height: 14px; overflow-wrap: normal; word-break: keep-all; white-space: normal; text-wrap: balance; }
 .dshWakatimeRows { display: grid; gap: 8px; }
 .dshWakatimeRow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--dsh-border); }
 .dshWakatimeRow:last-child { padding-bottom: 0; border-bottom: 0; }
@@ -849,8 +843,21 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeFormActions .dshWakatimeButton { margin-left: auto; }
 .dshWakatimeSaved { color: inherit; opacity: .68; font-size: 12px; font-weight: 650; }
 
-/* Keep the dashboard, insights, projects, and settings surfaces on one visual rhythm. */
-.dshWakatimeTabs { gap: var(--dsh-space-3) var(--dsh-space-5); margin-bottom: var(--dsh-space-4); }
+/* Keep every tab on the same compact, module-based visual rhythm. */
+.dshWakatimePage {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  padding: 4px clamp(8px, 2vw, 20px) 28px;
+  --dsh-section-gap: 14px;
+  --dsh-panel-gap: 10px;
+  --dsh-content-gap: 8px;
+  --dsh-module-gap: 10px;
+  --dsh-module-padding: 12px;
+  --dsh-module-radius: 9px;
+  --dsh-data-size: 13px;
+}
+.dshWakatimeTabs { gap: var(--dsh-space-3) var(--dsh-space-5); margin-bottom: var(--dsh-module-gap); }
 .dshWakatimeToolbar { gap: var(--dsh-space-4); margin-bottom: var(--dsh-space-3); }
 .dshWakatimeRange { gap: var(--dsh-space-1); }
 .dshWakatimeMetrics { gap: var(--dsh-space-2); margin-bottom: var(--dsh-space-3); }
@@ -863,17 +870,26 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeProjectCard,
 .dshWakatimeInsightsSummaryCard,
 .dshWakatimeInsightsPanel,
-.dshWakatimeInsightsDonutCard { border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
+.dshWakatimeInsightsDonutCard { border-color: var(--dsh-border); border-radius: var(--dsh-module-radius); }
+.dshWakatimeMetrics,
+.dshWakatimeOfficialOverview,
+.dshWakatimeInsightsSummary {
+  gap: var(--dsh-panel-gap);
+  padding: var(--dsh-module-gap);
+  border: 1px solid var(--dsh-border);
+  border-radius: var(--dsh-module-radius);
+  background: var(--dsh-surface);
+}
 .dshWakatimeMetric,
-.dshWakatimeOfficialMetric { padding: var(--dsh-space-3); }
+.dshWakatimeOfficialMetric { min-height: 82px; padding: var(--dsh-module-padding); }
 .dshWakatimeMetricLabel { font-size: 10px; }
-.dshWakatimeMetricValue { font-size: 16px; }
+.dshWakatimeMetricValue { font-size: var(--dsh-data-size); font-variant-numeric: tabular-nums; }
 .dshWakatimeMetricMeta { font-size: 10px; }
 .dshWakatimeCard,
 .dshWakatimeOfficialPanel,
 .dshWakatimeOfficialChartPanel,
 .dshWakatimeOfficialTimeline,
-.dshWakatimeInsightsPanel { padding: var(--dsh-space-3); }
+.dshWakatimeInsightsPanel { padding: var(--dsh-module-padding); }
 .dshWakatimeToolbar { margin-bottom: var(--dsh-section-gap); }
 .dshWakatimeSectionHint { margin-bottom: var(--dsh-section-gap); }
 .dshWakatimeMetrics { margin-bottom: var(--dsh-section-gap); }
@@ -882,32 +898,33 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeField small,
 .dshWakatimeCheck small { font-size: 11px; }
 .dshWakatimeCardTitle { margin-bottom: var(--dsh-space-2); font-size: 13px; }
-.dshWakatimeOfficialHeader { gap: var(--dsh-space-4); margin-bottom: var(--dsh-space-4); }
+.dshWakatimeOfficialHeader { gap: var(--dsh-panel-gap); margin-bottom: var(--dsh-module-gap); }
 .dshWakatimeOfficialBrand { gap: var(--dsh-space-2); }
 .dshWakatimeOfficialRange { gap: var(--dsh-space-1); }
 .dshWakatimeOfficialSplit,
 .dshWakatimeOfficialChartGrid { gap: var(--dsh-panel-gap); }
 .dshWakatimeOfficialMetrics { gap: var(--dsh-panel-gap); }
-.dshWakatimeOfficialOverview { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--dsh-panel-gap); padding: var(--dsh-space-2); }
-.dshWakatimeOfficialOverviewTotal { padding: 10px 12px; border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
+.dshWakatimeOfficialOverview { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dshWakatimeOfficialOverviewTotal { padding: 10px 12px; border-color: var(--dsh-border); border-radius: var(--dsh-module-radius); }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricLabel { margin-bottom: 5px; }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue,
-.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { font-size: 16px; }
+.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { font-size: var(--dsh-data-size); }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricMeta { margin-top: 4px; }
 .dshWakatimeOfficialOverview .dshWakatimeOfficialMetricLabel { height: 16px; min-height: 16px; margin-bottom: 6px; overflow: hidden; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
-.dshWakatimeOfficialOverview .dshWakatimeOfficialMetricValue { height: 19px; min-height: 19px; }
-.dshWakatimeOfficialOverview .dshWakatimeOfficialMetricMeta { height: 16px; min-height: 16px; margin-top: 4px; overflow: hidden; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue,
+.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { height: auto; min-height: 19px; white-space: normal; }
+.dshWakatimeOfficialOverview .dshWakatimeOfficialMetricMeta { height: auto; min-height: 16px; margin-top: 4px; overflow: visible; overflow-wrap: anywhere; line-height: 1.25; text-overflow: clip; white-space: normal; }
 .dshWakatimeOfficialMetricLabel { font-size: 10px; }
-.dshWakatimeOfficialMetricValue { font-size: 16px; }
+.dshWakatimeOfficialMetricValue { font-size: var(--dsh-data-size); font-variant-numeric: tabular-nums; }
 .dshWakatimeOfficialSection { margin-top: var(--dsh-space-4); }
 .dshWakatimeOfficialSectionHeading { gap: var(--dsh-space-3); margin-bottom: var(--dsh-space-2); }
 .dshWakatimeOfficialSectionHeading h2 { font-size: 14px; }
-.dshWakatimeOfficialAiBlock { padding: var(--dsh-space-3); border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
+.dshWakatimeOfficialAiBlock { padding: var(--dsh-module-padding); border-color: var(--dsh-border); border-radius: var(--dsh-module-radius); }
 .dshWakatimeOfficialAiBlock .dshWakatimeOfficialSectionHeading { margin-bottom: var(--dsh-content-gap); }
 .dshWakatimeOfficialAiLayout { gap: var(--dsh-panel-gap); }
 .dshWakatimeOfficialAiGrid { gap: var(--dsh-panel-gap); }
-.dshWakatimeOfficialAiMetric { padding: var(--dsh-space-2) 10px; border-color: var(--dsh-border); border-radius: var(--dsh-radius); }
-.dshWakatimeOfficialAiMetricValue { font-size: 16px; }
+.dshWakatimeOfficialAiMetric { padding: var(--dsh-space-2) 10px; border-color: var(--dsh-border); border-radius: var(--dsh-module-radius); }
+.dshWakatimeOfficialAiMetricValue { font-size: var(--dsh-data-size); font-variant-numeric: tabular-nums; }
 .dshWakatimeOfficialPanel h3,
 .dshWakatimeOfficialChartPanel h3 { margin-bottom: var(--dsh-space-2); font-size: 13px; }
 .dshWakatimeOfficialListRow { grid-template-columns: minmax(0, 1fr) max-content; }
@@ -948,10 +965,9 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 #dsh-wakatime-panel-ai .dshWakatimeRangeLabel { display: none; }
 #dsh-wakatime-panel-ai .dshWakatimeMetrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #dsh-wakatime-panel-ai .dshWakatimeMetric { min-height: 0; padding: 10px 12px; }
-#dsh-wakatime-panel-ai .dshWakatimeMetricValue { font-size: 16px; letter-spacing: -.01em; }
+#dsh-wakatime-panel-ai .dshWakatimeMetricValue { font-size: var(--dsh-data-size); letter-spacing: -.01em; }
 #dsh-wakatime-panel-ai .dshWakatimeMetricMeta { margin-top: 4px; font-size: 10px; }
 #dsh-wakatime-panel-ai .dshWakatimeCardTitle { margin-bottom: var(--dsh-space-2); font-size: 14px; }
-#dsh-wakatime-panel-ai .dshWakatimeCardHint { font-size: 11px; line-height: 1.4; }
 #dsh-wakatime-panel-ai .dshWakatimeRowLabel,
 #dsh-wakatime-panel-ai .dshWakatimeRowValue,
 #dsh-wakatime-panel-ai .dshWakatimeBreakdownLabel,
@@ -960,6 +976,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 #dsh-wakatime-panel-ai .dshWakatimeComparisonHead { font-size: 11px; }
 .dshWakatimeInsightsStatus { margin-bottom: var(--dsh-section-gap); }
 .dshWakatimeInsightsSummary { gap: var(--dsh-panel-gap); }
+.dshWakatimeInsightsSummaryValue { font-size: var(--dsh-data-size); font-variant-numeric: tabular-nums; }
 .dshWakatimeInsightsColumns,
 .dshWakatimeInsightsTwoCol { gap: var(--dsh-panel-gap); margin-top: var(--dsh-section-gap); }
 .dshWakatimeInsightsColumns > .dshWakatimeInsightsPanel { margin-top: 0; }
@@ -981,12 +998,12 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeAdvanced { padding-top: var(--dsh-space-3); }
 .dshWakatimeFormActions { gap: var(--dsh-space-3); }
 .dshWakatimeConfigCard { max-width: 760px; overflow: visible; border: 0; border-radius: 0; padding: 0; background: transparent; }
-.dshWakatimeConfigCard > .dshWakatimeForm { gap: 0; }
-.dshWakatimeConfigCard .dshWakatimeKeyRow { grid-template-columns: 1fr; gap: 7px; padding: 8px 0 10px; }
+.dshWakatimeConfigCard > .dshWakatimeForm { gap: var(--dsh-module-gap); }
+.dshWakatimeConfigCard .dshWakatimeKeyRow { grid-template-columns: 1fr; gap: 7px; padding: var(--dsh-module-padding); border: 1px solid var(--dsh-border); border-radius: var(--dsh-module-radius); background: var(--dsh-surface); }
 .dshWakatimeConfigCard .dshWakatimeKeyMeta { display: flex; align-items: baseline; align-self: start; gap: 8px; padding-top: 0; }
 .dshWakatimeConfigCard .dshWakatimeKeyMeta label { font-size: 11px; letter-spacing: .015em; }
 .dshWakatimeConfigCard .dshWakatimeKeyStatus { font-size: 10px; }
-.dshWakatimeConfigCard .dshWakatimeBaseUrlRow { display: grid; grid-template-columns: 1fr; gap: 7px; align-items: start; padding: 0 0 10px; }
+.dshWakatimeConfigCard .dshWakatimeBaseUrlRow { display: grid; grid-template-columns: 1fr; gap: 7px; align-items: start; padding: var(--dsh-module-padding); border: 1px solid var(--dsh-border); border-radius: var(--dsh-module-radius); background: var(--dsh-surface); }
 .dshWakatimeConfigCard .dshWakatimeBaseUrlRow label { padding-top: 0; font-size: 11px; letter-spacing: .015em; }
 .dshWakatimeConfigCard .dshWakatimeInlineActions { gap: 10px; }
 .dshWakatimeConfigCard .dshWakatimeInlineActions { justify-self: stretch; width: 100%; }
@@ -1005,7 +1022,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeConfigCard .dshWakatimeButton,
 .dshWakatimeConfigCard .dshWakatimeCategoryButton { min-height: 34px; padding: 0 10px; font-size: 11px; line-height: 1.2; }
 .dshWakatimeConfigCard .dshWakatimeButton:disabled { cursor: default; }
-.dshWakatimeConfigCard .dshWakatimeCliPanel { margin: 0; padding: 4px 0 8px; border: 0; border-radius: 0; background: transparent; }
+.dshWakatimeConfigCard .dshWakatimeCliPanel { margin: 0; padding: var(--dsh-module-padding); border: 1px solid var(--dsh-border); border-radius: var(--dsh-module-radius); background: var(--dsh-surface); }
 .dshWakatimeConfigCard .dshWakatimeCliBadge { display: inline-flex; align-items: center; max-width: 100%; gap: 6px; padding: 0; font-size: 11px; }
 .dshWakatimeConfigCard .dshWakatimeCliBadge::before { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--dsh-accent); content: ''; }
 .dshWakatimeConfigCard .dshWakatimeCliBadge[data-state="invalid"]::before { background: var(--dsh-human-delete); }
@@ -1014,7 +1031,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeConfigCard .dshWakatimeCliHeaderActions .dshWakatimeButton { min-height: 34px; }
 .dshWakatimeConfigCard .dshWakatimeCliPath { grid-column: 1 / -1; margin-top: 5px; overflow-wrap: anywhere; }
 .dshWakatimeConfigCard .dshWakatimeCliHint { grid-column: 1 / -1; margin-top: 5px; }
-.dshWakatimeConfigCard .dshWakatimeAdvanced { margin: 0; padding: 0; border-top: 0; }
+.dshWakatimeConfigCard .dshWakatimeAdvanced { margin: 0; padding: var(--dsh-module-padding); border: 1px solid var(--dsh-border); border-radius: var(--dsh-module-radius); background: var(--dsh-surface); }
 .dshWakatimeConfigCard .dshWakatimeAdvanced > .dshWakatimeForm { gap: var(--dsh-space-3); }
 .dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeField { gap: 7px; }
 .dshWakatimeConfigCard .dshWakatimeAdvanced .dshWakatimeField > label { font-size: 11px; letter-spacing: .015em; }
@@ -1024,31 +1041,31 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeConfigCard .dshWakatimeAdvancedFooter .dshWakatimeFormActions { margin: 0; padding: 0 0 2px; background: transparent; }
 .dshWakatimeConfigCard .dshWakatimeSaved { margin-right: auto; font-size: 11px; }
 @media (max-width: 820px) {
-  .dshWakatimePage { padding: 0 0 var(--dsh-space-5); }
+  .dshWakatimePage { padding: 4px 12px 24px; }
   .dshWakatimeToolbar { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 560px) {
-  .dshWakatimePage { padding: 0 0 var(--dsh-space-5); }
+  .dshWakatimePage { padding: 4px 8px 24px; }
   .dshWakatimeDailyChart { gap: var(--dsh-space-1); }
   .dshWakatimeDayBar span { width: 16px; }
 }
 @container (max-width: 620px) {
-  .dshWakatimePage { padding: 0 0 var(--dsh-space-5); }
+  .dshWakatimePage { padding: 4px 8px 24px; }
   .dshWakatimeToolbar { margin-bottom: var(--dsh-space-4); }
   .dshWakatimeTabs { gap: var(--dsh-space-3) var(--dsh-space-4); }
   .dshWakatimeMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeOfficialHeader { align-items: flex-start; gap: var(--dsh-space-2); }
   .dshWakatimeOfficialRange { justify-content: flex-end; margin-left: auto; }
   .dshWakatimeOfficialMetrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--dsh-panel-gap); }
-  .dshWakatimeOfficialOverview { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dshWakatimeOfficialOverview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeOfficialOverviewTotal { grid-column: auto; }
-  .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue { font-size: 14px; }
+  .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue { font-size: var(--dsh-data-size); }
   .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric,
   .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetric { padding: 10px 12px; }
   .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricLabel,
   .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetricLabel { margin-bottom: 5px; font-size: 10px; }
   .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue,
-  .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetricValue { font-size: 14px; }
+  .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetricValue { font-size: var(--dsh-data-size); }
   .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricMeta,
   .dshWakatimeOfficialMetrics .dshWakatimeOfficialMetricMeta { font-size: 10px; }
   .dshWakatimeOfficialAiGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1056,10 +1073,13 @@ body[data-color-scheme="dark"] .dshWakatimePage {
   .dshWakatimeOfficialSplit { grid-template-columns: 1fr; }
   .dshWakatimeProjectStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dshWakatimeInsightsColumns, .dshWakatimeInsightsTwoCol { grid-template-columns: 1fr; }
-  .dshWakatimeCard { padding: var(--dsh-space-4); }
+  .dshWakatimeCard { padding: var(--dsh-module-padding); }
   .dshWakatimeConfigCard { padding: 0; }
   .dshWakatimeDailyChart { gap: var(--dsh-space-1); }
   .dshWakatimeDayBar span { width: 16px; }
+}
+@container (max-width: 460px) {
+  .dshWakatimeOfficialAiLayout { grid-template-columns: 1fr; }
 }
 @container (max-width: 390px) {
   .dshWakatimeKeyRow { grid-template-columns: 1fr; gap: var(--dsh-space-2); }
@@ -1074,12 +1094,23 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 @media (prefers-reduced-motion: reduce) { .dshWakatimeButton { transition: none; } }
 `
 
+const ASCII_MIXED_TOKEN = '[A-Za-z0-9][A-Za-z0-9+._#%/-]*'
+const CJK_BEFORE_ASCII_TOKEN = new RegExp(`([\\p{Script=Han}])(?=${ASCII_MIXED_TOKEN})`, 'gu')
+const ASCII_TOKEN_BEFORE_CJK = new RegExp(`(${ASCII_MIXED_TOKEN})(?=[\\p{Script=Han}])`, 'gu')
+
+/** Apply the Chinese typography convention of spacing CJK and Latin/numeric text. */
+export function formatCjkMixedText(value: string): string {
+  return value
+    .replace(CJK_BEFORE_ASCII_TOKEN, '$1 ')
+    .replace(ASCII_TOKEN_BEFORE_CJK, '$1 ')
+}
+
 function tr(t: Translator, key: string, fallback: string): string {
   try {
     const value = t(key)
-    return typeof value === 'string' && value.length > 0 ? value : fallback
+    return formatCjkMixedText(typeof value === 'string' && value.length > 0 ? value : fallback)
   } catch {
-    return fallback
+    return formatCjkMixedText(fallback)
   }
 }
 
@@ -1284,7 +1315,7 @@ const CATEGORY_LABELS: Record<UiLocale, Record<string, string>> = {
 
 function categoryLabel(value: string): string {
   const normalized = value.trim().toLowerCase()
-  return CATEGORY_LABELS[activeUiLocale()][normalized] ?? value
+  return formatCjkMixedText(CATEGORY_LABELS[activeUiLocale()][normalized] ?? value)
 }
 
 const WAKATIME_CATEGORY_COLORS: Record<string, string> = {
@@ -1316,23 +1347,23 @@ function categoryColor(name: string): string {
 
 function dayLabel(day: string): string {
   try {
-    return new Intl.DateTimeFormat(intlLocale(), { month: 'numeric', day: 'numeric', weekday: 'long' })
-      .format(new Date(`${day}T12:00:00`))
+    return formatCjkMixedText(new Intl.DateTimeFormat(intlLocale(), { month: 'numeric', day: 'numeric', weekday: 'long' })
+      .format(new Date(`${day}T12:00:00`)))
   } catch {
-    return day.slice(5)
+    return formatCjkMixedText(day.slice(5))
   }
 }
 
 function calendarDateLabel(day: string): string {
   const date = new Date(`${day}T12:00:00`)
-  if (Number.isNaN(date.getTime())) return day
+  if (Number.isNaN(date.getTime())) return formatCjkMixedText(day)
   if (activeUiLocale() === 'zh') {
-    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+    return formatCjkMixedText(`${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`)
   }
   try {
-    return new Intl.DateTimeFormat(intlLocale(), { year: 'numeric', month: 'numeric', day: 'numeric' }).format(date)
+    return formatCjkMixedText(new Intl.DateTimeFormat(intlLocale(), { year: 'numeric', month: 'numeric', day: 'numeric' }).format(date))
   } catch {
-    return day.slice(5)
+    return formatCjkMixedText(day.slice(5))
   }
 }
 
@@ -1350,9 +1381,11 @@ function cliSourceLabel(t: Translator, source: WakatimeUiStatus['cli']['source']
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const displayLabel = formatCjkMixedText(label)
+  const displayValue = formatCjkMixedText(value)
   return h('div', { className: 'dshWakatimeRow' },
-    h('span', { className: 'dshWakatimeRowLabel' }, label),
-    h('span', { className: 'dshWakatimeRowValue', title: value }, value),
+    h('span', { className: 'dshWakatimeRowLabel' }, displayLabel),
+    h('span', { className: 'dshWakatimeRowValue', title: displayValue }, displayValue),
   )
 }
 
@@ -1411,10 +1444,13 @@ function CategoryMenu({
 }
 
 function Metric({ label, value, meta }: { label: string; value: string; meta?: string }) {
+  const displayLabel = formatCjkMixedText(label)
+  const displayValue = formatCjkMixedText(value)
+  const displayMeta = meta === undefined ? undefined : formatCjkMixedText(meta)
   return h('div', { className: 'dshWakatimeMetric' },
-    h('div', { className: 'dshWakatimeMetricLabel' }, label),
-    h('div', { className: 'dshWakatimeMetricValue' }, value),
-    meta === undefined ? null : h('div', { className: 'dshWakatimeMetricMeta' }, meta),
+    h('div', { className: 'dshWakatimeMetricLabel' }, displayLabel),
+    h('div', { className: 'dshWakatimeMetricValue' }, displayValue),
+    displayMeta === undefined ? null : h('div', { className: 'dshWakatimeMetricMeta' }, displayMeta),
   )
 }
 
@@ -1438,18 +1474,24 @@ function bucketTokens(bucket: { aiInputTokens: number; aiCachedInputTokens: numb
 }
 
 function officialMetric({ label, value, meta }: { label: string; value: string; meta?: string | undefined }) {
+  const displayLabel = formatCjkMixedText(label)
+  const displayValue = formatCjkMixedText(value)
+  const displayMeta = meta === undefined ? undefined : formatCjkMixedText(meta)
   return h('div', { className: 'dshWakatimeOfficialMetric' },
-    h('div', { className: 'dshWakatimeOfficialMetricLabel' }, label),
-    h('div', { className: 'dshWakatimeOfficialMetricValue' }, value),
-    meta === undefined ? null : h('div', { className: 'dshWakatimeOfficialMetricMeta' }, meta),
+    h('div', { className: 'dshWakatimeOfficialMetricLabel' }, displayLabel),
+    h('div', { className: 'dshWakatimeOfficialMetricValue' }, displayValue),
+    displayMeta === undefined ? null : h('div', { className: 'dshWakatimeOfficialMetricMeta' }, displayMeta),
   )
 }
 
 function officialAiMetric({ label, value, meta }: { label: string; value: string; meta?: string | undefined }) {
+  const displayLabel = formatCjkMixedText(label)
+  const displayValue = formatCjkMixedText(value)
+  const displayMeta = meta === undefined ? undefined : formatCjkMixedText(meta)
   return h('div', { className: 'dshWakatimeOfficialAiMetric' },
-    h('div', { className: 'dshWakatimeOfficialAiMetricLabel' }, label),
-    h('div', { className: 'dshWakatimeOfficialAiMetricValue' }, value),
-    meta === undefined ? null : h('div', { className: 'dshWakatimeOfficialAiMetricMeta' }, meta),
+    h('div', { className: 'dshWakatimeOfficialAiMetricLabel' }, displayLabel),
+    h('div', { className: 'dshWakatimeOfficialAiMetricValue' }, displayValue),
+    displayMeta === undefined ? null : h('div', { className: 'dshWakatimeOfficialAiMetricMeta' }, displayMeta),
   )
 }
 
@@ -1472,15 +1514,17 @@ function AlignedList({
   empty: string
   className?: string
 }) {
-  if (items.length === 0) return h('p', { className: 'dshWakatimeNotice' }, empty)
+  if (items.length === 0) return h('p', { className: 'dshWakatimeNotice' }, formatCjkMixedText(empty))
   const columnCount = Math.max(1, ...items.map(item => item.columns.length))
   const style = { '--dsh-aligned-column-count': String(columnCount) } as React.CSSProperties
   return h('div', { className: `dshWakatimeAlignedList${className.length > 0 ? ` ${className}` : ''}`, style }, items.map(item => {
     const progress = item.progress === undefined ? undefined : Math.max(0, Math.min(100, item.progress))
+    const displayName = formatCjkMixedText(item.name)
+    const displayColumns = item.columns.map(formatCjkMixedText)
     return h('div', { className: 'dshWakatimeAlignedRow', 'data-has-progress': progress === undefined ? 'false' : 'true', key: item.name },
       h('div', { className: 'dshWakatimeAlignedHead' },
-        h('span', { title: item.name }, item.name),
-        ...item.columns.map((column, index) => h('span', { key: `${item.name}-${index}`, title: column }, column)),
+        h('span', { title: displayName }, displayName),
+        ...displayColumns.map((column, index) => h('span', { key: `${item.name}-${index}`, title: column }, column)),
       ),
       progress === undefined ? null : h('div', { className: 'dshWakatimeAlignedTrack' }, h('span', { style: { width: `${Math.max(4, progress)}%` } })),
     )
@@ -1536,7 +1580,7 @@ function OfficialActivityCharts({ usage, t, mode = 'all', embedded = false }: { 
       const max = Math.max(1, ...source.map(item => item.totalSeconds))
       return h('div', { className: 'dshWakatimeOfficialCompare dshWakatimeProjectCompare' }, source.map(item => h('div', { className: 'dshWakatimeOfficialCompareRow', key: item.name },
         h('div', { className: 'dshWakatimeOfficialCompareHead' },
-          h('span', { title: item.name }, item.name),
+          h('span', { title: formatCjkMixedText(item.name) }, formatCjkMixedText(item.name)),
           h('span', null, `${formatDuration(item.totalSeconds)} · ${item.percent.toFixed(2)}%`),
         ),
         h('div', { className: 'dshWakatimeOfficialCompareTrack' },
@@ -1558,7 +1602,7 @@ function OfficialActivityCharts({ usage, t, mode = 'all', embedded = false }: { 
     }))
     const legend = h('div', { className: 'dshWakatimeOfficialLegend' }, source.map(item => h('span', { className: 'dshWakatimeOfficialLegendItem', key: item.name },
       h('i', { style: { background: categoryColor(item.name) } }),
-      h('span', { title: item.name }, chartMode === 'categories' ? categoryLabel(item.name) : item.name),
+      h('span', { title: formatCjkMixedText(item.name) }, chartMode === 'categories' ? categoryLabel(item.name) : formatCjkMixedText(item.name)),
     )))
     return h(React.Fragment, null, chart, legend)
   }
@@ -1611,6 +1655,7 @@ function OfficialWeekdays({ usage }: { usage: WakatimeUsageData }) {
 
 function OfficialProjectCard({ project, t, maxTotalSeconds }: { project: WakatimeUsageBucket; t: Translator; maxTotalSeconds: number }) {
   const [expanded, setExpanded] = React.useState(false)
+  const projectName = formatCjkMixedText(project.name)
   const showAiDetails = project.aiDetailsAvailable !== false
   const aiLines = project.aiAdditions + project.aiDeletions
   const humanLines = project.humanAdditions + project.humanDeletions
@@ -1630,13 +1675,13 @@ function OfficialProjectCard({ project, t, maxTotalSeconds }: { project: Wakatim
     h('div', { className: 'dshWakatimeProjectSummary' },
       hasAiDetails
         ? h('button', { className: 'dshWakatimeProjectHeaderButton', type: 'button', 'aria-expanded': expanded, onClick: () => setExpanded(current => !current) },
-          h('span', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
+          h('span', { className: 'dshWakatimeProjectName', title: projectName }, projectName),
           h('span', { className: 'dshWakatimeProjectTime' }, formatDuration(project.totalSeconds)),
           h('span', { className: 'dshWakatimeProjectPercent' }, `${project.percent.toFixed(2)}%`),
           h('span', { className: 'dshWakatimeProjectChevron', 'aria-hidden': 'true' }, expanded ? '↑' : '↓'),
         )
         : h('div', { className: 'dshWakatimeProjectHeader' },
-          h('span', { className: 'dshWakatimeProjectName', title: project.name }, project.name),
+          h('span', { className: 'dshWakatimeProjectName', title: projectName }, projectName),
           h('span', { className: 'dshWakatimeProjectTime' }, formatDuration(project.totalSeconds)),
           h('span', { className: 'dshWakatimeProjectPercent' }, `${project.percent.toFixed(2)}%`),
           h('span', { className: 'dshWakatimeProjectChevron dshWakatimeProjectChevronPlaceholder', 'aria-hidden': 'true' }, '↓'),
@@ -1877,7 +1922,6 @@ function AiView({ usage, t, range, onPreset }: { usage: WakatimeUsageData; t: Tr
       ),
       h('section', { className: 'dshWakatimeCard' },
         h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'aiProjects', 'AI-assisted projects')),
-        h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'aiProjectsHint', 'Projects ranked by AI line changes.')),
         (() => {
           const projects = usage.projects
             .map(project => ({
@@ -1896,7 +1940,6 @@ function AiView({ usage, t, range, onPreset }: { usage: WakatimeUsageData; t: Tr
     ),
     h('section', { className: 'dshWakatimeCard' },
       h('h2', { className: 'dshWakatimeCardTitle' }, tr(t, 'aiLines', 'AI line changes')),
-      h('p', { className: 'dshWakatimeCardHint' }, tr(t, 'aiDailyHint', 'Bar height represents daily AI line changes.')),
       h(AiDailyChart, { days: usage.days, t }),
     ),
   )
@@ -1926,9 +1969,9 @@ function insightDateKey(value: Date): string {
 
 function insightMonthLabel(value: Date): string {
   try {
-    return new Intl.DateTimeFormat(intlLocale(), { month: 'short' }).format(value)
+    return formatCjkMixedText(new Intl.DateTimeFormat(intlLocale(), { month: 'short' }).format(value))
   } catch {
-    return String(value.getMonth() + 1)
+    return formatCjkMixedText(String(value.getMonth() + 1))
   }
 }
 
@@ -1968,7 +2011,7 @@ function InsightsHeatmap({ insights, t, kind }: { insights: WakatimeInsightsData
       const label = day === undefined
         ? `${key} · ${tr(t, 'noData', 'No activity')}`
         : kind === 'ai' ? `${key} · ${formatPercent(day.aiPercent)} ${tr(t, 'insightAiDriven', 'AI-driven')}` : `${key} · ${formatDuration(day.totalSeconds)}`
-      cells.push({ date: day === undefined ? undefined : key, level: insightHeatLevel(value, max), label })
+      cells.push({ date: day === undefined ? undefined : key, level: insightHeatLevel(value, max), label: formatCjkMixedText(label) })
     }
   }
   const monthLabels = Array.from({ length: weeks }, (_, week) => {
@@ -2076,10 +2119,11 @@ function InsightsDonut({ title, center, segments, legendColumns = 1 }: { title: 
     cursor += Math.max(0, segment.value)
     return `${segment.color} ${start}% ${cursor / total * 100}%`
   }).join(', ') : 'var(--dsh-surface-raised) 0 100%'
+  const displayTitle = formatCjkMixedText(title)
   return h('div', { className: 'dshWakatimeInsightsDonutCard' },
     h('div', { className: 'dshWakatimeInsightsDonut', 'data-value': center, style: { background: `conic-gradient(${stops})` } }),
-    h('div', { className: 'dshWakatimeInsightsDonutTitle' }, title),
-    h('div', { className: `dshWakatimeInsightsDonutLegend${legendColumns === 2 ? ' dshWakatimeInsightsDonutLegendGrid' : ''}` }, segments.map(segment => h('span', { key: segment.label }, h('i', { 'data-tone': segment.tone }), `${segment.label} ${total > 0 ? formatPercent(segment.value / total * 100) : '0%'}`))),
+    h('div', { className: 'dshWakatimeInsightsDonutTitle' }, displayTitle),
+    h('div', { className: `dshWakatimeInsightsDonutLegend${legendColumns === 2 ? ' dshWakatimeInsightsDonutLegendGrid' : ''}` }, segments.map(segment => h('span', { key: segment.label }, h('i', { 'data-tone': segment.tone }), `${formatCjkMixedText(segment.label)} ${total > 0 ? formatPercent(segment.value / total * 100) : '0%'}`))),
   )
 }
 
@@ -2125,9 +2169,9 @@ const InsightsView = React.memo(function InsightsView({ insights, t, loading }: 
       ),
       ...[
         { label: tr(t, 'insightDailyAverage', 'Daily average'), value: localizedDuration(summary.dailyAverageSeconds, summary.dailyAverageText), meta: tr(t, 'insightRangeMeta', 'over the last year') },
-        { label: tr(t, 'insightTopLanguage', 'Top language'), value: topLanguage?.name ?? '—', meta: topLanguage === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topLanguage.totalSeconds)) },
-        { label: tr(t, 'insightTopProject', 'Top project'), value: topProject?.name ?? '—', meta: topProject === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topProject.totalSeconds)) },
-        { label: tr(t, 'insightTopOperatingSystem', 'Top operating system'), value: topOperatingSystem?.name ?? '—', meta: topOperatingSystem === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topOperatingSystem.totalSeconds)) },
+        { label: tr(t, 'insightTopLanguage', 'Top language'), value: topLanguage === undefined ? '—' : formatCjkMixedText(topLanguage.name), meta: topLanguage === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topLanguage.totalSeconds)) },
+        { label: tr(t, 'insightTopProject', 'Top project'), value: topProject === undefined ? '—' : formatCjkMixedText(topProject.name), meta: topProject === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topProject.totalSeconds)) },
+        { label: tr(t, 'insightTopOperatingSystem', 'Top operating system'), value: topOperatingSystem === undefined ? '—' : formatCjkMixedText(topOperatingSystem.name), meta: topOperatingSystem === undefined ? undefined : tr(t, 'insightDurationMeta', 'Total time {time}').replace('{time}', formatDuration(topOperatingSystem.totalSeconds)) },
         { label: tr(t, 'insightMostActiveDay', 'Most active day'), value: summary.bestDay === undefined ? '—' : calendarDateLabel(summary.bestDay.date), meta: summary.bestDay === undefined ? undefined : tr(t, 'insightBestDayMeta', 'That day {time}').replace('{time}', formatDuration(summary.bestDay.totalSeconds)) },
       ].map(item => h('div', { className: 'dshWakatimeInsightsSummaryCard', key: item.label },
         h('div', { className: 'dshWakatimeInsightsSummaryLabel' }, item.label),
