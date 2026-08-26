@@ -209,7 +209,7 @@ const zh = {
   heartbeatIntervalInvalid: '请输入不小于 1000 毫秒的间隔。',
   dashboardRefreshInterval: '仪表盘刷新间隔（分钟）',
   insightsRefreshInterval: '洞察刷新间隔（分钟）',
-  refreshIntervalInvalid: '刷新间隔请输入不小于 1 分钟的数字。',
+  refreshIntervalInvalid: '刷新间隔请输入 1 到 1440 之间的分钟数。',
   advanced: '高级选项',
   save: '保存配置',
   saving: '保存中…',
@@ -217,6 +217,7 @@ const zh = {
   loadFailed: '无法读取 WakaTime 状态。请确认插件已在当前 profile 中启用。',
   saveFailed: '配置保存失败',
   usageFailed: '无法读取 WakaTime 数据',
+  insightsFailed: '无法读取 WakaTime 洞察数据',
   unavailable: '暂时无法获取数据',
   stale: 'WakaTime 正在更新这段数据，稍后刷新即可。',
 }
@@ -388,7 +389,7 @@ const en = {
   heartbeatIntervalInvalid: 'Enter an interval of at least 1000 ms.',
   dashboardRefreshInterval: 'Dashboard refresh interval (minutes)',
   insightsRefreshInterval: 'Insights refresh interval (minutes)',
-  refreshIntervalInvalid: 'Refresh intervals must be numbers of at least 1 minute.',
+  refreshIntervalInvalid: 'Refresh intervals must be numbers between 1 and 1440 minutes.',
   advanced: 'Advanced options',
   save: 'Save settings',
   saving: 'Saving…',
@@ -396,6 +397,7 @@ const en = {
   loadFailed: 'Could not read WakaTime status. Make sure the plugin is enabled in this profile.',
   saveFailed: 'Could not save settings',
   usageFailed: 'Could not read WakaTime data',
+  insightsFailed: 'Could not read WakaTime insights',
   unavailable: 'Data is temporarily unavailable',
   stale: 'WakaTime is updating this range. Refresh in a moment.',
 }
@@ -2183,6 +2185,10 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
   // the most recently issued request may still apply state.
   const usageRequestId = React.useRef(0)
   const insightsRequestId = React.useRef(0)
+  // The range the user last selected, readable after awaits (save's forced
+  // refresh must not resurrect the range captured when save started).
+  const rangeRef = React.useRef(range)
+  rangeRef.current = range
 
   const loadUsage = React.useCallback(async (nextRange: UsageRange = range, force: boolean = false) => {
     const requestId = ++usageRequestId.current
@@ -2210,7 +2216,7 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
       setError('')
     } catch (reason) {
       if (requestId !== insightsRequestId.current) return
-      setError(reason instanceof Error ? reason.message : tr(t, 'usageFailed', 'Could not read WakaTime insights'))
+      setError(reason instanceof Error ? reason.message : tr(t, 'insightsFailed', 'Could not read WakaTime insights'))
     } finally {
       if (requestId === insightsRequestId.current) setInsightsLoading(false)
     }
@@ -2254,7 +2260,7 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
   const save = async () => {
     if (form === undefined) return
     const heartbeatIntervalMs = Number(form.heartbeatIntervalMs)
-    if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 1000) {
+    if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 1000 || heartbeatIntervalMs > 2_147_483_647) {
       setError(tr(t, 'heartbeatIntervalInvalid', 'Enter an interval of at least 1000 ms.'))
       setNotice('')
       return
@@ -2262,8 +2268,9 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
     const dashboardRefreshIntervalMinutes = Number(form.dashboardRefreshIntervalMinutes)
     const insightsRefreshIntervalMinutes = Number(form.insightsRefreshIntervalMinutes)
     if (!Number.isFinite(dashboardRefreshIntervalMinutes) || dashboardRefreshIntervalMinutes < 1
-      || !Number.isFinite(insightsRefreshIntervalMinutes) || insightsRefreshIntervalMinutes < 1) {
-      setError(tr(t, 'refreshIntervalInvalid', 'Refresh intervals must be numbers of at least 1 minute.'))
+      || !Number.isFinite(insightsRefreshIntervalMinutes) || insightsRefreshIntervalMinutes < 1
+      || dashboardRefreshIntervalMinutes > 1440 || insightsRefreshIntervalMinutes > 1440) {
+      setError(tr(t, 'refreshIntervalInvalid', 'Refresh intervals must be numbers between 1 and 1440 minutes.'))
       setNotice('')
       return
     }
@@ -2297,9 +2304,14 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
       setApiKey('')
       setClearApiKey(false)
       setCliUpdateState(undefined)
+      // The saved config invalidates cached insights. Bump the request id so
+      // an insights response that was still in flight when save started gets
+      // discarded instead of resurrecting the stale dataset.
+      insightsRequestId.current += 1
       setInsights(undefined)
+      setInsightsLoading(false)
       setNotice(tr(t, 'saved', 'Saved'))
-      await loadUsage(range)
+      await loadUsage(rangeRef.current)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : tr(t, 'saveFailed', 'Could not save settings'))
     } finally {
@@ -2479,11 +2491,11 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
             h('div', { className: 'dshWakatimeFormGrid' },
               h('div', { className: 'dshWakatimeField' },
                 h('label', { htmlFor: 'dsh-wakatime-dashboard-refresh' }, tr(t, 'dashboardRefreshInterval', 'Dashboard refresh interval (minutes)')),
-                h('input', { id: 'dsh-wakatime-dashboard-refresh', className: 'dshWakatimeConfigInput', type: 'number', min: 1, step: 1, value: config.dashboardRefreshIntervalMinutes, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('dashboardRefreshIntervalMinutes', event.target.value) }),
+                h('input', { id: 'dsh-wakatime-dashboard-refresh', className: 'dshWakatimeConfigInput', type: 'number', min: 1, max: 1440, step: 1, value: config.dashboardRefreshIntervalMinutes, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('dashboardRefreshIntervalMinutes', event.target.value) }),
               ),
               h('div', { className: 'dshWakatimeField' },
                 h('label', { htmlFor: 'dsh-wakatime-insights-refresh' }, tr(t, 'insightsRefreshInterval', 'Insights refresh interval (minutes)')),
-                h('input', { id: 'dsh-wakatime-insights-refresh', className: 'dshWakatimeConfigInput', type: 'number', min: 1, step: 1, value: config.insightsRefreshIntervalMinutes, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('insightsRefreshIntervalMinutes', event.target.value) }),
+                h('input', { id: 'dsh-wakatime-insights-refresh', className: 'dshWakatimeConfigInput', type: 'number', min: 1, max: 1440, step: 1, value: config.insightsRefreshIntervalMinutes, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('insightsRefreshIntervalMinutes', event.target.value) }),
               ),
             ),
             h('div', { className: 'dshWakatimeField' },

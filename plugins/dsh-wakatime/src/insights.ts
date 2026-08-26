@@ -354,6 +354,10 @@ export function normalizeWakatimeInsights(
   const totals: WakatimeUsageTotals = {
     ...blankTotals(),
     totalSeconds,
+    // The stats endpoint has no direct AI-seconds total; derive it from the
+    // merged daily data (day.totalSeconds × day.aiPercent), matching how the
+    // usage path accumulates the same contract field.
+    aiSeconds: mergedDays.reduce((sum, day) => sum + day.totalSeconds * day.aiPercent / 100, 0),
     aiAdditions: number(stats.ai_additions),
     aiDeletions: number(stats.ai_deletions),
     humanAdditions: number(stats.human_additions),

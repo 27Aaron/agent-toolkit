@@ -94,7 +94,7 @@ describe('WakaTime usage normalization', () => {
   })
 
   it('rejects malformed and overly long ranges', () => {
-    expect(() => validateUsageRange('2026-08-25', '2026-08-24')).toThrow()
+    expect(() => validateUsageRange('2026-08-25', '2026-08-24')).toThrow(/start must not be after end/)
     expect(() => validateUsageRange('2026-08-01', '2026-09-02')).toThrow()
     expect(validateUsageRange('2026-08-24', '2026-08-25')).toEqual({
       start: '2026-08-24',

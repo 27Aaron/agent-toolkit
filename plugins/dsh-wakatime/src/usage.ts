@@ -434,7 +434,8 @@ export function normalizeWakatimeSummaries(
 }
 
 export function validateUsageRange(start: unknown, end: unknown): { start: string; end: string } {
-  if (!validDate(start) || !validDate(end) || start > end) throw new Error('usage range must use YYYY-MM-DD dates')
+  if (!validDate(start) || !validDate(end)) throw new Error('usage range must use YYYY-MM-DD dates')
+  if (start > end) throw new Error('usage range start must not be after end')
   const days = dayRange(start, end)
   if (days.length > 31) throw new Error('usage range cannot exceed 31 days')
   return { start, end }
