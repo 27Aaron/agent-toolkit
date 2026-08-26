@@ -880,6 +880,17 @@ body[data-color-scheme="dark"] .dshWakatimePage {
   border-radius: var(--dsh-module-radius);
   background: var(--dsh-surface);
 }
+.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric,
+.dshWakatimeOfficialOverviewTotal,
+.dshWakatimeInsightsSummaryCard { min-height: 0; padding: 10px 12px; }
+.dshWakatimeMetricLabel,
+.dshWakatimeOfficialMetricLabel,
+.dshWakatimeOfficialAiMetricLabel,
+.dshWakatimeInsightsSummaryLabel {
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.15;
+}
 .dshWakatimeMetric,
 .dshWakatimeOfficialMetric { min-height: 82px; padding: var(--dsh-module-padding); }
 .dshWakatimeMetricLabel { font-size: 10px; }
@@ -910,10 +921,10 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue,
 .dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { font-size: var(--dsh-data-size); }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricMeta { margin-top: 4px; }
-.dshWakatimeOfficialOverview .dshWakatimeOfficialMetricLabel { height: 16px; min-height: 16px; margin-bottom: 6px; overflow: hidden; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.dshWakatimeOfficialOverview .dshWakatimeOfficialMetricLabel { height: auto; min-height: 0; margin-bottom: 5px; overflow: hidden; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
 .dshWakatimeOfficialOverviewTotal .dshWakatimeOfficialMetricValue,
-.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { height: auto; min-height: 19px; white-space: normal; }
-.dshWakatimeOfficialOverview .dshWakatimeOfficialMetricMeta { height: auto; min-height: 16px; margin-top: 4px; overflow: visible; overflow-wrap: anywhere; line-height: 1.25; text-overflow: clip; white-space: normal; }
+.dshWakatimeOfficialOverview > .dshWakatimeOfficialMetric .dshWakatimeOfficialMetricValue { height: auto; min-height: 0; line-height: 1.15; white-space: normal; }
+.dshWakatimeOfficialOverview .dshWakatimeOfficialMetricMeta { height: auto; min-height: 0; margin-top: 4px; overflow: visible; overflow-wrap: anywhere; line-height: 1.15; text-overflow: clip; white-space: normal; }
 .dshWakatimeOfficialMetricLabel { font-size: 10px; }
 .dshWakatimeOfficialMetricValue { font-size: var(--dsh-data-size); font-variant-numeric: tabular-nums; }
 .dshWakatimeOfficialSection { margin-top: var(--dsh-space-4); }
@@ -967,6 +978,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 #dsh-wakatime-panel-ai .dshWakatimeMetric { min-height: 0; padding: 10px 12px; }
 #dsh-wakatime-panel-ai .dshWakatimeMetricValue { font-size: var(--dsh-data-size); letter-spacing: -.01em; }
 #dsh-wakatime-panel-ai .dshWakatimeMetricMeta { margin-top: 4px; font-size: 10px; }
+#dsh-wakatime-panel-ai:lang(en) .dshWakatimeDayTotal { font-size: 10px; }
 #dsh-wakatime-panel-ai .dshWakatimeCardTitle { margin-bottom: var(--dsh-space-2); font-size: 14px; }
 #dsh-wakatime-panel-ai .dshWakatimeRowLabel,
 #dsh-wakatime-panel-ai .dshWakatimeRowValue,
@@ -976,6 +988,9 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 #dsh-wakatime-panel-ai .dshWakatimeComparisonHead { font-size: 11px; }
 .dshWakatimeInsightsStatus { margin-bottom: var(--dsh-section-gap); }
 .dshWakatimeInsightsSummary { gap: var(--dsh-panel-gap); }
+.dshWakatimeInsightsSummaryLabel,
+.dshWakatimeInsightsSummaryMeta { line-height: 1.15; }
+.dshWakatimeInsightsSummaryValue { margin-top: 5px; line-height: 1.15; }
 .dshWakatimeInsightsSummaryValue { font-size: var(--dsh-data-size); font-variant-numeric: tabular-nums; }
 .dshWakatimeInsightsColumns,
 .dshWakatimeInsightsTwoCol { gap: var(--dsh-panel-gap); margin-top: var(--dsh-section-gap); }
@@ -1347,7 +1362,8 @@ function categoryColor(name: string): string {
 
 function dayLabel(day: string): string {
   try {
-    return formatCjkMixedText(new Intl.DateTimeFormat(intlLocale(), { month: 'numeric', day: 'numeric', weekday: 'long' })
+    const weekday: 'long' | 'short' = activeUiLocale() === 'en' ? 'short' : 'long'
+    return formatCjkMixedText(new Intl.DateTimeFormat(intlLocale(), { month: 'numeric', day: 'numeric', weekday })
       .format(new Date(`${day}T12:00:00`)))
   } catch {
     return formatCjkMixedText(day.slice(5))
