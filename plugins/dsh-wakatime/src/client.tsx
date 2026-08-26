@@ -2161,7 +2161,7 @@ const InsightsView = React.memo(function InsightsView({ insights, t, loading }: 
   )
 })
 
-function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Translator }) {
+export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Translator }) {
   const [tab, setTab] = React.useState<Tab>('dashboard')
   const [range, setRange] = React.useState<UsageRange>(defaultRange)
   const [status, setStatus] = React.useState<WakatimeUiStatus>()
@@ -2178,30 +2178,41 @@ function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall; t: Tr
   const [cliUpdateState, setCliUpdateState] = React.useState<CliUpdateState>()
   const [notice, setNotice] = React.useState('')
   const [error, setError] = React.useState('')
+  // Monotonic request ids guard against out-of-order responses: when usage or
+  // insights requests overlap (rapid preset switches, refresh timers), only
+  // the most recently issued request may still apply state.
+  const usageRequestId = React.useRef(0)
+  const insightsRequestId = React.useRef(0)
 
   const loadUsage = React.useCallback(async (nextRange: UsageRange = range, force: boolean = false) => {
+    const requestId = ++usageRequestId.current
     setUsageLoading(true)
     try {
       const next = await callValue<WakatimeUsageData>(rpcCall, 'usage', { ...nextRange, force })
+      if (requestId !== usageRequestId.current) return
       setUsage(hydrateUsageData(next))
       setError('')
     } catch (reason) {
+      if (requestId !== usageRequestId.current) return
       setError(reason instanceof Error ? reason.message : tr(t, 'usageFailed', 'Could not read WakaTime data'))
     } finally {
-      setUsageLoading(false)
+      if (requestId === usageRequestId.current) setUsageLoading(false)
     }
   }, [range, rpcCall, t])
 
   const loadInsights = React.useCallback(async (force: boolean = false) => {
+    const requestId = ++insightsRequestId.current
     setInsightsLoading(true)
     try {
       const next = await callValue<WakatimeInsightsData>(rpcCall, 'insights', { range: 'last_year', force })
+      if (requestId !== insightsRequestId.current) return
       setInsights(next)
       setError('')
     } catch (reason) {
+      if (requestId !== insightsRequestId.current) return
       setError(reason instanceof Error ? reason.message : tr(t, 'usageFailed', 'Could not read WakaTime insights'))
     } finally {
-      setInsightsLoading(false)
+      if (requestId === insightsRequestId.current) setInsightsLoading(false)
     }
   }, [rpcCall, t])
 

@@ -276,8 +276,14 @@ function emptyUsage(start: string, end: string, message?: string): WakatimeUsage
 
 function validDate(value: unknown): value is string {
   if (typeof value !== 'string' || !DATE_PATTERN.test(value)) return false
+  // Parse at local noon (robust across DST shifts) and round-trip via local
+  // calendar components so hosts in UTC+13/+14 or UTC-12 — where a UTC
+  // conversion moves the timestamp to the previous or next day — still
+  // accept their own valid dates while rollover dates keep being rejected.
   const parsed = new Date(`${value}T12:00:00`)
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value)
+  if (Number.isNaN(parsed.getTime())) return false
+  const roundTrip = `${String(parsed.getFullYear()).padStart(4, '0')}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`
+  return roundTrip === value
 }
 
 export function normalizeWakatimeSummaries(
