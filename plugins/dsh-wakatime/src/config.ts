@@ -96,25 +96,40 @@ export interface ResolvedConfig {
   maxPendingFiles: number
 }
 
+/**
+ * Clamp a numeric config value into [min, max], rounding to an integer.
+ * Non-finite values fall back to the documented default so hostile or
+ * corrupted input (NaN, Infinity) cannot reach setInterval/setTimeout —
+ * values beyond the 32-bit timer ceiling collapse to 1ms in both browsers
+ * and Node, which would turn refresh timers into busy loops.
+ */
+function clampInterval(value: number | undefined, min: number, max: number, fallback: number): number {
+  if (value === undefined || !Number.isFinite(value)) return fallback
+  return Math.min(max, Math.max(min, Math.round(value)))
+}
+
+/** Upper bound shared with the persisted-settings sanitizer (2^31 - 1 ms). */
+const MAX_INTERVAL_MS = 2_147_483_647
+
 export function resolveConfig(config: Config): ResolvedConfig {
   const cliPath = config.cliPath === undefined ? undefined : expandUserPath(config.cliPath)
   if (cliPath !== undefined && !isAbsolute(cliPath)) {
     throw new Error('dsh-wakatime: cliPath must be absolute (a leading ~ is supported)')
   }
   return {
-    heartbeatIntervalMs: config.heartbeatIntervalMs ?? 60_000,
-    heartbeatTimeoutMs: config.heartbeatTimeoutMs ?? 30_000,
-    cliUpdateCheckIntervalMs: config.cliUpdateCheckIntervalMs ?? 14_400_000,
-    dashboardRefreshIntervalMs: config.dashboardRefreshIntervalMs ?? 300_000,
-    insightsRefreshIntervalMs: config.insightsRefreshIntervalMs ?? 1_800_000,
-    cliDownloadTimeoutMs: config.cliDownloadTimeoutMs ?? 120_000,
+    heartbeatIntervalMs: clampInterval(config.heartbeatIntervalMs, 1_000, MAX_INTERVAL_MS, 60_000),
+    heartbeatTimeoutMs: clampInterval(config.heartbeatTimeoutMs, 1_000, MAX_INTERVAL_MS, 30_000),
+    cliUpdateCheckIntervalMs: clampInterval(config.cliUpdateCheckIntervalMs, 1_000, MAX_INTERVAL_MS, 14_400_000),
+    dashboardRefreshIntervalMs: clampInterval(config.dashboardRefreshIntervalMs, 60_000, MAX_INTERVAL_MS, 300_000),
+    insightsRefreshIntervalMs: clampInterval(config.insightsRefreshIntervalMs, 60_000, MAX_INTERVAL_MS, 1_800_000),
+    cliDownloadTimeoutMs: clampInterval(config.cliDownloadTimeoutMs, 1_000, MAX_INTERVAL_MS, 120_000),
     ...(cliPath === undefined ? {} : { cliPath }),
     autoInstall: config.autoInstall ?? false,
     trackReads: config.trackReads ?? true,
     category: config.category ?? 'ai coding',
     client: config.client ?? 'dsh',
     debug: config.debug ?? false,
-    maxPendingFiles: config.maxPendingFiles ?? 5_000,
+    maxPendingFiles: clampInterval(config.maxPendingFiles, 1, 100_000, 5_000),
   }
 }
 

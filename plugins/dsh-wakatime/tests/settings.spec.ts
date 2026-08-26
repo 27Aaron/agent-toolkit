@@ -89,4 +89,21 @@ describe('WakaTime paths and settings', () => {
     expect(readFileSync(file, 'utf8')).toContain('api_url = https://wakapi.example.com/api')
     expect(() => writeWakatimeApiUrl('not-a-url', file)).toThrow(/Base URL/)
   })
+
+  it('reports an invalid configured api_url via the callback while falling back', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'wakatime-settings-'))
+    directories.push(directory)
+    const file = join(directory, '.wakatime.cfg')
+    writeFileSync(file, '[settings]\napi_key = waka_test_key\napi_url = not a url at all\n')
+
+    const reports: Array<{ configured: string; error: string }> = []
+    const settings = readWakatimeSettings(file, (configured, error) => {
+      reports.push({ configured, error: error instanceof Error ? error.message : String(error) })
+    })
+
+    expect(settings.apiUrl).toBe(DEFAULT_WAKATIME_API_URL)
+    expect(reports).toHaveLength(1)
+    expect(reports[0]).toMatchObject({ configured: 'not a url at all' })
+    expect(reports[0]?.error).toMatch(/Base URL/)
+  })
 })

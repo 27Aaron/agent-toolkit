@@ -101,6 +101,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+// Settings reads happen before the plugin logger exists and again after save;
+// route invalid-api_url fallbacks through a deferred reporter so the silent
+// official-endpoint redirect is observable both on stderr (immediately) and
+// in the plugin log file (once the logger exists).
+const pendingInvalidApiUrlReports: string[] = []
+let invalidApiUrlLogger: PluginLogger | undefined
+function reportInvalidApiUrl(configured: string, error: unknown): void {
+  const message = `invalid api_url ${JSON.stringify(configured)} in .wakatime.cfg (${error instanceof Error ? error.message : String(error)}); falling back to the official endpoint`
+  if (pendingInvalidApiUrlReports.includes(message)) return
+  pendingInvalidApiUrlReports.push(message)
+  try {
+    process.stderr.write(`dsh-wakatime: ${message}\n`)
+  } catch {
+    // Reporting is best-effort.
+  }
+  invalidApiUrlLogger?.warn(message)
+}
+
 function configPatch(value: unknown): PersistedWakatimeConfig {
   if (!isRecord(value)) return {}
   const patch: PersistedWakatimeConfig = {}
@@ -132,8 +150,10 @@ function isDirectory(entity: string): boolean {
 
 export function apply(ctx: Context, rawConfig: ConfigShape): void {
   let config = resolveConfig({ ...rawConfig, ...readPersistedWakatimeConfig() })
-  let settings = readWakatimeSettings()
+  let settings = readWakatimeSettings(undefined, reportInvalidApiUrl)
   const logger = new PluginLogger(ctx.logger, config.debug || settings.debug)
+  invalidApiUrlLogger = logger
+  for (const message of pendingInvalidApiUrlReports.splice(0)) logger.warn(message)
   const cli = new CliManager(config, settings, logger)
   const pluginTag = buildPluginTag(config.client)
   const dispatcher = new HeartbeatDispatcher(
@@ -412,7 +432,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
         if (typeof input.baseUrl === 'string') writeWakatimeApiUrl(baseUrl)
         writePersistedWakatimeConfig(patch)
         config = next
-        settings = readWakatimeSettings()
+        settings = readWakatimeSettings(undefined, reportInvalidApiUrl)
         usageCache = undefined
         insightsCache = undefined
         usageBackoffUntil = 0

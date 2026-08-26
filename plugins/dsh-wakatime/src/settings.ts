@@ -61,7 +61,16 @@ export function normalizeWakatimeApiUrl(value: string): string {
   return candidate
 }
 
-export function readWakatimeSettings(file: string = getWakatimeConfigFilePath()): WakatimeSettings {
+/**
+ * Read the [settings] section of .wakatime.cfg. When a configured api_url
+ * fails validation the official endpoint is used as a fallback; pass
+ * `onInvalidApiUrl` to observe that (the fallback is silent by design so a
+ * stale config cannot brick the plugin, but callers log it as a warning).
+ */
+export function readWakatimeSettings(
+  file: string = getWakatimeConfigFilePath(),
+  onInvalidApiUrl?: (configured: string, error: unknown) => void,
+): WakatimeSettings {
   const settings = readIniSection(file, 'settings')
   const proxy = settings.get('proxy')?.trim()
   let apiUrl = DEFAULT_WAKATIME_API_URL
@@ -69,8 +78,9 @@ export function readWakatimeSettings(file: string = getWakatimeConfigFilePath())
   if (configuredApiUrl !== undefined) {
     try {
       apiUrl = normalizeWakatimeApiUrl(configuredApiUrl)
-    } catch {
+    } catch (error) {
       // Fall back to the official endpoint when a stale config is invalid.
+      onInvalidApiUrl?.(configuredApiUrl, error)
     }
   }
   return {

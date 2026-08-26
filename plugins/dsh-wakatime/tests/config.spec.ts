@@ -31,4 +31,22 @@ describe('configuration', () => {
     expect(buildPluginTag('dsh')).toMatch(/^deepseek-harness\/.+ dsh-wakatime\/.+$/)
     expect(buildPluginTag('web')).toMatch(/^deepseek-harness-web\/.+ dsh-wakatime\/.+$/)
   })
+
+  it('clamps out-of-range timer values instead of passing them through', () => {
+    // Above the 32-bit timer ceiling: clamped down so setInterval/setTimeout
+    // cannot collapse the value to 1ms.
+    expect(resolveConfig({ dashboardRefreshIntervalMs: 1e12 }).dashboardRefreshIntervalMs).toBe(2_147_483_647)
+    expect(resolveConfig({ insightsRefreshIntervalMs: 5e12 }).insightsRefreshIntervalMs).toBe(2_147_483_647)
+    // Below the documented minimum: clamped up to the minimum.
+    expect(resolveConfig({ dashboardRefreshIntervalMs: 5 }).dashboardRefreshIntervalMs).toBe(60_000)
+    expect(resolveConfig({ heartbeatIntervalMs: 10 }).heartbeatIntervalMs).toBe(1_000)
+    // Non-finite values fall back to defaults.
+    expect(resolveConfig({ heartbeatIntervalMs: Number.NaN }).heartbeatIntervalMs).toBe(60_000)
+    expect(resolveConfig({ insightsRefreshIntervalMs: Number.POSITIVE_INFINITY }).insightsRefreshIntervalMs).toBe(1_800_000)
+    // Fractional values are rounded to integers.
+    expect(resolveConfig({ insightsRefreshIntervalMs: 90_000.6 }).insightsRefreshIntervalMs).toBe(90_001)
+    // In-range values pass through unchanged.
+    expect(resolveConfig({ dashboardRefreshIntervalMs: 120_000 }).dashboardRefreshIntervalMs).toBe(120_000)
+    expect(resolveConfig({ maxPendingFiles: 1e9 }).maxPendingFiles).toBe(100_000)
+  })
 })

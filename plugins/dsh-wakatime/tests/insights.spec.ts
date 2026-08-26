@@ -71,6 +71,8 @@ describe('WakaTime Insights normalization', () => {
     expect(insights.projects[0]).toMatchObject({ name: 'agent-toolkit', aiAdditions: 80 })
     expect(insights.aiModels).toEqual([{ name: 'GPT', lines: 100, cost: 1.5 }])
     expect(insights.totals).toMatchObject({ aiAdditions: 80, humanAdditions: 10, aiModelTotalCost: 1.5 })
+    // aiSeconds is derived from the merged daily AI share: 1800s@75% + 5400s@90%.
+    expect(insights.totals.aiSeconds).toBe(1350 + 4860)
   })
 
   it('accepts official insight ranges and rejects arbitrary input', () => {
