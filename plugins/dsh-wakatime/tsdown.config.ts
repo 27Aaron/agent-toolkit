@@ -11,7 +11,8 @@ export default [
     platform: 'node',
     target: 'node22',
     fixedExtension: false,
-    clean: false,
+    // Remove declarations for deleted source modules before tsc emits types.
+    clean: true,
     dts: false,
     deps: { neverBundle: ['@deepseek-ai/schemastery'] },
   },

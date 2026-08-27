@@ -193,13 +193,13 @@ const zh = {
   cliChecking: '检查中…',
   cliInvalidConfigured: '自定义 CLI 路径不可执行，请修正路径或清空路径。',
   cliInvalidPath: '系统 PATH 中的 CLI 不可执行，请通过包管理器修复。',
-  cliNativeSync: '此 CLI 已原生解析 DSH 会话（wakatime-cli ≥ v2.25）：提示词、Token 与模型用量由 WakaTime 直接统计，本插件的心跳会自动与其去重，不会重复计时。',
-  cliNativeSyncAvailable: 'wakatime-cli ≥ v2.25 可原生解析 DSH 会话（额外统计提示词与 Token 用量），建议在更新可用时升级以启用。',
+  cliNativeSync: '由 WakaTime CLI 原生解析 DSH 会话，统计提示词、Token、模型及受支持的文件操作；本插件只负责触发同步。',
+  cliNativeSyncRequired: '原生同步需要稳定版 wakatime-cli ≥ v2.25.0。请升级 CLI；当前不会回退到本地文件统计。',
+  cliNativeSyncUnknown: '无法确认此构建是否包含 DeepSeek 解析器。请使用稳定版 wakatime-cli ≥ v2.25.0；当前原生同步未启用。',
   cliDownloaded: 'CLI 已安装',
-  cliChecked: '已完成检查',
   cliActionFailed: 'CLI 操作失败',
   debug: '调试日志',
-  heartbeatInterval: '心跳间隔（毫秒）',
+  heartbeatInterval: '同步间隔（毫秒）',
   heartbeatIntervalInvalid: '请输入不小于 1000 毫秒的间隔。',
   dashboardRefreshInterval: '仪表盘刷新间隔（分钟）',
   insightsRefreshInterval: '洞察刷新间隔（分钟）',
@@ -371,13 +371,13 @@ const en = {
   cliChecking: 'Checking…',
   cliInvalidConfigured: 'The configured CLI path is not executable. Fix or clear the path.',
   cliInvalidPath: 'The CLI found on PATH is not executable. Repair it with your package manager.',
-  cliNativeSync: 'This CLI parses Harness sessions natively (wakatime-cli ≥ v2.25): prompts, token usage, and models are tracked by WakaTime itself, and this plugin\'s heartbeats deduplicate against them.',
-  cliNativeSyncAvailable: 'wakatime-cli ≥ v2.25 can parse Harness sessions natively (adding prompt and token usage tracking); update when a release is available to enable it.',
+  cliNativeSync: 'WakaTime CLI parses Harness sessions for prompts, tokens, models, and supported file operations. This plugin only schedules syncs.',
+  cliNativeSyncRequired: 'Native sync requires stable wakatime-cli ≥ v2.25.0. Update the CLI; this plugin does not fall back to local file tracking.',
+  cliNativeSyncUnknown: 'DeepSeek parser support could not be verified for this build. Use stable wakatime-cli ≥ v2.25.0; native sync is currently disabled.',
   cliDownloaded: 'CLI installed',
-  cliChecked: 'Check complete',
   cliActionFailed: 'CLI action failed',
   debug: 'Debug logging',
-  heartbeatInterval: 'Heartbeat interval (ms)',
+  heartbeatInterval: 'Sync interval (ms)',
   heartbeatIntervalInvalid: 'Enter an interval of at least 1000 ms.',
   dashboardRefreshInterval: 'Dashboard refresh interval (minutes)',
   insightsRefreshInterval: 'Insights refresh interval (minutes)',
@@ -492,7 +492,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeButton:hover { border-color: currentColor; background: var(--dsh-surface-input); }
 .dshWakatimeButton:disabled { opacity: .45; cursor: wait; }
 .dshWakatimeButton[data-primary="true"] { border-color: currentColor; }
-.dshWakatimeButton:focus-visible, .dshWakatimeTab:focus-visible, .dshWakatimeField input:focus-visible, .dshWakatimeField select:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.dshWakatimeButton:focus-visible, .dshWakatimeTab:focus-visible, .dshWakatimeField input:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .dshWakatimeTabs { display: flex; flex-wrap: wrap; gap: var(--dsh-space-3) 20px; margin-bottom: var(--dsh-space-4); border-bottom: 1px solid var(--dsh-border); }
 .dshWakatimeTab { appearance: none; position: relative; border: 0; padding: 0 0 10px; color: inherit; opacity: .58; background: none; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
 .dshWakatimeTab[aria-selected="true"] { opacity: 1; }
@@ -524,8 +524,6 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeOfficialRange { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .dshWakatimeOfficialRange .dshWakatimeRangeLabel { display: none; }
 .dshWakatimeOfficialRange .dshWakatimeRangeButton { padding: 6px 8px; }
-.dshWakatimeOfficialRangeSelect { appearance: none; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 7px 24px 7px 9px; color: inherit; background: var(--dsh-surface-input); color-scheme: inherit; font: inherit; font-size: 11px; font-weight: 650; cursor: pointer; }
-.dshWakatimeOfficialRangeSelect option { color: var(--dsh-menu-fg); background: var(--dsh-menu-bg); }
 .dshWakatimeOfficialRangeMenu { position: relative; }
 .dshWakatimeOfficialRangeMenuButton { min-width: 72px; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 7px 10px; color: inherit; background: var(--dsh-surface-input); font: inherit; font-size: 11px; font-weight: 650; text-align: left; cursor: pointer; }
 .dshWakatimeOfficialRangeMenuButton::after { float: right; margin-left: 9px; content: '⌄'; opacity: .62; }
@@ -806,9 +804,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeField { display: grid; gap: 7px; }
 .dshWakatimeField label, .dshWakatimeCheck label { font-size: 12px; font-weight: 650; }
 .dshWakatimeField small, .dshWakatimeCheck small { color: currentColor; opacity: .58; font-size: 11px; line-height: 1.45; }
-.dshWakatimeField input, .dshWakatimeField select { width: 100%; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 9px 10px; color: inherit; background: var(--dsh-surface-input); font: inherit; font-size: 13px; }
-.dshWakatimeField select { color-scheme: inherit; cursor: pointer; }
-.dshWakatimeField select option { color: var(--dsh-menu-fg); background: var(--dsh-menu-bg); }
+.dshWakatimeField input { width: 100%; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 9px 10px; color: inherit; background: var(--dsh-surface-input); font: inherit; font-size: 13px; }
 .dshWakatimeInlineActions { display: flex; align-items: center; gap: 8px; }
 .dshWakatimeInlineActions input { flex: 1; min-width: 0; }
 .dshWakatimeKeyRow { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 12px; align-items: center; }
@@ -1015,7 +1011,6 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeConfigCard .dshWakatimeInlineActions input:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 2px; }
 .dshWakatimeConfigCard .dshWakatimeConfigInput { height: 34px; border: 1px solid var(--dsh-control-border); border-radius: 6px; padding: 0 11px; background: var(--dsh-control-bg); font-size: 12px; letter-spacing: .005em; }
 .dshWakatimeConfigCard .dshWakatimeConfigInput::placeholder { color: currentColor; opacity: .52; }
-.dshWakatimeConfigCard .dshWakatimeConfigInput,
 .dshWakatimeConfigCard .dshWakatimeConfigInput:hover { border-color: color-mix(in srgb, var(--dsh-accent) 34%, var(--dsh-control-border)); background: color-mix(in srgb, var(--dsh-accent) 3%, var(--dsh-control-bg)); }
 .dshWakatimeConfigCard .dshWakatimeConfigInput:focus { border-color: var(--dsh-accent); box-shadow: 0 0 0 1px var(--dsh-accent); outline: 0; }
 .dshWakatimeConfigCard .dshWakatimeConfigInput:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; }
@@ -2432,8 +2427,10 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
                 : null,
           status?.cli.nativeSync === true
             ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliNativeSync', 'This CLI parses Harness sessions natively; prompts, tokens, and models are tracked by WakaTime.'))
-            : state === 'ready' && status?.cli.version !== undefined
-              ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliNativeSyncAvailable', 'wakatime-cli ≥ v2.25 can parse Harness sessions natively; update to enable it.'))
+            : state === 'ready'
+              ? h('p', { className: 'dshWakatimeCliHint' }, status?.cli.nativeSync === false
+                ? tr(t, 'cliNativeSyncRequired', 'Native sync requires stable wakatime-cli ≥ v2.25.0. Update the CLI to enable tracking.')
+                : tr(t, 'cliNativeSyncUnknown', 'Native parser support is unverified. Use stable wakatime-cli ≥ v2.25.0 to enable tracking.'))
               : null,
         ),
         h('div', { className: 'dshWakatimeKeyRow' },
@@ -2471,7 +2468,7 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
           h('div', { className: 'dshWakatimeForm' },
             h('div', { className: 'dshWakatimeFormGrid' },
               h('div', { className: 'dshWakatimeField' },
-                h('label', { htmlFor: 'dsh-wakatime-interval' }, tr(t, 'heartbeatInterval', 'Heartbeat interval (ms)')),
+                h('label', { htmlFor: 'dsh-wakatime-interval' }, tr(t, 'heartbeatInterval', 'Sync interval (ms)')),
                 h('input', { id: 'dsh-wakatime-interval', className: 'dshWakatimeConfigInput', type: 'number', min: 1000, step: 1000, value: config.heartbeatIntervalMs, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('heartbeatIntervalMs', event.target.value) }),
               ),
               h('div', { className: 'dshWakatimeField' },

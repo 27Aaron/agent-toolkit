@@ -43,7 +43,7 @@ describe('WakaTime UI settings persistence', () => {
     const directory = mkdtempSync(join(tmpdir(), 'dsh-waka-ui-settings-'))
     directories.push(directory)
     const file = join(directory, 'settings.json')
-    writeFileSync(file, JSON.stringify({ autoInstall: true, category: 'coding', trackReads: true, debug: true }))
+    writeFileSync(file, JSON.stringify({ autoInstall: true, category: 'coding', trackReads: true, maxPendingFiles: 1, debug: true }))
 
     expect(readPersistedWakatimeConfig(file)).toEqual({ debug: true })
   })

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { CliManager, extractCliBinary, platformName, supportsNativeHarnessParsing } from '../src/cli.ts'
+import { CliManager, compareCliVersions, extractCliBinary, platformName, supportsNativeHarnessParsing } from '../src/cli.ts'
 import { resolveConfig } from '../src/config.ts'
 import { PluginLogger } from '../src/logger.ts'
 
@@ -107,15 +107,44 @@ describe('CliManager', () => {
 })
 
 describe('native Harness transcript parsing', () => {
-  it('matches the wakatime-cli release carrying the DeepSeek parser', () => {
-    expect(supportsNativeHarnessParsing(undefined)).toBe(false)
-    expect(supportsNativeHarnessParsing('banana')).toBe(false)
+  it('recognizes the verified stable release carrying the DeepSeek parser', () => {
     expect(supportsNativeHarnessParsing('v2.24.4')).toBe(false)
-    expect(supportsNativeHarnessParsing('v2.24.5-alpha.1')).toBe(false)
-    // v2.25.0-alpha.1 is the first tagged release that contains the parser.
-    expect(supportsNativeHarnessParsing('v2.25.0-alpha.1')).toBe(true)
+    expect(supportsNativeHarnessParsing('v2.24.5-alpha.1')).toBeUndefined()
     expect(supportsNativeHarnessParsing('v2.25.0')).toBe(true)
+    expect(supportsNativeHarnessParsing('2.25.0+distribution.1')).toBe(true)
+    expect(supportsNativeHarnessParsing('v2.26.0-alpha.1')).toBeUndefined()
     expect(supportsNativeHarnessParsing('v3.1.0')).toBe(true)
-    expect(supportsNativeHarnessParsing('<local-build>')).toBe(true)
   })
+
+  it.each([undefined, 'banana', '<local-build>', 'v2.25.0-alpha.1', 'v2.25', 'v2.25.0garbage'])(
+    'leaves unverified version %s unknown',
+    version => expect(supportsNativeHarnessParsing(version)).toBeUndefined(),
+  )
+})
+
+describe('CLI version comparison', () => {
+  it.each([
+    ['v2.25.0', 'v2.24.9', 1],
+    ['v2.24.9', 'v2.25.0', -1],
+    ['v2.25.0', '2.25.0+distribution.1', 0],
+    ['v2.25.0', 'v2.25.0-alpha.1', 1],
+    ['v2.25.0', 'v2.26.0-alpha.1', -1],
+    ['v2.25.0-alpha.2', 'v2.25.0-alpha.10', -1],
+    ['v2.25.0-1', 'v2.25.0-alpha', -1],
+    ['v2.25.0-alpha', 'v2.25.0-alpha.1', -1],
+    ['v2.25.0-beta.1', 'v2.25.0-alpha.9', 1],
+    ['v2.25.0-rc.1', 'v2.25.0-rc.1+build.2', 0],
+    ['v2.25.9007199254740993', 'v2.25.9007199254740992', 1],
+  ] as const)('compares %s with %s by release precedence', (left, right, expected) => {
+    expect(compareCliVersions(left, right)).toBe(expected)
+    expect(compareCliVersions(right, left)).toBe(expected === 0 ? 0 : -expected)
+  })
+
+  it.each([undefined, '<local-build>', 'v2.25', 'v02.25.0', 'v2.25.0-alpha.01', 'v2.25.0garbage'])(
+    'does not order unknown or malformed version %s',
+    version => {
+      expect(compareCliVersions(version, 'v2.25.0')).toBeUndefined()
+      expect(compareCliVersions('v2.25.0', version)).toBeUndefined()
+    },
+  )
 })

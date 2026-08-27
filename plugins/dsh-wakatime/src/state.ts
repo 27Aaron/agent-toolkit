@@ -4,7 +4,7 @@ import * as path from 'node:path'
 import { getPluginDataDir } from './paths.ts'
 
 interface PersistedState {
-  lastHeartbeatAt?: number
+  lastSyncAt?: number
 }
 
 export interface RateLimitLease {
@@ -17,33 +17,30 @@ export type RateLimitAttempt =
 
 const LOCK_RETRY_MS = 250
 
-function projectKey(projectFolder: string): string {
-  return crypto.createHash('sha256').update(projectFolder).digest('hex').slice(0, 24)
+/** One native CLI invocation scans all sessions, regardless of project. */
+export function syncStateFile(stateDir: string = getPluginDataDir()): string {
+  return path.join(stateDir, 'native-sync.json')
 }
 
-export function stateFileFor(projectFolder: string, stateDir: string = getPluginDataDir()): string {
-  return path.join(stateDir, `${projectKey(projectFolder)}.json`)
-}
-
-export function readLastHeartbeatAt(stateFile: string): number {
+export function readLastSyncAt(stateFile: string): number {
   try {
     const parsed = JSON.parse(fs.readFileSync(stateFile, 'utf8')) as PersistedState
-    return typeof parsed.lastHeartbeatAt === 'number'
-      && Number.isFinite(parsed.lastHeartbeatAt)
-      && parsed.lastHeartbeatAt >= 0
-      ? parsed.lastHeartbeatAt
+    return typeof parsed.lastSyncAt === 'number'
+      && Number.isFinite(parsed.lastSyncAt)
+      && parsed.lastSyncAt >= 0
+      ? parsed.lastSyncAt
       : 0
   } catch {
     return 0
   }
 }
 
-function atomicWriteState(stateFile: string, lastHeartbeatAt: number, token: string): void {
+function atomicWriteState(stateFile: string, lastSyncAt: number, token: string): void {
   const directory = path.dirname(stateFile)
   const temporary = path.join(directory, `.${path.basename(stateFile)}.${token}.tmp`)
   try {
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 })
-    fs.writeFileSync(temporary, JSON.stringify({ lastHeartbeatAt }), { flag: 'wx', mode: 0o600 })
+    fs.writeFileSync(temporary, JSON.stringify({ lastSyncAt }), { flag: 'wx', mode: 0o600 })
     fs.renameSync(temporary, stateFile)
   } finally {
     try {
@@ -63,17 +60,28 @@ function isAlreadyExists(error: unknown): boolean {
     && 'code' in error && (error as NodeJS.ErrnoException).code === 'EEXIST'
 }
 
-export class HeartbeatRateLimiter {
+function ownerIsAlive(token: string): boolean {
+  const pid = Number(token.split('-', 1)[0])
+  if (!Number.isSafeInteger(pid) || pid <= 0 || pid > 0x7fff_ffff) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    // EPERM and unexpected errors do not establish that the owner is dead.
+    return (error as NodeJS.ErrnoException).code !== 'ESRCH'
+  }
+}
+
+export class SyncRateLimiter {
   constructor(private readonly stateDir: string = getPluginDataDir()) {}
 
   async acquire(
-    projectFolder: string,
     intervalMs: number,
     force: boolean,
     maxWaitMs: number = 0,
     leaseTimeoutMs: number = 60_000,
   ): Promise<RateLimitAttempt> {
-    const stateFile = stateFileFor(projectFolder, this.stateDir)
+    const stateFile = syncStateFile(this.stateDir)
     const lockFile = `${stateFile}.lock`
     const deadline = Date.now() + (force ? Math.max(0, maxWaitMs) : 0)
     const staleAfterMs = Math.max(leaseTimeoutMs + 5_000, maxWaitMs * 2, 60_000)
@@ -87,16 +95,20 @@ export class HeartbeatRateLimiter {
         descriptor = fs.openSync(lockFile, 'wx', 0o600)
         fs.writeFileSync(descriptor, token, 'utf8')
       } catch (error) {
-        if (descriptor !== undefined) fs.closeSync(descriptor)
-        if (!isAlreadyExists(error)) throw error
-        this.removeStaleLock(lockFile, staleAfterMs)
-        if (!force) return { retryAfterMs: LOCK_RETRY_MS }
-        if (Date.now() >= deadline) {
-          // A final session flush owns activity that another process cannot
-          // reproduce. Deliver it without changing shared cadence state rather
-          // than dropping it behind a long-running peer.
-          return { lease: { finish(): void {} } }
+        if (descriptor !== undefined) {
+          fs.closeSync(descriptor)
+          // Opening succeeded but writing failed; do not strand our new lock.
+          try {
+            fs.unlinkSync(lockFile)
+          } catch {
+            // Best-effort cleanup of a failed acquisition.
+          }
         }
+        if (!isAlreadyExists(error)) throw error
+        if (this.removeStaleLock(lockFile, staleAfterMs)) continue
+        // Force bypasses the interval, never another live native scan. The
+        // transcript remains the retry source, so skipping is safe here.
+        if (!force || Date.now() >= deadline) return { retryAfterMs: LOCK_RETRY_MS }
         await sleep(Math.min(LOCK_RETRY_MS, Math.max(1, deadline - Date.now())))
         continue
       }
@@ -115,12 +127,10 @@ export class HeartbeatRateLimiter {
       }
 
       const now = Date.now()
-      const lastHeartbeatAt = readLastHeartbeatAt(stateFile)
-      // A clock rollback (e.g. an NTP correction) must not inflate the retry
-      // delay into hours: treat a future timestamp as elapsed-0, which caps
-      // the retry at one full interval.
-      const elapsedMs = Math.max(0, now - lastHeartbeatAt)
-      if (!force && elapsedMs < intervalMs) {
+      const lastSyncAt = readLastSyncAt(stateFile)
+      // A clock rollback must not turn a retry delay into hours.
+      const elapsedMs = Math.max(0, now - lastSyncAt)
+      if (!force && lastSyncAt > 0 && elapsedMs < intervalMs) {
         release()
         return { retryAfterMs: Math.min(intervalMs, Math.max(1, intervalMs - elapsedMs)) }
       }
@@ -136,7 +146,7 @@ export class HeartbeatRateLimiter {
                 try {
                   atomicWriteState(stateFile, committedAt, token)
                 } catch {
-                  // Rate-limit state is a best-effort hint; delivery already succeeded.
+                  // Shared cadence is best-effort; the CLI already synced.
                 }
               }
             } finally {
@@ -148,13 +158,18 @@ export class HeartbeatRateLimiter {
     }
   }
 
-  private removeStaleLock(lockFile: string, staleAfterMs: number): void {
+  private removeStaleLock(lockFile: string, staleAfterMs: number): boolean {
     try {
+      const token = fs.readFileSync(lockFile, 'utf8')
       const stat = fs.statSync(lockFile)
-      if (Date.now() - stat.mtimeMs <= staleAfterMs) return
+      if (Date.now() - stat.mtimeMs <= staleAfterMs || ownerIsAlive(token)) return false
+      // Avoid removing a replacement that appeared during the stale check.
+      if (fs.readFileSync(lockFile, 'utf8') !== token) return false
       fs.unlinkSync(lockFile)
+      return true
     } catch {
       // Missing, unreadable, or concurrently removed locks are retried normally.
+      return false
     }
   }
 }

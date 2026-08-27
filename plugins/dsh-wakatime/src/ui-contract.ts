@@ -1,9 +1,8 @@
 /**
  * The WakaTime UI wire contract, shared verbatim between the tracking plugin
  * (`@27aaron/dsh-wakatime`) and the dashboard bundle
- * (`@27aaron/dsh-wakatime-ui`). Heartbeats always use WakaTime's fixed
- * `ai coding` category, matching wakatime-cli's native DeepSeek Harness
- * parser, so no category choice travels over this contract.
+ * (`@27aaron/dsh-wakatime-ui`). Activity accounting belongs to wakatime-cli's
+ * native DeepSeek Harness parser, not this plugin.
  */
 
 export const WAKATIME_RPC_CHANNEL = '/dsh-wakatime'
@@ -25,7 +24,7 @@ export interface WakatimeCliStatus {
   managedPath: string
   /**
    * Whether the resolved CLI parses DeepSeek Harness session transcripts
-   * natively (wakatime-cli >= v2.25). Present only when the version was read.
+   * natively (stable wakatime-cli >= v2.25.0). Absent for unverified builds.
    */
   nativeSync?: boolean
 }
@@ -37,9 +36,7 @@ export interface WakatimeCliUpdateCheck {
 }
 
 export interface WakatimeTrackingStatus {
-  projectCount: number
-  pendingFiles: number
-  pendingProjects: Array<{ projectFolder: string; pendingFiles: number }>
+  pendingSync: boolean
   lastAttemptAt?: number
   lastSuccessAt?: number
   lastError?: string

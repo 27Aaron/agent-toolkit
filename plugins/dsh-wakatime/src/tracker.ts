@@ -1,47 +1,31 @@
-import type { FileChange } from './changes.ts'
 import type { PluginLogger } from './logger.ts'
-import type { HeartbeatRateLimiter } from './state.ts'
+import type { SyncRateLimiter } from './state.ts'
 
-export interface Heartbeat {
-  entity: string
-  projectFolder: string
-  lineChanges: number
-  isWrite: boolean
-  time: number
-}
-
-export type HeartbeatSender = (heartbeats: Heartbeat[]) => Promise<boolean>
-
-interface ProjectBuffer {
-  pending: Map<string, Heartbeat>
-  requested: boolean
-  forceRequested: boolean
-  worker: Promise<void> | undefined
-  retryTimer: NodeJS.Timeout | undefined
-  capWarningLogged: boolean
-}
+export type SyncSender = () => Promise<boolean>
 
 export interface TrackerConfig {
   heartbeatIntervalMs: number
   heartbeatTimeoutMs: number
   cliDownloadTimeoutMs: number
-  maxPendingFiles: number
 }
 
 export interface TrackerStatus {
-  projectCount: number
-  pendingFiles: number
-  pendingProjects: Array<{ projectFolder: string; pendingFiles: number }>
+  pendingSync: boolean
 }
 
+/** Schedules native transcript scans; the CLI owns every activity record. */
 export class WakatimeTracker {
-  private readonly projects = new Map<string, ProjectBuffer>()
+  private generation = 0
+  private syncedGeneration = 0
   private accepting = true
+  private worker: Promise<void> | undefined
+  private retryTimer: NodeJS.Timeout | undefined
+  private disposal: Promise<void> | undefined
 
   constructor(
     private config: TrackerConfig,
-    private readonly limiter: HeartbeatRateLimiter,
-    private readonly send: HeartbeatSender,
+    private readonly limiter: SyncRateLimiter,
+    private readonly send: SyncSender,
     private readonly logger: PluginLogger,
   ) {}
 
@@ -50,191 +34,108 @@ export class WakatimeTracker {
   }
 
   status(): TrackerStatus {
-    const pendingProjects = [...this.projects.entries()]
-      .map(([projectFolder, buffer]) => ({ projectFolder, pendingFiles: buffer.pending.size }))
-      .filter(project => project.pendingFiles > 0)
-    return {
-      projectCount: this.projects.size,
-      pendingFiles: pendingProjects.reduce((total, project) => total + project.pendingFiles, 0),
-      pendingProjects,
-    }
+    return { pendingSync: this.generation > this.syncedGeneration }
   }
 
-  record(projectFolder: string, changes: FileChange[], time: number = Date.now() / 1_000): void {
-    if (!this.accepting || changes.length === 0) return
-    const buffer = this.buffer(projectFolder)
-    for (const change of changes) {
-      const existing = buffer.pending.get(change.file)
-      if (existing === undefined && buffer.pending.size >= this.config.maxPendingFiles) {
-        if (!buffer.capWarningLogged) {
-          buffer.capWarningLogged = true
-          this.logger.warn(
-            `pending file cap (${this.config.maxPendingFiles}) reached for ${projectFolder}; new entities are ignored until flush`,
-          )
-        }
-        continue
-      }
-      buffer.pending.set(change.file, {
-        entity: change.file,
-        projectFolder,
-        lineChanges: (existing?.lineChanges ?? 0) + change.lineChanges,
-        isWrite: (existing?.isWrite ?? false) || change.isWrite,
-        time: Math.max(existing?.time ?? 0, time),
-      })
-    }
-    if (buffer.pending.size > 0) void this.request(projectFolder, false)
+  record(): void {
+    if (!this.accepting) return
+    this.generation += 1
+    // New events must not defeat an existing cadence or failure backoff.
+    if (this.worker === undefined && this.retryTimer === undefined) void this.start(false)
   }
 
-  checkpoint(projectFolder: string): void {
-    const buffer = this.projects.get(projectFolder)
-    if (buffer !== undefined && buffer.pending.size > 0) void this.request(projectFolder, false)
+  async flush(): Promise<void> {
+    if (!this.accepting) return
+    // A manual sync must also discover transcripts from other sessions, even
+    // when this instance has not observed a new event itself.
+    this.generation += 1
+    await this.flushPending()
   }
 
-  async flushProject(projectFolder: string): Promise<void> {
-    const buffer = this.projects.get(projectFolder)
-    if (buffer === undefined || (buffer.pending.size === 0 && buffer.worker === undefined)) {
-      return
-    }
-    await this.request(projectFolder, true)
-    // Cover a result that arrived at the worker's settlement boundary, and
-    // give one retained failed batch a final retry without looping forever.
-    if (buffer.requested || buffer.pending.size > 0) await this.request(projectFolder, true)
-  }
-
-  async flushAll(): Promise<void> {
-    await Promise.all([...this.projects.keys()].map(project => this.flushProject(project)))
-  }
-
-  async dispose(): Promise<void> {
+  dispose(): Promise<void> {
+    if (this.disposal !== undefined) return this.disposal
     this.accepting = false
-    for (const buffer of this.projects.values()) {
-      if (buffer.retryTimer !== undefined) clearTimeout(buffer.retryTimer)
-      buffer.retryTimer = undefined
-    }
-    await this.flushAll()
-    for (const [projectFolder, buffer] of this.projects) {
-      if (buffer.pending.size > 0) {
-        this.logger.warn(`discarding ${buffer.pending.size} unsent heartbeat ${buffer.pending.size === 1 ? 'entry' : 'entries'} for ${projectFolder} after final shutdown retries`)
+    this.clearRetry()
+    this.disposal = this.flushPending().then(() => {
+      if (this.status().pendingSync) {
+        this.logger.warn('native sync is still pending after shutdown retries; transcripts remain available for the next wakatime-cli sync')
       }
+    })
+    return this.disposal
+  }
+
+  private async flushPending(): Promise<void> {
+    this.clearRetry()
+    // Await cleanup as well as the send. This covers events arriving while a
+    // worker is settling, without starting a second concurrent CLI process.
+    await this.worker
+    for (let attempt = 0; attempt < 2 && this.status().pendingSync; attempt += 1) {
+      await this.start(true)
     }
   }
 
-  private buffer(projectFolder: string): ProjectBuffer {
-    let buffer = this.projects.get(projectFolder)
-    if (buffer === undefined) {
-      buffer = {
-        pending: new Map(),
-        requested: false,
-        forceRequested: false,
-        worker: undefined,
-        retryTimer: undefined,
-        capWarningLogged: false,
-      }
-      this.projects.set(projectFolder, buffer)
-    }
-    return buffer
-  }
+  private start(force: boolean): Promise<void> {
+    if (this.worker !== undefined) return this.worker
+    if (!this.status().pendingSync) return Promise.resolve()
+    this.clearRetry()
 
-  private request(projectFolder: string, force: boolean): Promise<void> {
-    const buffer = this.buffer(projectFolder)
-    buffer.requested = true
-    buffer.forceRequested ||= force
-    if (buffer.retryTimer !== undefined) {
-      clearTimeout(buffer.retryTimer)
-      buffer.retryTimer = undefined
-    }
-    if (buffer.worker !== undefined) return buffer.worker
-
-    const worker = this.drain(projectFolder, buffer).catch(error => {
-      this.logger.exception('WARN', error, `heartbeat worker failed for ${projectFolder}`)
-    })
-    buffer.worker = worker
-    void worker.finally(() => {
-      if (buffer.worker !== worker) return
-      buffer.worker = undefined
-      if (buffer.requested) void this.request(projectFolder, false)
-    })
+    const worker = this.syncOnce(force)
+      .catch(error => {
+        this.logger.exception('WARN', error, 'native sync worker failed')
+        return this.failureRetryMs()
+      })
+      .then(retryAfterMs => {
+        if (this.worker !== worker) return
+        this.worker = undefined
+        this.scheduleRetry(retryAfterMs)
+      })
+    this.worker = worker
     return worker
   }
 
-  private async drain(projectFolder: string, buffer: ProjectBuffer): Promise<void> {
-    while (buffer.requested) {
-      const force = buffer.forceRequested
-      buffer.requested = false
-      buffer.forceRequested = false
-      await this.flushOnce(projectFolder, buffer, force)
-    }
-  }
+  private async syncOnce(force: boolean): Promise<number> {
+    const attempt = await this.limiter.acquire(
+      this.config.heartbeatIntervalMs,
+      force,
+      force ? Math.min(this.config.heartbeatTimeoutMs, 5_000) : 0,
+      // Cover the durability barrier, install-lock wait, release check,
+      // download, version checks, AI/offline syncs and the queue-count check,
+      // including their kill grace periods.
+      this.config.cliDownloadTimeoutMs * 3 + this.config.heartbeatTimeoutMs * 4 + 30_000,
+    )
+    if (attempt.lease === undefined) return attempt.retryAfterMs
 
-  private async flushOnce(projectFolder: string, buffer: ProjectBuffer, force: boolean): Promise<void> {
-    if (buffer.pending.size === 0) return
-    let attempt
-    try {
-      attempt = await this.limiter.acquire(
-        projectFolder,
-        this.config.heartbeatIntervalMs,
-        force,
-        force ? Math.min(this.config.heartbeatTimeoutMs, 5_000) : 0,
-        // A lease may legitimately be held across the whole flush pipeline:
-        // a CLI install (download timeout) + version exec + an update-check
-        // fetch (another download-timeout-bound request) + the heartbeat
-        // process lifetime including its kill grace. The stale threshold
-        // must cover the entire serial window, or another session treats a
-        // live lock as abandoned and double-sends the batch.
-        this.config.cliDownloadTimeoutMs * 2 + this.config.heartbeatTimeoutMs + 10_000,
-      )
-    } catch (error) {
-      this.logger.exception('WARN', error, 'failed to acquire heartbeat rate-limit state')
-      if (!force) this.scheduleRetry(projectFolder, buffer, this.config.heartbeatIntervalMs)
-      return
-    }
-
-    if (attempt.lease === undefined) {
-      if (!force) this.scheduleRetry(projectFolder, buffer, attempt.retryAfterMs)
-      return
-    }
-
-    const batch = [...buffer.pending.values()]
-    buffer.pending.clear()
-    buffer.capWarningLogged = false
+    const generation = this.generation
     let success = false
     try {
-      success = await this.send(batch)
+      success = await this.send()
+      // Never acknowledge events that arrived after this scan started: their
+      // durable transcript rows may not have been visible to the CLI yet.
+      if (success) this.syncedGeneration = generation
     } catch (error) {
-      this.logger.exception('WARN', error, 'heartbeat dispatcher failed')
+      this.logger.exception('WARN', error, 'native sync dispatcher failed')
     } finally {
       attempt.lease.finish(success)
     }
-
-    if (!success) {
-      this.restore(buffer, batch)
-      if (!force) this.scheduleRetry(
-        projectFolder,
-        buffer,
-        Math.min(this.config.heartbeatIntervalMs, 30_000),
-      )
-    }
+    return success ? this.config.heartbeatIntervalMs : this.failureRetryMs()
   }
 
-  private restore(buffer: ProjectBuffer, batch: Heartbeat[]): void {
-    for (const heartbeat of batch) {
-      const existing = buffer.pending.get(heartbeat.entity)
-      buffer.pending.set(heartbeat.entity, {
-        ...heartbeat,
-        lineChanges: heartbeat.lineChanges + (existing?.lineChanges ?? 0),
-        isWrite: heartbeat.isWrite || (existing?.isWrite ?? false),
-        time: Math.max(heartbeat.time, existing?.time ?? 0),
-      })
-    }
+  private failureRetryMs(): number {
+    return Math.min(this.config.heartbeatIntervalMs, 30_000)
   }
 
-  private scheduleRetry(projectFolder: string, buffer: ProjectBuffer, delayMs: number): void {
-    if (!this.accepting || buffer.retryTimer !== undefined) return
+  private clearRetry(): void {
+    if (this.retryTimer !== undefined) clearTimeout(this.retryTimer)
+    this.retryTimer = undefined
+  }
+
+  private scheduleRetry(delayMs: number): void {
+    if (!this.accepting || !this.status().pendingSync || this.retryTimer !== undefined) return
     const timer = setTimeout(() => {
-      buffer.retryTimer = undefined
-      if (this.accepting && buffer.pending.size > 0) void this.request(projectFolder, false)
+      this.retryTimer = undefined
+      if (this.accepting && this.status().pendingSync) void this.start(false)
     }, Math.max(1, delayMs))
     timer.unref()
-    buffer.retryTimer = timer
+    this.retryTimer = timer
   }
 }

@@ -6,9 +6,9 @@ import { expandUserPath } from './paths.ts'
 export const name = 'wakatime'
 
 export interface Config {
-  /** Minimum interval between heartbeat batches for one project. */
+  /** Minimum interval between native AI syncs across all sessions. */
   heartbeatIntervalMs?: number
-  /** Maximum lifetime of one wakatime-cli heartbeat process. */
+  /** Maximum lifetime of each wakatime-cli sync process. */
   heartbeatTimeoutMs?: number
   /** Minimum interval between managed CLI update checks. */
   cliUpdateCheckIntervalMs?: number
@@ -26,8 +26,6 @@ export interface Config {
   client?: string
   /** Enable plugin debug logging in addition to ~/.wakatime.cfg. */
   debug?: boolean
-  /** Maximum distinct pending files retained for one project. */
-  maxPendingFiles?: number
 }
 
 const MAX_TIMER_MS = 2_147_483_647
@@ -45,7 +43,6 @@ export const Config: z<Config> = z.object({
   autoInstall: z.boolean().default(false),
   client: z.string().min(1).pattern(/^[A-Za-z0-9][A-Za-z0-9._-]*$/).default('dsh'),
   debug: z.boolean().default(false),
-  maxPendingFiles: z.number().step(1).min(1).max(100_000).default(5_000),
 })
 
 export interface ResolvedConfig {
@@ -59,7 +56,6 @@ export interface ResolvedConfig {
   autoInstall: boolean
   client: string
   debug: boolean
-  maxPendingFiles: number
 }
 
 /**
@@ -74,26 +70,22 @@ function clampInterval(value: number | undefined, min: number, max: number, fall
   return Math.min(max, Math.max(min, Math.round(value)))
 }
 
-/** Upper bound shared with the persisted-settings sanitizer (2^31 - 1 ms). */
-const MAX_INTERVAL_MS = 2_147_483_647
-
 export function resolveConfig(config: Config): ResolvedConfig {
   const cliPath = config.cliPath === undefined ? undefined : expandUserPath(config.cliPath)
   if (cliPath !== undefined && !isAbsolute(cliPath)) {
     throw new Error('dsh-wakatime: cliPath must be absolute (a leading ~ is supported)')
   }
   return {
-    heartbeatIntervalMs: clampInterval(config.heartbeatIntervalMs, 1_000, MAX_INTERVAL_MS, 60_000),
-    heartbeatTimeoutMs: clampInterval(config.heartbeatTimeoutMs, 1_000, MAX_INTERVAL_MS, 30_000),
-    cliUpdateCheckIntervalMs: clampInterval(config.cliUpdateCheckIntervalMs, 1_000, MAX_INTERVAL_MS, 14_400_000),
-    dashboardRefreshIntervalMs: clampInterval(config.dashboardRefreshIntervalMs, 60_000, MAX_INTERVAL_MS, 300_000),
-    insightsRefreshIntervalMs: clampInterval(config.insightsRefreshIntervalMs, 60_000, MAX_INTERVAL_MS, 1_800_000),
-    cliDownloadTimeoutMs: clampInterval(config.cliDownloadTimeoutMs, 1_000, MAX_INTERVAL_MS, 120_000),
+    heartbeatIntervalMs: clampInterval(config.heartbeatIntervalMs, 1_000, MAX_TIMER_MS, 60_000),
+    heartbeatTimeoutMs: clampInterval(config.heartbeatTimeoutMs, 1_000, MAX_TIMER_MS, 30_000),
+    cliUpdateCheckIntervalMs: clampInterval(config.cliUpdateCheckIntervalMs, 60_000, MAX_TIMER_MS, 14_400_000),
+    dashboardRefreshIntervalMs: clampInterval(config.dashboardRefreshIntervalMs, 60_000, MAX_TIMER_MS, 300_000),
+    insightsRefreshIntervalMs: clampInterval(config.insightsRefreshIntervalMs, 60_000, MAX_TIMER_MS, 1_800_000),
+    cliDownloadTimeoutMs: clampInterval(config.cliDownloadTimeoutMs, 1_000, MAX_TIMER_MS, 120_000),
     ...(cliPath === undefined ? {} : { cliPath }),
     autoInstall: config.autoInstall ?? false,
     client: config.client ?? 'dsh',
     debug: config.debug ?? false,
-    maxPendingFiles: clampInterval(config.maxPendingFiles, 1, 100_000, 5_000),
   }
 }
 
