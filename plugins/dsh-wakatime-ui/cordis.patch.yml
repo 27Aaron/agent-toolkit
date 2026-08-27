@@ -1,0 +1,13 @@
+# The WakaTime dashboard bundle patch: inserts the dashboard row only. The row
+# mounts @27aaron/dsh-wakatime-ui, which re-exports the tracking plugin from
+# @27aaron/dsh-wakatime (installed transitively), while the browser roster
+# serves this package's client bundle through its dsh.client declaration.
+#
+# Configuration overrides address this row by id. Installing both wakatime
+# variants into one profile does not break boot: the first-activated row owns
+# tracking and any duplicate stands down quietly, but keeping one variant per
+# profile avoids the ambiguity entirely.
+
+- insert:
+    - id: wakatime-ui
+      name: '@27aaron/dsh-wakatime-ui'

@@ -10,6 +10,7 @@
  */
 
 import * as fs from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import * as path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Session } from '@deepseek-ai/dsh-session'
@@ -82,6 +83,62 @@ interface RpcContext {
   connection?: RpcConnection
 }
 
+/**
+ * Cross-instance activation claim. Both install variants execute this module
+ * (`@27aaron/dsh-wakatime-ui` re-exports it), and when both rows are composed
+ * into one profile they run in the same process against the same resolved
+ * module instance, so a symbol-keyed global elects exactly one live tracker:
+ * whichever row activates first claims it and every later apply stands down.
+ * The claim releases when its owner disposes, keeping tests and fiber restarts
+ * honest.
+ */
+const ACTIVE_CLAIM = Symbol.for('@27aaron/dsh-wakatime/active-claim')
+
+/** The symbol another row's activation can be detected through (test seam). */
+export const ACTIVE_CLAIM_SYMBOL = ACTIVE_CLAIM
+
+type GlobalClaims = Record<symbol, unknown>
+
+interface ActiveClaim {
+  readonly token: string
+  waiters?: Set<() => void>
+}
+
+function activeClaim(): ActiveClaim | undefined {
+  const value = (globalThis as GlobalClaims)[ACTIVE_CLAIM]
+  return typeof value === 'object' && value !== null ? value as ActiveClaim : undefined
+}
+
+function releaseActiveClaim(claim: ActiveClaim): void {
+  if (activeClaim() !== claim) return
+  delete (globalThis as GlobalClaims)[ACTIVE_CLAIM]
+  const waiters = [...claim.waiters ?? []]
+  claim.waiters?.clear()
+  for (const restart of waiters) queueMicrotask(restart)
+}
+
+function waitForActiveClaim(ctx: Context, claim: ActiveClaim): void {
+  const waiters = claim.waiters ??= new Set()
+  let disposed = false
+  const restart = (): void => {
+    if (disposed) return
+    void ctx.fiber.restart().catch(error => ctx.logger.error(error))
+  }
+  waiters.add(restart)
+  try {
+    ctx.effect(
+      () => () => {
+        disposed = true
+        waiters.delete(restart)
+      },
+      'dsh-wakatime: wait for active claim',
+    )
+  } catch (error) {
+    waiters.delete(restart)
+    throw error
+  }
+}
+
 function publicError(code: string, message: string): WakatimeUiRpcResult<never> {
   // The shared client connection validates RPC errors against its wire-level
   // error union. Keep plugin-local validation failures on the generic
@@ -149,6 +206,17 @@ function isDirectory(entity: string): boolean {
 }
 
 export function apply(ctx: Context, rawConfig: ConfigShape): void {
+  const active = activeClaim()
+  if (active !== undefined) {
+    ctx.logger.warn(
+      'another dsh-wakatime row is already active in this process '
+        + '(both @27aaron/dsh-wakatime and @27aaron/dsh-wakatime-ui are installed?); '
+        + 'this row stands down until the active row releases its claim so activity is not tracked twice',
+    )
+    waitForActiveClaim(ctx, active)
+    return
+  }
+  const claim: ActiveClaim = { token: randomUUID(), waiters: new Set() }
   let config = resolveConfig({ ...rawConfig, ...readPersistedWakatimeConfig() })
   let settings = readWakatimeSettings(undefined, reportInvalidApiUrl)
   const logger = new PluginLogger(ctx.logger, config.debug || settings.debug)
@@ -348,6 +416,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   ): Promise<WakatimeUiRpcResult<unknown>> => {
     try {
       signal.throwIfAborted?.()
+      if (endpoint === 'usage' || endpoint === 'insights') ensureBackgroundRefresh()
       if (endpoint === 'status') return { ok: true, value: await status() }
 
       if (endpoint === 'usage') {
@@ -440,7 +509,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
         persistedCache = { version: persistedCache.version }
         persistCache()
         updateRuntimeConfig(next)
-        scheduleBackgroundRefresh()
+        resetBackgroundRefresh()
         return { ok: true, value: await status() }
       }
 
@@ -499,27 +568,46 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
     void tracker.flushProject(projectFolderOf(session))
   })
 
-  ctx.effect(
-    () => async () => tracker.dispose(),
-    'dsh-wakatime: flush pending heartbeats',
-  )
+  // Dashboard data flows on demand: nothing polls WakaTime until a dashboard
+  // or settings interaction asks for usage or insights, so tracking-only
+  // installs never make background API requests. One kick starts the
+  // self-rescheduling loop that keeps served caches fresh.
+  let backgroundRefreshStarted = false
+  const resetBackgroundRefresh = (): void => {
+    if (backgroundRefreshDisposed) return
+    backgroundRefreshStarted = true
+    scheduleBackgroundRefresh()
+  }
+  const ensureBackgroundRefresh = (): void => {
+    if (backgroundRefreshStarted || backgroundRefreshDisposed) return
+    resetBackgroundRefresh()
+  }
 
   ctx.effect(
-    () => {
-      const startupPrefetchTimer = setTimeout(() => {
-        // A persisted cache is already useful at startup. Only refresh when
-        // the normal freshness policy says it is needed instead of forcing a
-        // request on every DSH launch.
-        void refreshUsage(defaultUsageRange())
-          .catch(error => logger.exception('WARN', error, 'startup WakaTime prefetch failed'))
-      }, 2_000)
-      scheduleBackgroundRefresh()
-      return () => {
-        backgroundRefreshDisposed = true
-        clearTimeout(startupPrefetchTimer)
-        if (backgroundRefreshTimer !== undefined) clearTimeout(backgroundRefreshTimer)
-      }
+    () => () => {
+      backgroundRefreshDisposed = true
+      if (backgroundRefreshTimer !== undefined) clearTimeout(backgroundRefreshTimer)
     },
-    'dsh-wakatime: prefetch dashboard data',
+    'dsh-wakatime: stop background refresh',
   )
+
+  // Claim only after every other synchronous setup step succeeded. The final
+  // owner effect keeps the claim until pending heartbeats finish flushing, then
+  // wakes any row that stood down so it can restart through Cordis normally.
+  ;(globalThis as GlobalClaims)[ACTIVE_CLAIM] = claim
+  try {
+    ctx.effect(
+      () => async () => {
+        try {
+          await tracker.dispose()
+        } finally {
+          releaseActiveClaim(claim)
+        }
+      },
+      'dsh-wakatime: flush pending heartbeats and release active claim',
+    )
+  } catch (error) {
+    releaseActiveClaim(claim)
+    throw error
+  }
 }

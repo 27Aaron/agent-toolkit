@@ -2,7 +2,7 @@ import ReactTestRenderer from 'react-test-renderer'
 import * as React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { WakatimeSettingsTab } from '../src/client.tsx'
-import type { WakatimeInsightsData, WakatimeUiRpcResult, WakatimeUsageData } from '../src/ui-contract.ts'
+import type { WakatimeInsightsData, WakatimeUiRpcResult, WakatimeUsageData } from '@27aaron/dsh-wakatime/ui-contract'
 
 interface DeferredRpc {
   endpoint: string

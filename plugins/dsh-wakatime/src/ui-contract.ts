@@ -1,8 +1,14 @@
-import type { WakatimeCategory } from './config.ts'
+/**
+ * The WakaTime UI wire contract, shared verbatim between the tracking plugin
+ * (`@27aaron/dsh-wakatime`) and the dashboard bundle
+ * (`@27aaron/dsh-wakatime-ui`). This file is the single source of truth for
+ * the category list; the repository's `check-contract-parity` script fails
+ * when the two copies diverge.
+ */
 
 export const WAKATIME_RPC_CHANNEL = '/dsh-wakatime'
 
-export const UI_CATEGORIES: readonly WakatimeCategory[] = [
+export const WAKATIME_CATEGORIES = [
   'coding',
   'ai coding',
   'building',
@@ -24,7 +30,9 @@ export const UI_CATEGORIES: readonly WakatimeCategory[] = [
   'browsing',
   'translating',
   'designing',
-]
+] as const
+
+export type WakatimeCategory = typeof WAKATIME_CATEGORIES[number]
 
 export interface WakatimeUiConfig {
   baseUrl: string

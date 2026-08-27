@@ -4,6 +4,13 @@
 
 WakaTime integration for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It records successful agent file activity without changing tool behavior or blocking the tool execution pipeline.
 
+This package is the **tracking core**. Configuration happens through `.wakatime.cfg` and the plugin config below — no UI required. The web dashboard and settings page live in the separate [`@27aaron/dsh-wakatime-ui`](../dsh-wakatime-ui) bundle; install it instead of this package when you want the GUI. Both variants read and write the same WakaTime data directory, so switching between them keeps every setting.
+
+| Package                     | What you get                                             |
+| --------------------------- | -------------------------------------------------------- |
+| `@27aaron/dsh-wakatime`     | Headless tracking; browser bundle absent entirely.        |
+| `@27aaron/dsh-wakatime-ui`  | The same tracking plus the web dashboard and settings page. |
+
 ## Highlights
 
 - Uses Harness's official `tools/result` Cordis event, covering native tools and Code Mode sub-dispatches.
@@ -13,6 +20,7 @@ WakaTime integration for [DeepSeek Harness](https://github.com/deepseek-ai/deeps
 - Applies a per-project, cross-process rate limit with an exclusive state lock and retries pending data after transient failures.
 - Uses an explicit CLI path, a global `wakatime-cli`, or a managed download in that order.
 - Resolves the CLI lazily after tracked activity, so Harness startup never waits on the network; managed downloads require a settings-page action or explicit `autoInstall: true`.
+- Makes no background WakaTime API requests of its own; dashboard data is fetched only after a dashboard or settings interaction asks for it.
 - Reads WakaTime's standard HTTP(S) `proxy`, `no_ssl_verify`, and `debug` settings; the CLI continues to own filtering and project settings.
 - Flushes pending activity on session disposal and plugin teardown, including one-shot headless runs.
 
@@ -29,14 +37,17 @@ api_key = waka_your_api_key_here
 
 ## Install from this repository
 
-Build the package, add the local checkout as a Profile Bundle, inspect the composed layer, and restart the profile:
+Build the packages, add the variant you want as a Profile Bundle, inspect the composed layer, and restart the profile:
 
 ```sh
 pnpm install
 pnpm build
+
+# Tracking only:
 dsh plugin --profile web add ./plugins/dsh-wakatime
-dsh --profile web --dump-config
-dsh web
+
+# Tracking plus the web dashboard:
+dsh plugin --profile web add ./plugins/dsh-wakatime-ui
 ```
 
 Install the bundle separately in every profile that should report activity:
@@ -45,17 +56,19 @@ Install the bundle separately in every profile that should report activity:
 dsh plugin --profile headless add ./plugins/dsh-wakatime
 ```
 
-For a portable artifact, run `pnpm --filter @27aaron/dsh-wakatime pack` and install the resulting tarball with `dsh plugin --profile <name> add <file.tgz>`.
+For a portable core artifact, run `pnpm --filter @27aaron/dsh-wakatime pack` and install the tarball with `dsh plugin --profile <name> add <file.tgz>`. The UI tarball keeps this core as a normal registry dependency, so publish the matching core version before distributing `@27aaron/dsh-wakatime-ui`; use the local-directory commands above for an unpublished checkout.
+
+Pick **one variant per profile**. Both declare `dsh.bundle` patches, so installing both into one profile composes two wakatime rows; the first row to activate owns tracking and the second stands down with a warning, so nothing is tracked twice — but the ambiguity is best avoided. The UI bundle installs this core transitively, so switching later means removing one package and adding the other; settings persist in the WakaTime data directory.
 
 ## Configuration
 
-### Settings page
+### Web dashboard
 
-When the plugin is installed in a web profile, restart DSH and open **Settings → Plugins → WakaTime**. The dashboard follows the official structure for activity overview, AI Coding, models, editors, languages, operating systems, machines, and AI-versus-human trends. The Projects page contains project/category charts, today's activity breakdown, and project cards with AI details, while AI and Insights provide prompt, token, model, weekday, and daily AI-share detail. Insights defaults to the last year and uses WakaTime's read-only `stats`, `days`, `ai_days`, and `weekdays` endpoints for long-range heatmaps; it does not use team, billing, or other paid-only APIs.
+The dashboard and settings page are provided by the [`@27aaron/dsh-wakatime-ui`](../dsh-wakatime-ui) bundle; see its README for the feature tour. This core exposes the same RPC endpoints either way, keeps serving cached data to any installed dashboard, and starts background refresh only after that first interaction. Both variants read the API key from `.wakatime.cfg` and keep UI-managed options under the WakaTime data directory, so moving between variants never loses settings.
 
-The API key is written to WakaTime's standard `.wakatime.cfg` with restrictive local permissions. UI-managed plugin options are stored under the WakaTime data directory. The page only receives a boolean indicating whether an API key is configured; it never reads the existing key back into the browser. Usage requests are made by the Host process and cached briefly to avoid repeated API calls. Summaries supply the range-level data, and the selected end date is also queried through WakaTime's durations endpoint for a focused “today” breakdown; if that endpoint is unavailable, the page falls back to summary data.
+### Plugin config
 
-The bundle inserts a row with id `wakatime`. Override that id in `$DSH_HOME/profiles/<name>/cordis.patch.yml`, `$DSH_HOME/cordis.patch.yml`, or a later `--patch` layer:
+The bundle inserts a row with id `wakatime` (the UI variant inserts `wakatime-ui` and re-exports the same schema). Override that id in `$DSH_HOME/profiles/<name>/cordis.patch.yml`, `$DSH_HOME/cordis.patch.yml`, or a later `--patch` layer:
 
 ```yaml
 - id: wakatime
