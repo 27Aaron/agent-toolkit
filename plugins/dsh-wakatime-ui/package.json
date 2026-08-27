@@ -61,6 +61,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsdown",
     "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm exec publint",
+    "prepublishOnly": "pnpm run check",
     "prepare": "pnpm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -101,7 +102,6 @@
     }
   },
   "devDependencies": {
-    "@27aaron/dsh-wakatime": "workspace:^",
     "@types/node": "^22.20.0",
     "@types/react": "^18.3.0",
     "@types/react-test-renderer": "18.3.1",

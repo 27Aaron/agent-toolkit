@@ -35,6 +35,22 @@
 api_key = waka_your_api_key_here
 ```
 
+## 从 npm 安装
+
+在每个需要上报活动的 Profile 中安装仅跟踪 Bundle：
+
+```sh
+dsh plugin --profile headless add @27aaron/dsh-wakatime
+```
+
+如需跟踪能力和 Web 仪表盘，请改为安装 `@27aaron/dsh-wakatime-ui`：
+
+```sh
+dsh plugin --profile web add @27aaron/dsh-wakatime-ui
+```
+
+每个 Profile 只选择一个变体。安装后请检查组合配置并重启对应 Profile。
+
 ## 从当前仓库安装
 
 先构建插件，再把需要的变体作为 Profile Bundle 加入 DSH；检查组合结果后重启 Profile：

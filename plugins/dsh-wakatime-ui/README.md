@@ -18,6 +18,18 @@ Web dashboard and settings page for [DeepSeek Harness](https://github.com/deepse
 
 Same as the core package: DeepSeek Harness `>= 0.1.1-rc.2 < 0.2`, Node.js `^22.19.0 || >=24.0.0`, and a WakaTime API key configured as described there. Only meaningful in web profiles; headless profiles simply never load the browser half.
 
+## Install from npm
+
+Install this bundle instead of the tracking-only core package:
+
+```sh
+dsh plugin --profile web add @27aaron/dsh-wakatime-ui
+dsh --profile web --dump-config
+dsh web
+```
+
+The matching `@27aaron/dsh-wakatime` core is installed transitively. Do not also add the core bundle to the same profile.
+
 ## Install from this repository
 
 ```sh

@@ -50,6 +50,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsdown",
     "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm exec publint",
+    "prepublishOnly": "pnpm run check",
     "prepare": "pnpm run build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
