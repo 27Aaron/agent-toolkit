@@ -56,8 +56,6 @@ Bundle 插入 id 为 `wakatime-ui` 的行，并 re-export `@27aaron/dsh-wakatime
     cliUpdateCheckIntervalMs: 14400000
     cliDownloadTimeoutMs: 120000
     autoInstall: false
-    trackReads: true
-    category: "ai coding"
     client: dsh
     debug: false
     maxPendingFiles: 5000

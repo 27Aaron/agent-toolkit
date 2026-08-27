@@ -22,7 +22,6 @@ import {
   Config,
   name,
   resolveConfig,
-  WAKATIME_CATEGORIES,
   type Config as ConfigShape,
 } from './config.ts'
 import { HeartbeatDispatcher } from './heartbeat.ts'
@@ -61,7 +60,7 @@ import {
 } from './cache.ts'
 
 export { Config, name }
-export type { Config as WakatimeConfig, WakatimeCategory } from './config.ts'
+export type { Config as WakatimeConfig } from './config.ts'
 
 interface RpcSignal {
   aborted?: boolean
@@ -179,11 +178,6 @@ function reportInvalidApiUrl(configured: string, error: unknown): void {
 function configPatch(value: unknown): PersistedWakatimeConfig {
   if (!isRecord(value)) return {}
   const patch: PersistedWakatimeConfig = {}
-  if (typeof value.category === 'string'
-    && WAKATIME_CATEGORIES.includes(value.category as typeof WAKATIME_CATEGORIES[number])) {
-    patch.category = value.category as NonNullable<PersistedWakatimeConfig['category']>
-  }
-  if (typeof value.trackReads === 'boolean') patch.trackReads = value.trackReads
   if (typeof value.cliPath === 'string') patch.cliPath = value.cliPath
   if (typeof value.debug === 'boolean') patch.debug = value.debug
   if (typeof value.heartbeatIntervalMs === 'number') patch.heartbeatIntervalMs = value.heartbeatIntervalMs
@@ -227,7 +221,6 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   const dispatcher = new HeartbeatDispatcher(
     cli,
     pluginTag,
-    config.category,
     config.heartbeatTimeoutMs,
     logger,
   )
@@ -251,8 +244,6 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
 
   const uiConfig = (): WakatimeUiConfig => ({
     baseUrl: settings.apiUrl ?? DEFAULT_WAKATIME_API_URL,
-    category: config.category,
-    trackReads: config.trackReads,
     ...(config.cliPath === undefined ? {} : { cliPath: config.cliPath }),
     debug: config.debug,
     heartbeatIntervalMs: config.heartbeatIntervalMs,
@@ -405,7 +396,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
     logger.setDebugEnabled(config.debug || settings.debug)
     cli.updateConfig(config)
     cli.updateSettings(settings)
-    dispatcher.updateConfig(config.category, config.heartbeatTimeoutMs)
+    dispatcher.updateConfig(config.heartbeatTimeoutMs)
     tracker.updateConfig(config)
   }
 
@@ -541,7 +532,6 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
         exec.arguments,
         result.meta,
         result.value,
-        config.trackReads,
       )
         .map(change => ({
           ...change,

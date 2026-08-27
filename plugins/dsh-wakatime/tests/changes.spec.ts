@@ -32,8 +32,7 @@ describe('extractFileChanges', () => {
       { file_path: '/repo/a.ts', old_string: 'x', new_string: 'y' },
       { diffs: [{ path: '/repo/a.ts', oldText: 'ctx\nx\nctx', newText: 'ctx\ny\nz\nctx' }] },
       undefined,
-      true,
-    )).toEqual([{ file: '/repo/a.ts', lineChanges: 1, isWrite: false }])
+    )).toEqual([{ file: '/repo/a.ts', lineChanges: 1, isWrite: true }])
   })
 
   it('uses canonical before/after values for Code Mode sub-dispatches', () => {
@@ -42,49 +41,62 @@ describe('extractFileChanges', () => {
       { file_path: '/repo/a.ts', old_string: 'x', new_string: 'y' },
       undefined,
       { path: '/repo/a.ts', before: 'a\nb', after: 'a\nb\nc\nd' },
-      true,
-    )).toEqual([{ file: '/repo/a.ts', lineChanges: 2, isWrite: false }])
+    )).toEqual([{ file: '/repo/a.ts', lineChanges: 2, isWrite: true }])
   })
 
-  it('handles created, updated, and identical writes from canonical values', () => {
+  it('counts full written content from canonical values, like the CLI parser', () => {
     expect(extractFileChanges(
       'write', { file_path: '/repo/new.ts', content: 'a\nb' }, undefined,
-      { path: '/repo/new.ts', before: null, after: 'a\nb' }, true,
+      { path: '/repo/new.ts', before: null, after: 'a\nb' },
     )).toEqual([{ file: '/repo/new.ts', lineChanges: 2, isWrite: true }])
     expect(extractFileChanges(
       'write', { file_path: '/repo/a.ts', content: 'a\nb\nc' }, undefined,
-      { path: '/repo/a.ts', before: 'a', after: 'a\nb\nc' }, true,
-    )).toEqual([{ file: '/repo/a.ts', lineChanges: 2, isWrite: true }])
+      { path: '/repo/a.ts', before: 'a', after: 'a\nb\nc' },
+    )).toEqual([{ file: '/repo/a.ts', lineChanges: 3, isWrite: true }])
     expect(extractFileChanges(
       'write', { file_path: '/repo/a.ts', content: 'same' }, { diffs: [] },
-      { path: '/repo/a.ts', before: 'same', after: 'same' }, true,
-    )).toEqual([{ file: '/repo/a.ts', lineChanges: 0, isWrite: true }])
+      { path: '/repo/a.ts', before: 'same', after: 'same' },
+    )).toEqual([{ file: '/repo/a.ts', lineChanges: 1, isWrite: true }])
   })
 
-  it('supports reads and the compatibility editor', () => {
-    expect(extractFileChanges('read', { file_path: '/repo/a.ts' }, undefined, undefined, true))
+  it('always tracks reads, like the CLI parser', () => {
+    expect(extractFileChanges('read', { file_path: '/repo/a.ts' }, undefined, undefined))
       .toEqual([{ file: '/repo/a.ts', lineChanges: 0, isWrite: false }])
-    expect(extractFileChanges('read', { file_path: '/repo/a.ts' }, undefined, undefined, false)).toEqual([])
+    expect(extractFileChanges('read_image', { file_path: '/repo/a.ts' }, undefined, undefined))
+      .toEqual([{ file: '/repo/a.ts', lineChanges: 0, isWrite: false }])
+    expect(extractFileChanges(
+      'str_replace_editor',
+      { command: 'view', path: '/repo/a.ts' },
+      undefined,
+      undefined,
+    )).toEqual([{ file: '/repo/a.ts', lineChanges: 0, isWrite: false }])
+  })
+
+  it('supports the compatibility editor', () => {
     expect(extractFileChanges(
       'str_replace_editor',
       { command: 'str_replace', path: '/repo/a.ts', old_str: 'a\nb', new_str: 'c' },
       undefined,
       undefined,
-      true,
-    )).toEqual([{ file: '/repo/a.ts', lineChanges: -1, isWrite: false }])
+    )).toEqual([{ file: '/repo/a.ts', lineChanges: -1, isWrite: true }])
+    expect(extractFileChanges(
+      'str_replace_editor',
+      { command: 'insert', path: '/repo/a.ts', new_str: 'c\nd' },
+      undefined,
+      undefined,
+    )).toEqual([{ file: '/repo/a.ts', lineChanges: 2, isWrite: true }])
     expect(extractFileChanges(
       'str_replace_editor',
       { command: 'create', path: '/repo/new.ts', file_text: 'a\nb' },
       undefined,
       undefined,
-      true,
     )).toEqual([{ file: '/repo/new.ts', lineChanges: 2, isWrite: true }])
   })
 
   it('ignores failed shapes and unrelated tools', () => {
-    expect(extractFileChanges('bash', { command: 'touch x' }, undefined, undefined, true)).toEqual([])
-    expect(extractFileChanges('write', { content: 'x' }, undefined, undefined, true)).toEqual([])
-    expect(extractFileChanges('edit', null, undefined, undefined, true)).toEqual([])
+    expect(extractFileChanges('bash', { command: 'touch x' }, undefined, undefined)).toEqual([])
+    expect(extractFileChanges('write', { content: 'x' }, undefined, undefined)).toEqual([])
+    expect(extractFileChanges('edit', null, undefined, undefined)).toEqual([])
   })
 })
 

@@ -13,8 +13,6 @@ describe('configuration', () => {
       insightsRefreshIntervalMs: 1_800_000,
       cliDownloadTimeoutMs: 120_000,
       autoInstall: false,
-      trackReads: true,
-      category: 'ai coding',
       client: 'dsh',
       debug: false,
       maxPendingFiles: 5_000,

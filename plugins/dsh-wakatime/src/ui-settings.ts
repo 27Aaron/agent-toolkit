@@ -1,19 +1,13 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { WAKATIME_CATEGORIES, type WakatimeCategory } from './config.ts'
 import { getPluginDataDir, getPluginSettingsFilePath } from './paths.ts'
 
-export interface PersistedWakatimeConfig {
-  category?: WakatimeCategory
-  trackReads?: boolean
-  cliPath?: string
+export interface PersistedWakatimeConfig {  cliPath?: string
   debug?: boolean
   heartbeatIntervalMs?: number
   dashboardRefreshIntervalMs?: number
   insightsRefreshIntervalMs?: number
 }
-
-const categories = new Set<string>(WAKATIME_CATEGORIES)
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -34,10 +28,6 @@ function readRefreshInterval(value: unknown): number | undefined {
 function sanitize(value: unknown): PersistedWakatimeConfig {
   if (!isRecord(value)) return {}
   const result: PersistedWakatimeConfig = {}
-  if (typeof value.category === 'string' && categories.has(value.category as WakatimeCategory)) {
-    result.category = value.category as WakatimeCategory
-  }
-  if (typeof value.trackReads === 'boolean') result.trackReads = value.trackReads
   if (typeof value.cliPath === 'string' && value.cliPath.trim().length > 0) {
     const cliPath = value.cliPath.trim()
     if (path.isAbsolute(cliPath) || cliPath === '~' || cliPath.startsWith('~/') || cliPath.startsWith('~\\')) {

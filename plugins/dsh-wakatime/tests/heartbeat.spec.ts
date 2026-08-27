@@ -43,7 +43,6 @@ function dispatcher(cliPath: string | null = '/usr/local/bin/wakatime-cli') {
   return new HeartbeatDispatcher(
     cli,
     'deepseek-harness/0.1.0 dsh-wakatime/0.1.0',
-    'ai coding',
     5_000,
     new PluginLogger(undefined, true, '/dev/null'),
   )

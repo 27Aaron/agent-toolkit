@@ -2,7 +2,7 @@ import ReactTestRenderer from 'react-test-renderer'
 import * as React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { WakatimeSettingsTab } from '../src/client.tsx'
-import type { WakatimeInsightsData, WakatimeUiRpcResult, WakatimeUsageData } from '@27aaron/dsh-wakatime/ui-contract'
+import type { WakatimeCliStatus, WakatimeInsightsData, WakatimeUiRpcResult, WakatimeUsageData } from '@27aaron/dsh-wakatime/ui-contract'
 
 interface DeferredRpc {
   endpoint: string
@@ -64,21 +64,19 @@ function usageResult(cumulativeText: string): WakatimeUiRpcResult<WakatimeUsageD
   }
 }
 
-function statusResult(): WakatimeUiRpcResult<unknown> {
+function statusResult(cli?: WakatimeCliStatus): WakatimeUiRpcResult<unknown> {
   return {
     ok: true,
     value: {
       config: {
         baseUrl: 'https://api.wakatime.com/api/v1',
-        category: 'ai coding',
-        trackReads: true,
         debug: false,
         heartbeatIntervalMs: 60000,
         dashboardRefreshIntervalMs: 300000,
         insightsRefreshIntervalMs: 1800000,
       },
       apiKeyConfigured: true,
-      cli: { state: 'missing', source: 'none', managedPath: '/tmp/wakatime-cli' },
+      cli: cli ?? { state: 'missing', source: 'none', managedPath: '/tmp/wakatime-cli' },
       tracking: { projectCount: 0, pendingFiles: 0, pendingProjects: [] },
       paths: { config: '/tmp/.wakatime.cfg', log: '/tmp/w.log', data: '/tmp/data' },
     },
@@ -253,5 +251,46 @@ describe('WakaTime settings tab data loading', () => {
     expect(renderedText(renderer!).includes('FRESH-INSIGHTS')).toBe(true)
 
     await ReactTestRenderer.act(async () => { renderer!.unmount() })
+  })
+})
+
+describe('native Harness parsing hint', () => {
+  async function mountSettingsTab(cli: WakatimeCliStatus): Promise<ReactTestRenderer.ReactTestRenderer> {
+    const { calls, rpcCall } = deferredQueue()
+    vi.stubGlobal('window', { setInterval: () => 0, clearInterval: () => {} })
+    let renderer: ReactTestRenderer.ReactTestRenderer | undefined
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        React.createElement(WakatimeSettingsTab, { rpcCall, t: (key: string) => key }),
+      )
+    })
+    calls.find(call => call.endpoint === 'status')!.resolve(statusResult(cli))
+    const mountUsage = calls.find(call => call.endpoint === 'usage')
+    // A rejected usage load still renders the shell; the settings tab and its
+    // CLI panel do not depend on usage data.
+    await ReactTestRenderer.act(async () => { mountUsage!.resolve(usageResult('usage-data')) })
+    const tabButton = renderer!.root.findByProps({ role: 'tab', children: 'settings' })
+    await ReactTestRenderer.act(async () => { tabButton.props.onClick() })
+    return renderer!
+  }
+
+  it('confirms native parsing for a v2.25+ CLI', async () => {
+    const renderer = await mountSettingsTab({
+      state: 'ready', source: 'managed', path: '/tmp/wakatime-cli', version: 'v2.25.0-alpha.1',
+      managedPath: '/tmp/wakatime-cli', nativeSync: true,
+    })
+    expect(renderedText(renderer).includes('"cliNativeSync"')).toBe(true)
+    expect(renderedText(renderer).includes('cliNativeSyncAvailable')).toBe(false)
+    await ReactTestRenderer.act(async () => { renderer.unmount() })
+  })
+
+  it('suggests updating a pre-v2.25 CLI', async () => {
+    const renderer = await mountSettingsTab({
+      state: 'ready', source: 'managed', path: '/tmp/wakatime-cli', version: 'v2.24.4',
+      managedPath: '/tmp/wakatime-cli',
+    })
+    expect(renderedText(renderer).includes('cliNativeSyncAvailable')).toBe(true)
+    expect(renderedText(renderer).includes('"cliNativeSync"')).toBe(false)
+    await ReactTestRenderer.act(async () => { renderer.unmount() })
   })
 })

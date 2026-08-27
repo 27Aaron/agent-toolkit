@@ -14,8 +14,9 @@ This package is the **tracking core**. Configuration happens through `.wakatime.
 ## Highlights
 
 - Uses Harness's official `tools/result` Cordis event, covering native tools and Code Mode sub-dispatches.
-- Tracks `read`, `read_image`, `edit`, `write`, and `str_replace_editor` operations.
-- Uses final validated tool arguments and canonical results for exact net AI line changes when Harness exposes them.
+- Tracks `read`, `read_image`, `edit`, `write`, and `str_replace_editor` operations; mutations are reported as writes and reads as zero-line-change AI activity, matching wakatime-cli's own accounting.
+- Cooperates with wakatime-cli's native DeepSeek Harness transcript parser (`v2.25.0+`): every heartbeat batch the plugin sends also triggers the CLI to parse Harness sessions, which attributes prompts, AI token usage, and models that this plugin cannot see. The CLI deduplicates the plugin's file heartbeats against its parsed activity within a five-second window, so nothing is counted twice.
+- Computes AI line changes with the same accounting as wakatime-cli's DeepSeek Harness parser: a signed net delta for edits and the full written-content line count for writes. Final validated tool arguments are the primary source; Harness's canonical diffs and results are used when exposed and produce the same numbers.
 - Batches files through WakaTime's `--extra-heartbeats` protocol and preserves each activity timestamp.
 - Applies a per-project, cross-process rate limit with an exclusive state lock and retries pending data after transient failures.
 - Uses an explicit CLI path, a global `wakatime-cli`, or a managed download in that order.
@@ -94,14 +95,12 @@ The bundle inserts a row with id `wakatime` (the UI variant inserts `wakatime-ui
     cliUpdateCheckIntervalMs: 14400000
     cliDownloadTimeoutMs: 120000
     autoInstall: false
-    trackReads: true
-    category: "ai coding"
     client: dsh
     debug: false
     maxPendingFiles: 5000
 ```
 
-All keys are optional because defaults live in the exported Schemastery schema. Harness replaces a row's whole `config` value when applying a later layer; omitted keys are filled from that schema rather than copied from the bundle patch.
+All keys are optional because defaults live in the exported Schemastery schema. Harness replaces a row's whole `config` value when applying a later layer; omitted keys are filled from that schema rather than copied from the bundle patch. Heartbeats always use WakaTime's fixed `ai coding` category, matching wakatime-cli's native DeepSeek Harness parser, so no category key exists.
 
 | Setting                    |     Default | Purpose                                                                |
 | -------------------------- | ----------: | ---------------------------------------------------------------------- |
@@ -113,8 +112,6 @@ All keys are optional because defaults live in the exported Schemastery schema. 
 | `cliDownloadTimeoutMs`     |    `120000` | Timeout for each GitHub request or CLI download.                       |
 | `cliPath`                  |       unset | Absolute CLI path; `~` is expanded. Disables discovery and management. |
 | `autoInstall`              |     `false` | Allow background download/update of a managed CLI during heartbeats.   |
-| `trackReads`               |      `true` | Include successful reads as zero-line-change AI activity.              |
-| `category`                 | `ai coding` | WakaTime category for emitted heartbeats.                              |
 | `client`                   |       `dsh` | Safe identifier added to the WakaTime plugin tag.                      |
 | `debug`                    |     `false` | Enable debug logs independently of WakaTime settings.                  |
 | `maxPendingFiles`          |      `5000` | Bound memory used by pending distinct files per project.               |
@@ -139,9 +136,11 @@ Resolution order is:
 
 By default the page only inspects the configured path, PATH, and WakaTime directory; it does not make network requests or write files. The settings page provides **Download WakaTime CLI** and **Check and update** actions: the former installs a managed copy only after an explicit click, while the latter only operates on the managed copy and never changes a system or package-manager installation. Managed downloads use HTTPS, honor standard HTTP(S) WakaTime proxy settings, validate ZIP structure, size, CRC-32, expected binary name, and the downloaded executable's `--version` output, then replace the prior binary atomically. Set `autoInstall: true` in Host configuration only when background management is desired.
 
+The update check follows GitHub's latest stable release, so pre-releases are never installed automatically. Native Harness transcript parsing needs `wakatime-cli >= v2.25.0`; the settings page shows whether the resolved CLI has it and suggests updating when it does not.
+
 ## Data and privacy
 
-The plugin invokes the user's local WakaTime CLI with file paths, project folder, timestamps, category, write state, and signed net AI line changes. WakaTime CLI owns API authentication, offline queuing, project detection, and privacy filters. Use standard WakaTime settings such as `hide_file_names`, `hide_project_names`, `exclude`, and `include` as required by your deployment policy.
+The plugin invokes the user's local WakaTime CLI with file paths, project folder, timestamps, category, write state, and AI line changes. WakaTime CLI owns API authentication, offline queuing, project detection, and privacy filters. Use standard WakaTime settings such as `hide_file_names`, `hide_project_names`, `exclude`, and `include` as required by your deployment policy.
 
 Logs are written to `~/.wakatime/dsh-wakatime.log` or `$WAKATIME_HOME/dsh-wakatime.log`. API keys are never passed as process arguments or written by this plugin.
 
@@ -160,8 +159,8 @@ Enable `debug = true` in `.wakatime.cfg` or `debug: true` in the plugin row when
 - Shell commands can modify arbitrary files, so `bash` and PowerShell activity is not guessed.
 - A custom filesystem tool is tracked only after explicit support is added for its argument/result contract.
 - Remote filesystem backends may expose model-visible paths that do not exist on the host; those paths are still reported with the session project folder.
-- WakaTime's `ai_line_changes` value is a signed net line delta, not the number of touched or replaced lines.
-- Prompt-only activity has no file entity and is not synthesized. Official Claude Code and Codex integrations can ask WakaTime CLI to parse their native logs; WakaTime CLI does not currently parse the Harness session format.
+- WakaTime's `ai_line_changes` follows the CLI parser's fixed accounting: edits report a signed net line delta, while writes and creates report the full line count of the written content.
+- Prompt-only turns produce no file entity, so this plugin emits no heartbeat for them by itself. With `wakatime-cli >= v2.25.0` the CLI parses Harness session transcripts natively on every heartbeat send — attributing prompts, assistant output, AI tokens, and models — and deduplicates this plugin's matching file heartbeats within a five-second window. Prompt-only activity is therefore synced the next time any heartbeat is sent (the next tool activity here, or any heartbeat from another editor).
 
 ## Development
 

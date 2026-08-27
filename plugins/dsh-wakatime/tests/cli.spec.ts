@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { CliManager, extractCliBinary, platformName } from '../src/cli.ts'
+import { CliManager, extractCliBinary, platformName, supportsNativeHarnessParsing } from '../src/cli.ts'
 import { resolveConfig } from '../src/config.ts'
 import { PluginLogger } from '../src/logger.ts'
 
@@ -103,5 +103,19 @@ describe('CliManager', () => {
 
   it('maps the current Node platform to a published WakaTime asset', () => {
     expect(platformName()).toMatch(/^(darwin|linux|windows|freebsd|netbsd|openbsd|android)-(amd64|arm64|arm|386)$/)
+  })
+})
+
+describe('native Harness transcript parsing', () => {
+  it('matches the wakatime-cli release carrying the DeepSeek parser', () => {
+    expect(supportsNativeHarnessParsing(undefined)).toBe(false)
+    expect(supportsNativeHarnessParsing('banana')).toBe(false)
+    expect(supportsNativeHarnessParsing('v2.24.4')).toBe(false)
+    expect(supportsNativeHarnessParsing('v2.24.5-alpha.1')).toBe(false)
+    // v2.25.0-alpha.1 is the first tagged release that contains the parser.
+    expect(supportsNativeHarnessParsing('v2.25.0-alpha.1')).toBe(true)
+    expect(supportsNativeHarnessParsing('v2.25.0')).toBe(true)
+    expect(supportsNativeHarnessParsing('v3.1.0')).toBe(true)
+    expect(supportsNativeHarnessParsing('<local-build>')).toBe(true)
   })
 })

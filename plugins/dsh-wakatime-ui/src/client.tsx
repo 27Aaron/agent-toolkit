@@ -1,11 +1,9 @@
 import * as React from 'react'
 import {
   WAKATIME_RPC_CHANNEL,
-  WAKATIME_CATEGORIES,
   type WakatimeCliUpdateCheck,
   type WakatimeDailyUsage,
   type WakatimeInsightsData,
-  type WakatimeUiConfig,
   type WakatimeUiRpcCall,
   type WakatimeUiStatus,
   type WakatimeUsageBucket,
@@ -23,8 +21,6 @@ type Tab = 'dashboard' | 'ai' | 'projects' | 'insights' | 'settings'
 
 interface FormState {
   baseUrl: string
-  category: WakatimeUiConfig['category']
-  trackReads: boolean
   cliPath: string
   debug: boolean
   heartbeatIntervalMs: string
@@ -197,11 +193,11 @@ const zh = {
   cliChecking: '检查中…',
   cliInvalidConfigured: '自定义 CLI 路径不可执行，请修正路径或清空路径。',
   cliInvalidPath: '系统 PATH 中的 CLI 不可执行，请通过包管理器修复。',
+  cliNativeSync: '此 CLI 已原生解析 DSH 会话（wakatime-cli ≥ v2.25）：提示词、Token 与模型用量由 WakaTime 直接统计，本插件的心跳会自动与其去重，不会重复计时。',
+  cliNativeSyncAvailable: 'wakatime-cli ≥ v2.25 可原生解析 DSH 会话（额外统计提示词与 Token 用量），建议在更新可用时升级以启用。',
   cliDownloaded: 'CLI 已安装',
   cliChecked: '已完成检查',
   cliActionFailed: 'CLI 操作失败',
-  category: '活动类型',
-  trackReads: '记录读取活动',
   debug: '调试日志',
   heartbeatInterval: '心跳间隔（毫秒）',
   heartbeatIntervalInvalid: '请输入不小于 1000 毫秒的间隔。',
@@ -375,11 +371,11 @@ const en = {
   cliChecking: 'Checking…',
   cliInvalidConfigured: 'The configured CLI path is not executable. Fix or clear the path.',
   cliInvalidPath: 'The CLI found on PATH is not executable. Repair it with your package manager.',
+  cliNativeSync: 'This CLI parses Harness sessions natively (wakatime-cli ≥ v2.25): prompts, token usage, and models are tracked by WakaTime itself, and this plugin\'s heartbeats deduplicate against them.',
+  cliNativeSyncAvailable: 'wakatime-cli ≥ v2.25 can parse Harness sessions natively (adding prompt and token usage tracking); update when a release is available to enable it.',
   cliDownloaded: 'CLI installed',
   cliChecked: 'Check complete',
   cliActionFailed: 'CLI action failed',
-  category: 'Activity type',
-  trackReads: 'Track reads',
   debug: 'Debug logging',
   heartbeatInterval: 'Heartbeat interval (ms)',
   heartbeatIntervalInvalid: 'Enter an interval of at least 1000 ms.',
@@ -496,7 +492,7 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeButton:hover { border-color: currentColor; background: var(--dsh-surface-input); }
 .dshWakatimeButton:disabled { opacity: .45; cursor: wait; }
 .dshWakatimeButton[data-primary="true"] { border-color: currentColor; }
-.dshWakatimeButton:focus-visible, .dshWakatimeTab:focus-visible, .dshWakatimeField input:focus-visible, .dshWakatimeField select:focus-visible, .dshWakatimeCategoryButton:focus-visible, .dshWakatimeCategoryPopover button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.dshWakatimeButton:focus-visible, .dshWakatimeTab:focus-visible, .dshWakatimeField input:focus-visible, .dshWakatimeField select:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .dshWakatimeTabs { display: flex; flex-wrap: wrap; gap: var(--dsh-space-3) 20px; margin-bottom: var(--dsh-space-4); border-bottom: 1px solid var(--dsh-border); }
 .dshWakatimeTab { appearance: none; position: relative; border: 0; padding: 0 0 10px; color: inherit; opacity: .58; background: none; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
 .dshWakatimeTab[aria-selected="true"] { opacity: 1; }
@@ -813,13 +809,6 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeField input, .dshWakatimeField select { width: 100%; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 9px 10px; color: inherit; background: var(--dsh-surface-input); font: inherit; font-size: 13px; }
 .dshWakatimeField select { color-scheme: inherit; cursor: pointer; }
 .dshWakatimeField select option { color: var(--dsh-menu-fg); background: var(--dsh-menu-bg); }
-.dshWakatimeCategoryMenu { position: relative; }
-.dshWakatimeCategoryButton { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; appearance: none; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); padding: 9px 10px; color: inherit; background: var(--dsh-surface-input); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
-.dshWakatimeCategoryButton::after { content: '⌄'; opacity: .62; }
-.dshWakatimeCategoryPopover { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; left: 0; display: grid; max-height: 220px; gap: 2px; overflow-y: auto; padding: 4px; border: 1px solid var(--dsh-border-strong); border-radius: var(--dsh-radius); background: var(--dsh-menu-bg); box-shadow: 0 8px 20px rgb(0 0 0 / 20%); }
-.dshWakatimeCategoryPopover button { border: 0; border-radius: 4px; padding: 7px 8px; color: var(--dsh-menu-fg); background: transparent; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
-.dshWakatimeCategoryPopover button:hover { color: var(--dsh-menu-fg); background: var(--dsh-menu-hover-bg); }
-.dshWakatimeCategoryPopover button[aria-selected="true"] { color: var(--dsh-menu-fg); background: var(--dsh-menu-active-bg); }
 .dshWakatimeInlineActions { display: flex; align-items: center; gap: 8px; }
 .dshWakatimeInlineActions input { flex: 1; min-width: 0; }
 .dshWakatimeKeyRow { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 12px; align-items: center; }
@@ -1027,15 +1016,10 @@ body[data-color-scheme="dark"] .dshWakatimePage {
 .dshWakatimeConfigCard .dshWakatimeConfigInput { height: 34px; border: 1px solid var(--dsh-control-border); border-radius: 6px; padding: 0 11px; background: var(--dsh-control-bg); font-size: 12px; letter-spacing: .005em; }
 .dshWakatimeConfigCard .dshWakatimeConfigInput::placeholder { color: currentColor; opacity: .52; }
 .dshWakatimeConfigCard .dshWakatimeConfigInput,
-.dshWakatimeConfigCard .dshWakatimeCategoryButton { box-shadow: inset 0 1px 2px rgb(30 41 59 / 4%); transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease; }
-.dshWakatimeConfigCard .dshWakatimeCategoryButton { border-color: var(--dsh-control-border); background: var(--dsh-control-bg); }
-.dshWakatimeConfigCard .dshWakatimeConfigInput:hover,
-.dshWakatimeConfigCard .dshWakatimeCategoryButton:hover { border-color: color-mix(in srgb, var(--dsh-accent) 34%, var(--dsh-control-border)); background: color-mix(in srgb, var(--dsh-accent) 3%, var(--dsh-control-bg)); }
+.dshWakatimeConfigCard .dshWakatimeConfigInput:hover { border-color: color-mix(in srgb, var(--dsh-accent) 34%, var(--dsh-control-border)); background: color-mix(in srgb, var(--dsh-accent) 3%, var(--dsh-control-bg)); }
 .dshWakatimeConfigCard .dshWakatimeConfigInput:focus { border-color: var(--dsh-accent); box-shadow: 0 0 0 1px var(--dsh-accent); outline: 0; }
 .dshWakatimeConfigCard .dshWakatimeConfigInput:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; }
-.dshWakatimeConfigCard .dshWakatimeCategoryButton:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 0; box-shadow: 0 0 0 1px var(--dsh-accent); }
-.dshWakatimeConfigCard .dshWakatimeButton,
-.dshWakatimeConfigCard .dshWakatimeCategoryButton { min-height: 34px; padding: 0 10px; font-size: 11px; line-height: 1.2; }
+.dshWakatimeConfigCard .dshWakatimeButton { min-height: 34px; padding: 0 10px; font-size: 11px; line-height: 1.2; }
 .dshWakatimeConfigCard .dshWakatimeButton:disabled { cursor: default; }
 .dshWakatimeConfigCard .dshWakatimeCliPanel { margin: 0; padding: var(--dsh-module-padding); border: 1px solid var(--dsh-border); border-radius: var(--dsh-module-radius); background: var(--dsh-surface); }
 .dshWakatimeConfigCard .dshWakatimeCliBadge { display: inline-flex; align-items: center; max-width: 100%; gap: 6px; padding: 0; font-size: 11px; }
@@ -1197,8 +1181,6 @@ function hydrateUsageData(value: WakatimeUsageData): WakatimeUsageData {
 function formFromStatus(status: WakatimeUiStatus): FormState {
   return {
     baseUrl: status.config.baseUrl,
-    category: status.config.category,
-    trackReads: status.config.trackReads,
     cliPath: status.config.cliPath ?? '',
     debug: status.config.debug,
     heartbeatIntervalMs: String(status.config.heartbeatIntervalMs),
@@ -1402,60 +1384,6 @@ function Row({ label, value }: { label: string; value: string }) {
   return h('div', { className: 'dshWakatimeRow' },
     h('span', { className: 'dshWakatimeRowLabel' }, displayLabel),
     h('span', { className: 'dshWakatimeRowValue', title: displayValue }, displayValue),
-  )
-}
-
-function CategoryMenu({
-  id,
-  value,
-  onChange,
-}: {
-  id: string
-  value: WakatimeUiConfig['category']
-  onChange: (value: WakatimeUiConfig['category']) => void
-}) {
-  const [open, setOpen] = React.useState(false)
-  const root = React.useRef<HTMLDivElement>(null)
-
-  React.useEffect(() => {
-    if (!open) return undefined
-    const closeOnOutsideClick = (event: MouseEvent): void => {
-      if (root.current !== null && !root.current.contains(event.target as Node)) setOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [open])
-
-  return h('div', { ref: root, className: 'dshWakatimeCategoryMenu' },
-    h('button', {
-      id,
-      className: 'dshWakatimeCategoryButton',
-      type: 'button',
-      role: 'combobox',
-      'aria-labelledby': `${id}-label`,
-      'aria-haspopup': 'listbox',
-      'aria-expanded': open,
-      'aria-controls': `${id}-options`,
-      'aria-activedescendant': open ? `${id}-option-${value.replace(/\s+/g, '-')}` : undefined,
-      onClick: () => setOpen(current => !current),
-    }, categoryLabel(value)),
-    open
-      ? h('div', { id: `${id}-options`, className: 'dshWakatimeCategoryPopover', role: 'listbox' }, WAKATIME_CATEGORIES.map(category => h('button', {
-        id: `${id}-option-${category.replace(/\s+/g, '-')}`,
-        key: category,
-        type: 'button',
-        role: 'option',
-        'aria-selected': value === category,
-        onClick: () => { onChange(category); setOpen(false) },
-      }, categoryLabel(category))))
-      : null,
   )
 }
 
@@ -2347,8 +2275,6 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
       const next = await callValue<WakatimeUiStatus>(rpcCall, 'save', {
         baseUrl,
         config: {
-          category: form.category,
-          trackReads: form.trackReads,
           cliPath: form.cliPath.trim(),
           debug: form.debug,
           heartbeatIntervalMs,
@@ -2389,9 +2315,11 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
         setStatus(result.status)
         setForm(formFromStatus(result.status))
         setCliUpdateState({ updateAvailable: result.updateAvailable, ...(result.latestVersion === undefined ? {} : { latestVersion: result.latestVersion }) })
-        setNotice(result.updateAvailable
-          ? tr(t, 'cliUpdateAvailable', 'Update {version} available').replace('{version}', result.latestVersion ?? '')
-          : tr(t, 'cliLatest', 'Already up to date'))
+        // The disabled check button above already reads "Already up to
+        // date"; only a found update needs a notice down here.
+        if (result.updateAvailable) {
+          setNotice(tr(t, 'cliUpdateAvailable', 'Update {version} available').replace('{version}', result.latestVersion ?? ''))
+        }
         return
       }
       const next = await callValue<WakatimeUiStatus>(rpcCall, action === 'download' ? 'download-cli' : 'update-cli')
@@ -2423,8 +2351,6 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
     config.baseUrl.trim() !== status.config.baseUrl
     || apiKey.trim().length > 0
     || clearApiKey
-    || config.category !== status.config.category
-    || config.trackReads !== status.config.trackReads
     || config.cliPath.trim() !== (status.config.cliPath ?? '')
     || config.debug !== status.config.debug
     || Number(config.heartbeatIntervalMs) !== status.config.heartbeatIntervalMs
@@ -2504,6 +2430,11 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
               : source === 'path' && state === 'invalid'
                 ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliInvalidPath', 'The CLI found on PATH is not executable.'))
                 : null,
+          status?.cli.nativeSync === true
+            ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliNativeSync', 'This CLI parses Harness sessions natively; prompts, tokens, and models are tracked by WakaTime.'))
+            : state === 'ready' && status?.cli.version !== undefined
+              ? h('p', { className: 'dshWakatimeCliHint' }, tr(t, 'cliNativeSyncAvailable', 'wakatime-cli ≥ v2.25 can parse Harness sessions natively; update to enable it.'))
+              : null,
         ),
         h('div', { className: 'dshWakatimeKeyRow' },
           h('div', { className: 'dshWakatimeKeyMeta' },
@@ -2540,15 +2471,9 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
           h('div', { className: 'dshWakatimeForm' },
             h('div', { className: 'dshWakatimeFormGrid' },
               h('div', { className: 'dshWakatimeField' },
-                h('label', { id: 'dsh-wakatime-category-label' }, tr(t, 'category', 'Activity type')),
-                h(CategoryMenu, { id: 'dsh-wakatime-category', value: config.category, onChange: value => input('category', value) }),
-              ),
-              h('div', { className: 'dshWakatimeField' },
                 h('label', { htmlFor: 'dsh-wakatime-interval' }, tr(t, 'heartbeatInterval', 'Heartbeat interval (ms)')),
                 h('input', { id: 'dsh-wakatime-interval', className: 'dshWakatimeConfigInput', type: 'number', min: 1000, step: 1000, value: config.heartbeatIntervalMs, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('heartbeatIntervalMs', event.target.value) }),
               ),
-            ),
-            h('div', { className: 'dshWakatimeFormGrid' },
               h('div', { className: 'dshWakatimeField' },
                 h('label', { htmlFor: 'dsh-wakatime-dashboard-refresh' }, tr(t, 'dashboardRefreshInterval', 'Dashboard refresh interval (minutes)')),
                 h('input', { id: 'dsh-wakatime-dashboard-refresh', className: 'dshWakatimeConfigInput', type: 'number', min: 1, max: 1440, step: 1, value: config.dashboardRefreshIntervalMinutes, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('dashboardRefreshIntervalMinutes', event.target.value) }),
@@ -2564,7 +2489,6 @@ export function WakatimeSettingsTab({ rpcCall, t }: { rpcCall: WakatimeUiRpcCall
             ),
             h('div', { className: 'dshWakatimeAdvancedFooter' },
               h('div', { className: 'dshWakatimeChecks' },
-                h('div', { className: 'dshWakatimeCheck' }, h('input', { id: 'dsh-wakatime-track-reads', type: 'checkbox', checked: config.trackReads, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('trackReads', event.target.checked) }), h('div', null, h('label', { htmlFor: 'dsh-wakatime-track-reads' }, tr(t, 'trackReads', 'Track reads')))),
                 h('div', { className: 'dshWakatimeCheck' }, h('input', { id: 'dsh-wakatime-debug', type: 'checkbox', checked: config.debug, onChange: (event: React.ChangeEvent<HTMLInputElement>) => input('debug', event.target.checked) }), h('div', null, h('label', { htmlFor: 'dsh-wakatime-debug' }, tr(t, 'debug', 'Debug logging')))),
               ),
               h('div', { className: 'dshWakatimeFormActions' },

@@ -1,43 +1,15 @@
 /**
  * The WakaTime UI wire contract, shared verbatim between the tracking plugin
  * (`@27aaron/dsh-wakatime`) and the dashboard bundle
- * (`@27aaron/dsh-wakatime-ui`). This file is the single source of truth for
- * the category list; the repository's `check-contract-parity` script fails
- * when the two copies diverge.
+ * (`@27aaron/dsh-wakatime-ui`). Heartbeats always use WakaTime's fixed
+ * `ai coding` category, matching wakatime-cli's native DeepSeek Harness
+ * parser, so no category choice travels over this contract.
  */
 
 export const WAKATIME_RPC_CHANNEL = '/dsh-wakatime'
 
-export const WAKATIME_CATEGORIES = [
-  'coding',
-  'ai coding',
-  'building',
-  'indexing',
-  'debugging',
-  'learning',
-  'notes',
-  'meeting',
-  'planning',
-  'researching',
-  'communicating',
-  'supporting',
-  'advising',
-  'running tests',
-  'writing tests',
-  'manual testing',
-  'writing docs',
-  'code reviewing',
-  'browsing',
-  'translating',
-  'designing',
-] as const
-
-export type WakatimeCategory = typeof WAKATIME_CATEGORIES[number]
-
 export interface WakatimeUiConfig {
   baseUrl: string
-  category: WakatimeCategory
-  trackReads: boolean
   cliPath?: string
   debug: boolean
   heartbeatIntervalMs: number
@@ -51,6 +23,11 @@ export interface WakatimeCliStatus {
   path?: string
   version?: string
   managedPath: string
+  /**
+   * Whether the resolved CLI parses DeepSeek Harness session transcripts
+   * natively (wakatime-cli >= v2.25). Present only when the version was read.
+   */
+  nativeSync?: boolean
 }
 
 export interface WakatimeCliUpdateCheck {
