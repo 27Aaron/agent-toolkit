@@ -2,34 +2,12 @@ import { createRequire } from 'node:module'
 import { isAbsolute } from 'node:path'
 import z from '@deepseek-ai/schemastery'
 import { expandUserPath } from './paths.ts'
+import { WAKATIME_CATEGORIES, type WakatimeCategory } from './ui-contract.ts'
 
 export const name = 'wakatime'
 
-export const WAKATIME_CATEGORIES = [
-  'coding',
-  'ai coding',
-  'building',
-  'indexing',
-  'debugging',
-  'learning',
-  'notes',
-  'meeting',
-  'planning',
-  'researching',
-  'communicating',
-  'supporting',
-  'advising',
-  'running tests',
-  'writing tests',
-  'manual testing',
-  'writing docs',
-  'code reviewing',
-  'browsing',
-  'translating',
-  'designing',
-] as const
-
-export type WakatimeCategory = typeof WAKATIME_CATEGORIES[number]
+export { WAKATIME_CATEGORIES }
+export type { WakatimeCategory }
 
 export interface Config {
   /** Minimum interval between heartbeat batches for one project. */

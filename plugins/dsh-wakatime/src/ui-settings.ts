@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import type { WakatimeCategory } from './config.ts'
+import { WAKATIME_CATEGORIES, type WakatimeCategory } from './config.ts'
 import { getPluginDataDir, getPluginSettingsFilePath } from './paths.ts'
 
 export interface PersistedWakatimeConfig {
@@ -13,29 +13,7 @@ export interface PersistedWakatimeConfig {
   insightsRefreshIntervalMs?: number
 }
 
-const categories = new Set<WakatimeCategory>([
-  'coding',
-  'ai coding',
-  'building',
-  'indexing',
-  'debugging',
-  'learning',
-  'notes',
-  'meeting',
-  'planning',
-  'researching',
-  'communicating',
-  'supporting',
-  'advising',
-  'running tests',
-  'writing tests',
-  'manual testing',
-  'writing docs',
-  'code reviewing',
-  'browsing',
-  'translating',
-  'designing',
-])
+const categories = new Set<string>(WAKATIME_CATEGORIES)
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

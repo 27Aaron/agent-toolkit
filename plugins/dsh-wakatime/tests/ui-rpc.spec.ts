@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, Config, name } from '../src/index.ts'
 
 const originalHome = process.env.WAKATIME_HOME
@@ -10,6 +10,8 @@ const originalApiKey = process.env.WAKATIME_API_KEY
 const directories: string[] = []
 
 afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
   if (originalHome === undefined) delete process.env.WAKATIME_HOME
   else process.env.WAKATIME_HOME = originalHome
   if (originalApiKey === undefined) delete process.env.WAKATIME_API_KEY
@@ -100,5 +102,44 @@ describe('WakaTime settings RPC', () => {
 
     await fiber.dispose()
     expect(disposed).toBe(true)
+  })
+
+  it('reschedules an active background refresh after saving new intervals', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-waka-rpc-timer-'))
+    directories.push(directory)
+    process.env.WAKATIME_HOME = directory
+    delete process.env.WAKATIME_API_KEY
+    vi.useFakeTimers()
+    const timeout = vi.spyOn(globalThis, 'setTimeout')
+
+    let handler: ((endpoint: string, payload: unknown, signal: { aborted: boolean }) => Promise<any>) | undefined
+    const ctx = new Context()
+    ctx.provide('connection', {
+      rpc: {
+        handle(_channel: string, next: typeof handler) {
+          handler = next
+          return () => {}
+        },
+      },
+    })
+    const fiber = await ctx.plugin({ name, Config, apply }, {
+      autoInstall: false,
+      cliPath: process.execPath,
+    })
+
+    await handler!('usage', { start: '2026-08-24', end: '2026-08-25' }, { aborted: false })
+    expect(timeout.mock.calls.map(call => call[1])).toContain(300_000)
+
+    const callsBeforeSave = timeout.mock.calls.length
+    const saved = await handler!('save', {
+      config: {
+        dashboardRefreshIntervalMs: 60_000,
+        insightsRefreshIntervalMs: 3_600_000,
+      },
+    }, { aborted: false })
+    expect(saved.ok).toBe(true)
+    expect(timeout.mock.calls.slice(callsBeforeSave).map(call => call[1])).toContain(60_000)
+
+    await fiber.dispose()
   })
 })

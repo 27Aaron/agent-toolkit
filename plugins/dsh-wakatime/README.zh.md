@@ -4,6 +4,13 @@
 
 面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 WakaTime 集成。插件只观察成功的 Agent 文件操作，不改变工具行为，也不阻塞工具执行流水线。
 
+本包是**跟踪核心**：通过 `.wakatime.cfg` 和下方的插件配置即可完成全部配置，不需要任何 UI。Web 仪表盘和设置页面位于独立的 [`@27aaron/dsh-wakatime-ui`](../dsh-wakatime-ui) 包；想要图形界面时安装它即可。两个变体读写同一个 WakaTime 数据目录，切换时所有设置都会保留。
+
+| 包                          | 提供的能力                                       |
+| --------------------------- | ------------------------------------------------ |
+| `@27aaron/dsh-wakatime`     | 无界面跟踪；完全不含浏览器端代码。               |
+| `@27aaron/dsh-wakatime-ui`  | 同样的跟踪能力，外加 Web 仪表盘和设置页面。      |
+
 ## 特性
 
 - 使用 Harness 官方 `tools/result` Cordis 事件，同时覆盖原生工具与 Code Mode 子调用。
@@ -13,6 +20,7 @@
 - 使用带独占锁的跨进程、按项目限流；暂时失败时保留并重试数据。
 - 按“显式路径、全局 CLI、托管下载”的优先级选择 `wakatime-cli`。
 - 首次捕获文件活动后才按需检测 CLI，因此 Harness 启动不会等待网络；托管下载只由配置页按钮或显式 `autoInstall: true` 触发。
+- 自身不会发起后台 WakaTime API 请求；仪表盘数据只在页面真正发起使用或设置交互后才开始拉取。
 - 读取 WakaTime 标准 HTTP(S) `proxy`、`no_ssl_verify` 与 `debug` 设置；过滤和项目识别继续由 CLI 负责。
 - 在 Session 销毁和插件卸载时刷新数据，兼容一次性 headless 任务。
 
@@ -29,14 +37,17 @@ api_key = waka_your_api_key_here
 
 ## 从当前仓库安装
 
-先构建插件，再将本地目录作为 Profile Bundle 加入 DSH；检查组合结果后重启 Profile：
+先构建插件，再把需要的变体作为 Profile Bundle 加入 DSH；检查组合结果后重启 Profile：
 
 ```sh
 pnpm install
 pnpm build
+
+# 仅跟踪：
 dsh plugin --profile web add ./plugins/dsh-wakatime
-dsh --profile web --dump-config
-dsh web
+
+# 跟踪 + Web 仪表盘：
+dsh plugin --profile web add ./plugins/dsh-wakatime-ui
 ```
 
 每个需要统计的 Profile 都应独立安装：
@@ -45,17 +56,19 @@ dsh web
 dsh plugin --profile headless add ./plugins/dsh-wakatime
 ```
 
-如需可移植产物，运行 `pnpm --filter @27aaron/dsh-wakatime pack`，再通过 `dsh plugin --profile <name> add <file.tgz>` 安装生成的 tarball。
+如需可移植的核心产物，运行 `pnpm --filter @27aaron/dsh-wakatime pack`，再通过 `dsh plugin --profile <name> add <file.tgz>` 安装。UI tarball 会把本核心保留为普通 registry 依赖，因此分发 `@27aaron/dsh-wakatime-ui` 前必须先发布匹配版本的核心包；未发布的本地检出请使用上方的目录安装命令。
+
+**每个 Profile 只装一个变体。** 两个包都声明了 `dsh.bundle` patch，同时装入一个 Profile 会组合出两行 wakatime；先激活的一行负责跟踪，另一行会记录警告后让位，不会重复统计——但建议避免这种组合。UI 包会以传递依赖的形式自动安装本核心包，后续切换只需移除一个再添加另一个；设置保存在 WakaTime 数据目录，切换不丢。
 
 ## 配置
 
-### 设置页面
+### Web 仪表盘
 
-将插件安装到 web Profile 后重启 DSH，然后打开 **设置 → 插件 → WakaTime**。页面按官方 Dashboard 结构展示：活动概览、AI Coding、模型、编辑器、语言、操作系统、设备机器、AI／人工趋势；项目页集中展示项目、分类、今天的活动分布以及包含 AI 明细的项目卡片，AI 和洞察页提供提示词、Token、模型、工作日以及每日 AI 占比等明细。
+仪表盘和设置页面由 [`@27aaron/dsh-wakatime-ui`](../dsh-wakatime-ui) 提供，功能介绍见其 README。无论安装哪个变体，本核心都提供相同的 RPC 端点、为已安装的仪表盘持续供给缓存数据，并且只在第一次页面交互之后才启动后台刷新。两个变体都从 `.wakatime.cfg` 读取 API Key，并把页面管理的选项保存在 WakaTime 数据目录下，因此来回切换不会丢失任何设置。
 
-API Key 会以受限的本机文件权限写入 WakaTime 标准 `.wakatime.cfg`；页面管理的插件选项保存在 WakaTime 数据目录下。页面只会收到“是否已配置 API Key”的布尔值，不会把已有密钥读回浏览器。数据请求由 Host 进程发起，并短暂缓存以避免重复请求。仪表盘等短周期数据来自 summaries，选定结束日期还会通过 WakaTime durations 接口获取更细的“今天”分布；洞察页默认使用过去 1 年，并通过只读的 `stats`、`days`、`ai_days` 和 `weekdays` 接口生成长期热力图，不会调用团队、账单或其他付费专属 API。
+### 插件配置
 
-Bundle 会插入 id 为 `wakatime` 的行。可在 `$DSH_HOME/profiles/<name>/cordis.patch.yml`、`$DSH_HOME/cordis.patch.yml` 或更晚的 `--patch` 层覆盖：
+Bundle 会插入 id 为 `wakatime` 的行（UI 变体插入 `wakatime-ui` 并 re-export 同一份 schema）。可在 `$DSH_HOME/profiles/<name>/cordis.patch.yml`、`$DSH_HOME/cordis.patch.yml` 或更晚的 `--patch` 层覆盖：
 
 ```yaml
 - id: wakatime

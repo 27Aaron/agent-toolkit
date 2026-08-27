@@ -7,9 +7,9 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "scripts": {
-    "build": "pnpm --filter @27aaron/dsh-wakatime build",
-    "check": "pnpm --filter @27aaron/dsh-wakatime check",
-    "test": "pnpm --filter @27aaron/dsh-wakatime test",
-    "typecheck": "pnpm --filter @27aaron/dsh-wakatime typecheck"
+    "build": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui build",
+    "check": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui check",
+    "test": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui test",
+    "typecheck": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui typecheck"
   }
 }

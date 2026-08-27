@@ -1,7 +1,7 @@
 import * as React from 'react'
 import {
   WAKATIME_RPC_CHANNEL,
-  UI_CATEGORIES,
+  WAKATIME_CATEGORIES,
   type WakatimeCliUpdateCheck,
   type WakatimeDailyUsage,
   type WakatimeInsightsData,
@@ -10,7 +10,7 @@ import {
   type WakatimeUiStatus,
   type WakatimeUsageBucket,
   type WakatimeUsageData,
-} from './ui-contract.ts'
+} from '@27aaron/dsh-wakatime/ui-contract'
 
 export const name = 'wakatime-settings'
 export const inject = ['slots', 'connection', 'locale']
@@ -1447,7 +1447,7 @@ function CategoryMenu({
       onClick: () => setOpen(current => !current),
     }, categoryLabel(value)),
     open
-      ? h('div', { id: `${id}-options`, className: 'dshWakatimeCategoryPopover', role: 'listbox' }, UI_CATEGORIES.map(category => h('button', {
+      ? h('div', { id: `${id}-options`, className: 'dshWakatimeCategoryPopover', role: 'listbox' }, WAKATIME_CATEGORIES.map(category => h('button', {
         id: `${id}-option-${category.replace(/\s+/g, '-')}`,
         key: category,
         type: 'button',
