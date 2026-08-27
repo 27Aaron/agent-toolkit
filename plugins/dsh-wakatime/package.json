@@ -1,6 +1,6 @@
 {
   "name": "@27aaron/dsh-wakatime",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "WakaTime tracking for DeepSeek Harness (headless core; add @27aaron/dsh-wakatime-ui for the web dashboard)",
   "author": "Aaron",
   "license": "MIT",
