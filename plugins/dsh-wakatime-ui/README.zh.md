@@ -18,6 +18,18 @@
 
 与核心包一致：DeepSeek Harness `>= 0.1.1-rc.2 < 0.2`、Node.js `^22.19.0 || >=24.0.0`，并按其说明配置 WakaTime API Key。仅对 web Profile 有意义；headless Profile 不会加载浏览器端代码。
 
+## 从 npm 安装
+
+安装本 Bundle，不要同时安装仅跟踪的核心 Bundle：
+
+```sh
+dsh plugin --profile web add @27aaron/dsh-wakatime-ui
+dsh --profile web --dump-config
+dsh web
+```
+
+匹配版本的 `@27aaron/dsh-wakatime` 核心包会作为传递依赖自动安装，请勿再把核心 Bundle 加入同一个 Profile。
+
 ## 从当前仓库安装
 
 ```sh

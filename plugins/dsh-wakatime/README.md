@@ -35,6 +35,22 @@ This package is the **tracking core**. Configuration happens through `.wakatime.
 api_key = waka_your_api_key_here
 ```
 
+## Install from npm
+
+Install the tracking-only bundle into every profile that should report activity:
+
+```sh
+dsh plugin --profile headless add @27aaron/dsh-wakatime
+```
+
+For tracking plus the Web dashboard, install `@27aaron/dsh-wakatime-ui` instead:
+
+```sh
+dsh plugin --profile web add @27aaron/dsh-wakatime-ui
+```
+
+Pick one variant per profile. Inspect the composed configuration and restart the profile after installation.
+
 ## Install from this repository
 
 Build the packages, add the variant you want as a Profile Bundle, inspect the composed layer, and restart the profile:
