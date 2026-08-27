@@ -1,12 +1,20 @@
 import { type ChildProcess, type SpawnOptions, spawn } from 'node:child_process'
 import * as os from 'node:os'
 import type { CliManager } from './cli.ts'
-import type { WakatimeCategory } from './config.ts'
 import type { PluginLogger } from './logger.ts'
 import type { Heartbeat } from './tracker.ts'
 
 const KILL_GRACE_MS = 2_000
 const FINAL_RESOLVE_GRACE_MS = 1_000
+
+/**
+ * wakatime-cli's DeepSeek Harness parser emits every parsed heartbeat with
+ * the fixed `ai coding` category and forces the same category onto matching
+ * plugin heartbeats, so the category is not configurable: sending anything
+ * else here would split one session across two categories once native
+ * parsing is active.
+ */
+const HEARTBEAT_CATEGORY = 'ai coding'
 
 interface HeartbeatProcessState {
   activeChildren: Set<ChildProcess>
@@ -59,7 +67,6 @@ export function formatArguments(binary: string, args: string[]): string {
 }
 
 export class HeartbeatDispatcher {
-  private category: WakatimeCategory
   private timeoutMs: number
   private lastAttemptAt = 0
   private lastSuccessAt = 0
@@ -68,16 +75,13 @@ export class HeartbeatDispatcher {
   constructor(
     private readonly cli: CliManager,
     private readonly pluginTag: string,
-    category: WakatimeCategory,
     timeoutMs: number,
     private readonly logger: PluginLogger,
   ) {
-    this.category = category
     this.timeoutMs = timeoutMs
   }
 
-  updateConfig(category: WakatimeCategory, timeoutMs: number): void {
-    this.category = category
+  updateConfig(timeoutMs: number): void {
     this.timeoutMs = timeoutMs
   }
 
@@ -104,7 +108,7 @@ export class HeartbeatDispatcher {
     const args = [
       '--entity', primary.entity,
       '--entity-type', 'file',
-      '--category', this.category,
+      '--category', HEARTBEAT_CATEGORY,
       '--plugin', this.pluginTag,
       '--project-folder', primary.projectFolder,
       '--time', String(primary.time),
@@ -115,7 +119,7 @@ export class HeartbeatDispatcher {
 
     const extraPayload = extra.map(heartbeat => ({
       ai_line_changes: heartbeat.lineChanges,
-      category: this.category,
+      category: HEARTBEAT_CATEGORY,
       entity: heartbeat.entity,
       entity_type: 'file',
       ...(heartbeat.isWrite ? { is_write: true } : {}),

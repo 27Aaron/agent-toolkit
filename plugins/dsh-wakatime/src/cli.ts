@@ -96,6 +96,29 @@ export function cliBinaryName(): string {
   return `wakatime-cli-${platform}${isWindows() ? '.exe' : ''}`
 }
 
+/**
+ * Whether the CLI parses DeepSeek Harness session transcripts (prompts,
+ * assistant output, AI tokens, models, and the same file activity this plugin
+ * tracks) during every heartbeat send. The parser first shipped in v2.25.0;
+ * its prereleases already carry it, and `<local-build>` binaries track
+ * develop, so both count as native.
+ */
+export function supportsNativeHarnessParsing(version: string | undefined): boolean {
+  if (version === undefined) return false
+  const trimmed = version.trim()
+  if (trimmed === '<local-build>') return true
+  const match = /^v?(\d+)\.(\d+)(?:\.(\d+))?/.exec(trimmed)
+  if (match === null) return false
+  const major = Number(match[1])
+  const minor = Number(match[2])
+  return major > 2 || (major === 2 && minor >= 25)
+}
+
+function withNativeSync(status: WakatimeCliStatus): WakatimeCliStatus {
+  if (status.version === undefined) return status
+  return { ...status, nativeSync: supportsNativeHarnessParsing(status.version) }
+}
+
 function executableOnPath(name: string): string | undefined {
   const pathValue = process.env.PATH
   if (pathValue === undefined) return undefined
@@ -647,13 +670,13 @@ export class CliManager {
   async inspect(): Promise<WakatimeCliStatus> {
     if (this.config.cliPath !== undefined) {
       try {
-        return {
+        return withNativeSync({
           state: 'ready',
           source: 'configured',
           path: this.config.cliPath,
           version: await execVersion(this.config.cliPath),
           managedPath: this.managedPath,
-        }
+        })
       } catch {
         return {
           state: 'invalid',
@@ -667,13 +690,13 @@ export class CliManager {
     const global = executableOnPath('wakatime-cli')
     if (global !== undefined) {
       try {
-        return {
+        return withNativeSync({
           state: 'ready',
           source: 'path',
           path: global,
           version: await execVersion(global),
           managedPath: this.managedPath,
-        }
+        })
       } catch {
         return {
           state: 'invalid',
@@ -686,13 +709,13 @@ export class CliManager {
 
     if (fs.existsSync(this.managedPath)) {
       try {
-        return {
+        return withNativeSync({
           state: 'ready',
           source: 'managed',
           path: this.managedPath,
           version: await execVersion(this.managedPath),
           managedPath: this.managedPath,
-        }
+        })
       } catch {
         return {
           state: 'invalid',
@@ -712,13 +735,13 @@ export class CliManager {
     try {
       const inspected = await this.inspect()
       if (inspected.path === binary && inspected.state === 'ready') return inspected
-      return {
+      return withNativeSync({
         state: 'ready',
         source: this.sourceFor(binary),
         path: binary,
         version: await execVersion(binary),
         managedPath: this.managedPath,
-      }
+      })
     } catch {
       return {
         state: 'invalid',

@@ -20,15 +20,11 @@ describe('WakaTime UI settings persistence', () => {
     const file = join(directory, 'settings.json')
 
     expect(writePersistedWakatimeConfig({
-      category: 'ai coding',
-      trackReads: false,
       cliPath: '/tmp/wakatime-cli',
       heartbeatIntervalMs: 60_000,
       dashboardRefreshIntervalMs: 300_000,
       insightsRefreshIntervalMs: 1_800_000,
     }, file)).toEqual({
-      category: 'ai coding',
-      trackReads: false,
       cliPath: '/tmp/wakatime-cli',
       heartbeatIntervalMs: 60_000,
       dashboardRefreshIntervalMs: 300_000,
@@ -37,20 +33,18 @@ describe('WakaTime UI settings persistence', () => {
     expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual(readPersistedWakatimeConfig(file))
 
     expect(writePersistedWakatimeConfig({ cliPath: '' }, file)).toEqual({
-      category: 'ai coding',
-      trackReads: false,
       heartbeatIntervalMs: 60_000,
       dashboardRefreshIntervalMs: 300_000,
       insightsRefreshIntervalMs: 1_800_000,
     })
   })
 
-  it('does not carry the legacy automatic-download setting forward', () => {
+  it('drops legacy persisted keys that no longer exist', () => {
     const directory = mkdtempSync(join(tmpdir(), 'dsh-waka-ui-settings-'))
     directories.push(directory)
     const file = join(directory, 'settings.json')
-    writeFileSync(file, JSON.stringify({ autoInstall: true, category: 'coding' }))
+    writeFileSync(file, JSON.stringify({ autoInstall: true, category: 'coding', trackReads: true, debug: true }))
 
-    expect(readPersistedWakatimeConfig(file)).toEqual({ category: 'coding' })
+    expect(readPersistedWakatimeConfig(file)).toEqual({ debug: true })
   })
 })

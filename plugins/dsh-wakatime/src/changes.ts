@@ -41,11 +41,17 @@ export function diffsFromMeta(meta: unknown): FileDiffHunk[] | undefined {
   return valid ? candidate : undefined
 }
 
-function changesFromDiffs(meta: unknown, isWrite: boolean): FileChange[] | undefined {
+function changesFromDiffs(
+  meta: unknown,
+  isWrite: boolean,
+  mode: 'delta' | 'count',
+): FileChange[] | undefined {
   const diffs = diffsFromMeta(meta)
   return diffs?.map(diff => ({
     file: diff.path,
-    lineChanges: lineDelta(diff.oldText, diff.newText),
+    lineChanges: mode === 'count'
+      ? lineCount(diff.newText)
+      : lineDelta(diff.oldText, diff.newText),
     isWrite,
   }))
 }
@@ -54,6 +60,7 @@ function changeFromCanonicalValue(
   value: unknown,
   fallbackFile: unknown,
   isWrite: boolean,
+  mode: 'delta' | 'count',
 ): FileChange | undefined {
   const output = record(value)
   if (output === undefined) return undefined
@@ -64,7 +71,9 @@ function changeFromCanonicalValue(
   }
   return {
     file,
-    lineChanges: lineDelta(output.before as string | null, output.after),
+    lineChanges: mode === 'count'
+      ? lineCount(output.after)
+      : lineDelta(output.before as string | null, output.after),
     isWrite,
   }
 }
@@ -74,16 +83,18 @@ export function extractFileChanges(
   rawArguments: unknown,
   meta: unknown,
   value: unknown,
-  trackReads: boolean,
 ): FileChange[] {
   const args = record(rawArguments)
   if (args === undefined) return []
 
   switch (tool) {
     case 'edit': {
-      const fromDiffs = changesFromDiffs(meta, false)
+      // wakatime-cli's DeepSeek Harness parser reports every mutation as a
+      // write (pkg/ai/deepseek.go dshToolHeartbeatInfo); match it so fallback
+      // heartbeats and native parsing agree on write attribution.
+      const fromDiffs = changesFromDiffs(meta, true, 'delta')
       if (fromDiffs !== undefined) return fromDiffs
-      const canonical = changeFromCanonicalValue(value, args.file_path, false)
+      const canonical = changeFromCanonicalValue(value, args.file_path, true, 'delta')
       if (canonical !== undefined) return [canonical]
       if (typeof args.file_path !== 'string' || args.file_path.length === 0) return []
       return [{
@@ -92,13 +103,15 @@ export function extractFileChanges(
           typeof args.old_string === 'string' ? args.old_string : undefined,
           typeof args.new_string === 'string' ? args.new_string : undefined,
         ),
-        isWrite: false,
+        isWrite: true,
       }]
     }
     case 'write': {
-      const canonical = changeFromCanonicalValue(value, args.file_path, true)
+      // Upstream counts the full written content (dshTextLineCount(content)),
+      // not a before/after delta, so every source here counts new lines only.
+      const canonical = changeFromCanonicalValue(value, args.file_path, true, 'count')
       if (canonical !== undefined) return [canonical]
-      const fromDiffs = changesFromDiffs(meta, true)
+      const fromDiffs = changesFromDiffs(meta, true, 'count')
       if (fromDiffs !== undefined) return fromDiffs
       if (typeof args.file_path !== 'string' || args.file_path.length === 0) return []
       return [{
@@ -109,7 +122,7 @@ export function extractFileChanges(
     }
     case 'read':
     case 'read_image': {
-      if (!trackReads || typeof args.file_path !== 'string' || args.file_path.length === 0) return []
+      if (typeof args.file_path !== 'string' || args.file_path.length === 0) return []
       return [{ file: args.file_path, lineChanges: 0, isWrite: false }]
     }
     case 'str_replace_editor': {
@@ -117,7 +130,7 @@ export function extractFileChanges(
       if (typeof file !== 'string' || file.length === 0) return []
       switch (args.command) {
         case 'view':
-          return trackReads ? [{ file, lineChanges: 0, isWrite: false }] : []
+          return [{ file, lineChanges: 0, isWrite: false }]
         case 'create':
           return [{
             file,
@@ -131,13 +144,13 @@ export function extractFileChanges(
               typeof args.old_str === 'string' ? args.old_str : undefined,
               typeof args.new_str === 'string' ? args.new_str : undefined,
             ),
-            isWrite: false,
+            isWrite: true,
           }]
         case 'insert':
           return [{
             file,
             lineChanges: lineCount(typeof args.new_str === 'string' ? args.new_str : undefined),
-            isWrite: false,
+            isWrite: true,
           }]
         default:
           return []

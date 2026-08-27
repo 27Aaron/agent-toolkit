@@ -2,12 +2,8 @@ import { createRequire } from 'node:module'
 import { isAbsolute } from 'node:path'
 import z from '@deepseek-ai/schemastery'
 import { expandUserPath } from './paths.ts'
-import { WAKATIME_CATEGORIES, type WakatimeCategory } from './ui-contract.ts'
 
 export const name = 'wakatime'
-
-export { WAKATIME_CATEGORIES }
-export type { WakatimeCategory }
 
 export interface Config {
   /** Minimum interval between heartbeat batches for one project. */
@@ -26,10 +22,6 @@ export interface Config {
   cliPath?: string
   /** Opt in to background download/update when no explicit or PATH CLI exists. */
   autoInstall?: boolean
-  /** Include successful read and read_image operations. */
-  trackReads?: boolean
-  /** WakaTime heartbeat category. */
-  category?: WakatimeCategory
   /** Client qualifier in the WakaTime plugin tag. */
   client?: string
   /** Enable plugin debug logging in addition to ~/.wakatime.cfg. */
@@ -51,8 +43,6 @@ export const Config: z<Config> = z.object({
   // Downloads are opt-in. The settings page exposes explicit download and
   // update actions instead of managing executables in the background.
   autoInstall: z.boolean().default(false),
-  trackReads: z.boolean().default(true),
-  category: z.union([...WAKATIME_CATEGORIES]).default('ai coding'),
   client: z.string().min(1).pattern(/^[A-Za-z0-9][A-Za-z0-9._-]*$/).default('dsh'),
   debug: z.boolean().default(false),
   maxPendingFiles: z.number().step(1).min(1).max(100_000).default(5_000),
@@ -67,8 +57,6 @@ export interface ResolvedConfig {
   cliDownloadTimeoutMs: number
   cliPath?: string
   autoInstall: boolean
-  trackReads: boolean
-  category: WakatimeCategory
   client: string
   debug: boolean
   maxPendingFiles: number
@@ -103,8 +91,6 @@ export function resolveConfig(config: Config): ResolvedConfig {
     cliDownloadTimeoutMs: clampInterval(config.cliDownloadTimeoutMs, 1_000, MAX_INTERVAL_MS, 120_000),
     ...(cliPath === undefined ? {} : { cliPath }),
     autoInstall: config.autoInstall ?? false,
-    trackReads: config.trackReads ?? true,
-    category: config.category ?? 'ai coding',
     client: config.client ?? 'dsh',
     debug: config.debug ?? false,
     maxPendingFiles: clampInterval(config.maxPendingFiles, 1, 100_000, 5_000),

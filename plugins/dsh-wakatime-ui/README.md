@@ -56,8 +56,6 @@ The bundle inserts a row with id `wakatime-ui`. It re-exports the exact Schemast
     cliUpdateCheckIntervalMs: 14400000
     cliDownloadTimeoutMs: 120000
     autoInstall: false
-    trackReads: true
-    category: "ai coding"
     client: dsh
     debug: false
     maxPendingFiles: 5000

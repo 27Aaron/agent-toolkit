@@ -85,7 +85,6 @@ describe('WakaTime settings RPC', () => {
     const saved = await handler!('save', {
       baseUrl: 'https://wakapi.example.com/api',
       config: {
-        category: 'coding',
         cliPath: '',
         dashboardRefreshIntervalMs: 600_000,
         insightsRefreshIntervalMs: 3_600_000,
@@ -93,7 +92,6 @@ describe('WakaTime settings RPC', () => {
       apiKey: 'waka_test_key',
     }, { aborted: false })
     expect(saved.ok).toBe(true)
-    expect(saved.value.config.category).toBe('coding')
     expect(saved.value.config.baseUrl).toBe('https://wakapi.example.com/api')
     expect(saved.value.config.cliPath).toBeUndefined()
     expect(saved.value.config.dashboardRefreshIntervalMs).toBe(600_000)
