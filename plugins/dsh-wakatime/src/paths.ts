@@ -31,6 +31,12 @@ export function getWakatimeConfigFilePath(): string {
   return path.join(getWakatimeHomeDir(), '.wakatime.cfg')
 }
 
+/** Match Harness's normalized home when passing it to the native CLI parser. */
+export function getHarnessHomeDir(): string {
+  const configured = process.env.DSH_HOME?.trim()
+  return configured ? path.resolve(expandUserPath(configured)) : path.join(os.homedir(), '.dsh')
+}
+
 export function getPluginDataDir(): string {
   return path.join(getWakatimeResourcesDir(), 'dsh-wakatime')
 }

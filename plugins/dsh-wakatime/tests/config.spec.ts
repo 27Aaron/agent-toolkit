@@ -15,7 +15,6 @@ describe('configuration', () => {
       autoInstall: false,
       client: 'dsh',
       debug: false,
-      maxPendingFiles: 5_000,
     })
   })
 
@@ -45,6 +44,14 @@ describe('configuration', () => {
     expect(resolveConfig({ insightsRefreshIntervalMs: 90_000.6 }).insightsRefreshIntervalMs).toBe(90_001)
     // In-range values pass through unchanged.
     expect(resolveConfig({ dashboardRefreshIntervalMs: 120_000 }).dashboardRefreshIntervalMs).toBe(120_000)
-    expect(resolveConfig({ maxPendingFiles: 1e9 }).maxPendingFiles).toBe(100_000)
+    expect(resolveConfig({ cliUpdateCheckIntervalMs: 10 }).cliUpdateCheckIntervalMs).toBe(60_000)
+  })
+
+  it('ignores obsolete file-tracking options in existing deployments', () => {
+    expect(resolveConfig({
+      category: 'coding', trackReads: false, maxPendingFiles: 1,
+    } as Parameters<typeof resolveConfig>[0])).not.toHaveProperty('maxPendingFiles')
+    expect(resolveConfig({})).not.toHaveProperty('trackReads')
+    expect(resolveConfig({})).not.toHaveProperty('category')
   })
 })

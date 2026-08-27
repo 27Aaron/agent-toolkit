@@ -4,6 +4,8 @@
 
 Web dashboard and settings page for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) on top of [`@27aaron/dsh-wakatime`](../dsh-wakatime). Install this bundle instead of the core package when you want tracking **and** the GUI; it installs the core transitively and re-exports its plugin, so host-side behavior is identical to [`@27aaron/dsh-wakatime`](../dsh-wakatime)'s. See that package for the full configuration reference.
 
+Activity sync is native-only: the core schedules sync from `session/event`, awaits Harness's session flush, then runs `--sync-ai-activity` and a separate `--sync-offline-activity`. Prompt-only sessions do not need a later tool call or another editor to trigger sync.
+
 ## Highlights
 
 - Adds **Settings → Plugins → WakaTime** with a dashboard following the official WakaTime structure: activity overview, AI Coding, models, editors, languages, operating systems, machines, and AI-versus-human trends.
@@ -16,7 +18,7 @@ Web dashboard and settings page for [DeepSeek Harness](https://github.com/deepse
 
 ## Requirements
 
-Same as the core package: DeepSeek Harness `>= 0.1.1-rc.2 < 0.2`, Node.js `^22.19.0 || >=24.0.0`, and a WakaTime API key configured as described there. Only meaningful in web profiles; headless profiles simply never load the browser half.
+Same as the core package: DeepSeek Harness `>= 0.1.1-rc.2 < 0.2`, Node.js `^22.19.0 || >=24.0.0`, a stable `wakatime-cli >= v2.25.0`, and a WakaTime API key configured as described there. Older, prerelease, or unknown CLI versions are not treated as supported, and there is no local parser fallback. Only meaningful in web profiles; headless profiles simply never load the browser half.
 
 ## Install from npm
 
@@ -58,12 +60,17 @@ The bundle inserts a row with id `wakatime-ui`. It re-exports the exact Schemast
     autoInstall: false
     client: dsh
     debug: false
-    maxPendingFiles: 5000
 ```
 
 Harness replaces a row's whole `config` value when applying a later layer; omitted keys are filled from the schema rather than merged from the bundle patch.
 
+`heartbeatIntervalMs` is the global native-sync interval across sessions; `heartbeatTimeoutMs` applies to each CLI process separately. `client` qualifies the CLI's `--plugin` tag.
+
 Standard WakaTime network settings (`proxy`, `no_ssl_verify`, `debug`) keep coming from `.wakatime.cfg`.
+
+## Tracking limits
+
+The CLI reads local `session.jsonl` / `session.jsonl.zstd` under `$DSH_HOME/sessions`; this bundle does not parse remote-only or in-memory sessions. File coverage follows upstream: v2.25.0 does not yet attribute Code Mode `tool/code-dispatch` subcalls to files or line changes, although session prompts and tokens can still sync. See the core's [limitations](../dsh-wakatime#limitations). CLI sync success is not a guarantee of immediate dashboard delivery.
 
 ## Development
 

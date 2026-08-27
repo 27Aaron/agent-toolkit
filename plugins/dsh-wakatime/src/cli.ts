@@ -96,27 +96,67 @@ export function cliBinaryName(): string {
   return `wakatime-cli-${platform}${isWindows() ? '.exe' : ''}`
 }
 
+interface CliVersion {
+  major: bigint
+  minor: bigint
+  patch: bigint
+  prerelease: string[]
+}
+
+function parseCliVersion(version: string | undefined): CliVersion | undefined {
+  if (version === undefined) return undefined
+  const match = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\dA-Za-z-]+(?:\.[\dA-Za-z-]+)*))?(?:\+[\dA-Za-z-]+(?:\.[\dA-Za-z-]+)*)?$/.exec(version.trim())
+  if (match === null) return undefined
+  const prerelease = match[4]?.split('.') ?? []
+  if (prerelease.some(identifier => /^0\d+$/.test(identifier))) return undefined
+  return { major: BigInt(match[1]!), minor: BigInt(match[2]!), patch: BigInt(match[3]!), prerelease }
+}
+
+function compareParsedCliVersions(left: CliVersion, right: CliVersion): -1 | 0 | 1 {
+  for (const component of ['major', 'minor', 'patch'] as const) {
+    if (left[component] !== right[component]) return left[component] < right[component] ? -1 : 1
+  }
+  if (left.prerelease.length === 0 || right.prerelease.length === 0) {
+    if (left.prerelease.length === right.prerelease.length) return 0
+    return left.prerelease.length === 0 ? 1 : -1
+  }
+  for (let index = 0; index < Math.max(left.prerelease.length, right.prerelease.length); index += 1) {
+    const a = left.prerelease[index]
+    const b = right.prerelease[index]
+    if (a === b) continue
+    if (a === undefined) return -1
+    if (b === undefined) return 1
+    const aNumeric = /^\d+$/.test(a)
+    const bNumeric = /^\d+$/.test(b)
+    if (aNumeric && bNumeric) return BigInt(a) < BigInt(b) ? -1 : 1
+    if (aNumeric !== bNumeric) return aNumeric ? -1 : 1
+    return a < b ? -1 : 1
+  }
+  return 0
+}
+
+/** Compare release precedence, ignoring the optional v prefix and build metadata. */
+export function compareCliVersions(left: string | undefined, right: string | undefined): -1 | 0 | 1 | undefined {
+  const a = parseCliVersion(left)
+  const b = parseCliVersion(right)
+  return a === undefined || b === undefined ? undefined : compareParsedCliVersions(a, b)
+}
+
 /**
- * Whether the CLI parses DeepSeek Harness session transcripts (prompts,
- * assistant output, AI tokens, models, and the same file activity this plugin
- * tracks) during every heartbeat send. The parser first shipped in v2.25.0;
- * its prereleases already carry it, and `<local-build>` binaries track
- * develop, so both count as native.
+ * The DeepSeek Harness parser is verified in v2.25.0. Unknown versions and
+ * prereleases cannot establish support under the stable-release policy;
+ * in particular, `<local-build>` can describe a build from any revision.
  */
-export function supportsNativeHarnessParsing(version: string | undefined): boolean {
-  if (version === undefined) return false
-  const trimmed = version.trim()
-  if (trimmed === '<local-build>') return true
-  const match = /^v?(\d+)\.(\d+)(?:\.(\d+))?/.exec(trimmed)
-  if (match === null) return false
-  const major = Number(match[1])
-  const minor = Number(match[2])
-  return major > 2 || (major === 2 && minor >= 25)
+export function supportsNativeHarnessParsing(version: string | undefined): boolean | undefined {
+  const parsed = parseCliVersion(version)
+  if (parsed === undefined || parsed.prerelease.length > 0) return undefined
+  const minimum: CliVersion = { major: 2n, minor: 25n, patch: 0n, prerelease: [] }
+  return compareParsedCliVersions(parsed, minimum) >= 0
 }
 
 function withNativeSync(status: WakatimeCliStatus): WakatimeCliStatus {
-  if (status.version === undefined) return status
-  return { ...status, nativeSync: supportsNativeHarnessParsing(status.version) }
+  const nativeSync = supportsNativeHarnessParsing(status.version)
+  return nativeSync === undefined ? status : { ...status, nativeSync }
 }
 
 function executableOnPath(name: string): string | undefined {
@@ -769,13 +809,16 @@ export class CliManager {
 
   /**
    * Check the managed CLI for an update without touching PATH or configured
-   * installations. Manual checks bypass the normal update interval.
+   * installations. Manual checks bypass the normal update interval and
+   * surface failures instead of reporting the retained old binary as updated.
    */
   async update(): Promise<WakatimeCliStatus> {
     const inspected = await this.inspect()
     if (inspected.source !== 'managed' || inspected.state !== 'ready') return inspected
     await this.maybeUpdateManagedCli(true)
-    return this.inspect()
+    const next = await this.inspect()
+    if (next.state !== 'ready') throw new Error('wakatime-cli update did not leave a usable CLI installed')
+    return next
   }
 
   /**
@@ -790,7 +833,7 @@ export class CliManager {
     const latestVersion = await getLatestVersion(this.requestPolicy())
     writeCliState(this.stateFile, { lastCheckedAt: Date.now(), version: inspected.version })
     if (latestVersion === undefined) return { updateAvailable: false }
-    return { updateAvailable: latestVersion !== inspected.version, latestVersion }
+    return { updateAvailable: compareCliVersions(latestVersion, inspected.version) === 1, latestVersion }
   }
 
   private sourceFor(binary: string): WakatimeCliStatus['source'] {
@@ -861,13 +904,22 @@ export class CliManager {
     try {
       const latest = await getLatestVersion(this.requestPolicy())
       writeCliState(this.stateFile, { lastCheckedAt: Date.now(), version: currentVersion })
-      if (latest !== undefined && latest !== currentVersion) {
+      if (latest !== undefined && compareCliVersions(latest, currentVersion) === 1) {
         this.logger.info(`updating managed wakatime-cli from ${currentVersion} to ${latest}`)
-        await this.installManagedCli(true, latest)
+        const binary = await this.installManagedCli(true, latest)
+        const installedVersion = binary === undefined ? undefined : await execVersion(binary)
+        const comparison = compareCliVersions(installedVersion, latest)
+        // Installation is best-effort and can return the retained old binary.
+        // An equal or newer version is also valid when another process won
+        // the install lock and completed the update first.
+        if (comparison !== 0 && comparison !== 1) {
+          throw new Error(`wakatime-cli update to ${latest} did not complete; installed version is ${installedVersion ?? 'unavailable'}. See the plugin log for details.`)
+        }
       }
     } catch (error) {
       writeCliState(this.stateFile, { lastCheckedAt: Date.now(), version: currentVersion })
-      this.logger.exception('WARN', error, 'could not check for wakatime-cli updates; keeping current binary')
+      this.logger.exception('WARN', error, 'could not update wakatime-cli; keeping current binary')
+      if (force) throw error
     }
   }
 
@@ -892,7 +944,9 @@ export class CliManager {
     try {
       if (forceReplace && expectedVersion !== undefined && fs.existsSync(this.managedPath)) {
         try {
-          if (await execVersion(this.managedPath) === expectedVersion) return this.managedPath
+          // Another updater may have installed an equal or newer version
+          // while this process waited for the install lock.
+          if (compareCliVersions(expectedVersion, await execVersion(this.managedPath)) !== 1) return this.managedPath
         } catch {
           // Replace a broken binary below.
         }

@@ -1,32 +1,46 @@
-import { mkdtempSync, rmSync, statSync, utimesSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PluginLogger } from '../src/logger.ts'
-import { HeartbeatRateLimiter } from '../src/state.ts'
-import { WakatimeTracker, type Heartbeat } from '../src/tracker.ts'
+import { SyncRateLimiter } from '../src/state.ts'
+import { WakatimeTracker, type TrackerConfig } from '../src/tracker.ts'
 
 const directories: string[] = []
+const config: TrackerConfig = {
+  heartbeatIntervalMs: 60_000,
+  heartbeatTimeoutMs: 1_000,
+  cliDownloadTimeoutMs: 1_000,
+}
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+  vi.setSystemTime(new Date('2026-08-28T00:00:00Z'))
+})
 
 afterEach(() => {
+  vi.clearAllTimers()
+  vi.useRealTimers()
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true })
 })
 
-function setup(sender: (batch: Heartbeat[]) => Promise<boolean>, maxPendingFiles = 10) {
+function stateDir(): string {
   const directory = mkdtempSync(join(tmpdir(), 'dsh-waka-tracker-'))
   directories.push(directory)
+  return directory
+}
+
+function setup(sender: () => Promise<boolean>, directory = stateDir()) {
   const logger = new PluginLogger(undefined, true, join(directory, 'test.log'))
-  return new WakatimeTracker(
-    {
-      heartbeatIntervalMs: 60_000,
-      heartbeatTimeoutMs: 1_000,
-      cliDownloadTimeoutMs: 1_000,
-      maxPendingFiles,
-    },
-    new HeartbeatRateLimiter(join(directory, 'state')),
-    sender,
-    logger,
-  )
+  const limiter = new SyncRateLimiter(join(directory, 'state'))
+  const tracker = new WakatimeTracker(config, limiter, sender, logger)
+  return { tracker, limiter, logger }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(done => { resolve = done })
+  return { promise, resolve }
 }
 
 function tick(): Promise<void> {
@@ -34,147 +48,294 @@ function tick(): Promise<void> {
 }
 
 describe('WakatimeTracker', () => {
-  it('aggregates pending changes and force-flushes inside the interval', async () => {
-    const send = vi.fn(async (_batch: Heartbeat[]) => true)
-    const tracker = setup(send)
-    tracker.record('/repo', [{ file: '/repo/a.ts', lineChanges: 1, isWrite: false }], 10)
+  it('coalesces events into native scans and respects the shared interval', async () => {
+    const send = vi.fn(async () => true)
+    const { tracker } = setup(send)
+    tracker.record()
+    tracker.record()
+    tracker.record()
     await tick()
-    expect(send).toHaveBeenCalledTimes(1)
+    expect(send).toHaveBeenCalledExactlyOnceWith()
+    expect(tracker.status()).toEqual({ pendingSync: false })
 
-    tracker.record('/repo', [{ file: '/repo/b.ts', lineChanges: -1, isWrite: true }], 20)
+    tracker.record()
     await tick()
     expect(send).toHaveBeenCalledTimes(1)
-    await tracker.flushProject('/repo')
+    expect(tracker.status()).toEqual({ pendingSync: true })
+    await vi.advanceTimersByTimeAsync(59_999)
+    expect(send).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(1)
     expect(send).toHaveBeenCalledTimes(2)
-    expect(send.mock.calls[1]![0]).toEqual([{
-      entity: '/repo/b.ts',
-      projectFolder: '/repo',
-      lineChanges: -1,
-      isWrite: true,
-      time: 20,
-    }])
+    expect(tracker.status()).toEqual({ pendingSync: false })
     await tracker.dispose()
   })
 
-  it('restores a failed batch before a forced retry', async () => {
-    const send = vi.fn<(batch: Heartbeat[]) => Promise<boolean>>()
+  it('manual flush discovers activity even when idle and bypasses the interval', async () => {
+    const send = vi.fn(async () => true)
+    const { tracker, limiter } = setup(send)
+    const acquire = vi.spyOn(limiter, 'acquire')
+    await tracker.flush()
+    await tracker.flush()
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(acquire.mock.calls.every(call => call[1] === true)).toBe(true)
+    await tracker.dispose()
+    expect(send).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not clear new events when an older in-flight scan succeeds', async () => {
+    const first = deferred<boolean>()
+    const send = vi.fn<() => Promise<boolean>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue(true)
+    const { tracker } = setup(send)
+    tracker.record()
+    await tick()
+    tracker.record()
+    tracker.record()
+    await tick()
+    expect(send).toHaveBeenCalledTimes(1)
+
+    first.resolve(true)
+    await tick()
+    expect(tracker.status()).toEqual({ pendingSync: true })
+    expect(send).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(tracker.status()).toEqual({ pendingSync: false })
+    await tracker.dispose()
+  })
+
+  it('flush waits for the current scan, then covers events at its settlement boundary', async () => {
+    const first = deferred<boolean>()
+    const send = vi.fn<() => Promise<boolean>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue(true)
+    const { tracker, limiter } = setup(send)
+    const acquire = limiter.acquire.bind(limiter)
+    let firstLease = true
+    vi.spyOn(limiter, 'acquire').mockImplementation(async (...args) => {
+      const attempt = await acquire(...args)
+      if (attempt.lease !== undefined && firstLease) {
+        firstLease = false
+        const finish = attempt.lease.finish
+        attempt.lease.finish = (success, now) => {
+          finish(success, now)
+          queueMicrotask(() => tracker.record())
+        }
+      }
+      return attempt
+    })
+    tracker.record()
+    await tick()
+    const flushed = tracker.flush()
+    first.resolve(true)
+    await flushed
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(tracker.status()).toEqual({ pendingSync: false })
+    await tracker.dispose()
+  })
+
+  it('serializes concurrent manual flushes and includes events received in flight', async () => {
+    const first = deferred<boolean>()
+    const second = deferred<boolean>()
+    let active = 0
+    let peak = 0
+    let calls = 0
+    const send = vi.fn(async () => {
+      active += 1
+      peak = Math.max(peak, active)
+      calls += 1
+      const result = calls === 1 ? first.promise : calls === 2 ? second.promise : Promise.resolve(true)
+      try {
+        return await result
+      } finally {
+        active -= 1
+      }
+    })
+    const { tracker } = setup(send)
+    tracker.record()
+    await tick()
+    const flushedA = tracker.flush()
+    const flushedB = tracker.flush()
+    first.resolve(true)
+    await tick()
+    expect(send).toHaveBeenCalledTimes(2)
+    tracker.record()
+    second.resolve(true)
+    await Promise.all([flushedA, flushedB])
+    expect(send).toHaveBeenCalledTimes(3)
+    expect(peak).toBe(1)
+    expect(tracker.status()).toEqual({ pendingSync: false })
+    await tracker.dispose()
+  })
+
+  it('retains failed work and does not let new events defeat the retry backoff', async () => {
+    const send = vi.fn<() => Promise<boolean>>()
       .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true)
-    const tracker = setup(send)
-    tracker.record('/repo', [{ file: '/repo/a.ts', lineChanges: 2, isWrite: false }])
+      .mockResolvedValue(true)
+    const { tracker } = setup(send)
+    tracker.record()
+    await tick()
+    expect(tracker.status()).toEqual({ pendingSync: true })
+    await vi.advanceTimersByTimeAsync(10_000)
+    tracker.record()
     await tick()
     expect(send).toHaveBeenCalledTimes(1)
-    await tracker.flushProject('/repo')
+    await vi.advanceTimersByTimeAsync(19_999)
+    expect(send).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(1)
     expect(send).toHaveBeenCalledTimes(2)
-    expect(send.mock.calls[1]![0][0]).toMatchObject({ entity: '/repo/a.ts', lineChanges: 2 })
+    expect(tracker.status()).toEqual({ pendingSync: false })
     await tracker.dispose()
   })
 
-  it('waits for an in-flight batch and retries it during disposal', async () => {
-    let finishFirst: ((success: boolean) => void) | undefined
-    const send = vi.fn<(batch: Heartbeat[]) => Promise<boolean>>()
-      .mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve }))
-      .mockResolvedValueOnce(true)
-    const tracker = setup(send)
-    tracker.record('/repo', [{ file: '/repo/a.ts', lineChanges: 1, isWrite: false }])
+  it('releases the lease after a thrown dispatcher error and retries', async () => {
+    const error = new Error('native sync unavailable')
+    const send = vi.fn<() => Promise<boolean>>()
+      .mockRejectedValueOnce(error)
+      .mockResolvedValue(true)
+    const { tracker, logger } = setup(send)
+    const exception = vi.spyOn(logger, 'exception')
+    tracker.record()
+    await tick()
+    expect(exception).toHaveBeenCalledWith('WARN', error, 'native sync dispatcher failed')
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(tracker.status()).toEqual({ pendingSync: false })
+    await tracker.dispose()
+  })
+
+  it('retains dirty state when acquiring the shared state fails', async () => {
+    const send = vi.fn(async () => true)
+    const { tracker, limiter } = setup(send)
+    vi.spyOn(limiter, 'acquire').mockRejectedValueOnce(new Error('state directory unavailable'))
+    tracker.record()
+    await tick()
+    expect(send).not.toHaveBeenCalled()
+    expect(tracker.status()).toEqual({ pendingSync: true })
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(send).toHaveBeenCalledOnce()
+    expect(tracker.status()).toEqual({ pendingSync: false })
+    await tracker.dispose()
+  })
+
+  it('does not keep a pending retry timer referenced', async () => {
+    const send = vi.fn(async () => false)
+    const { tracker } = setup(send)
+    const setTimer = vi.spyOn(globalThis, 'setTimeout')
+    tracker.record()
+    await tick()
+    const timer = setTimer.mock.results[0]?.value as NodeJS.Timeout
+    expect(timer.hasRef()).toBe(false)
+    await tracker.dispose()
+  })
+
+  it('disposes idle trackers without creating work', async () => {
+    const send = vi.fn(async () => true)
+    const { tracker } = setup(send)
+    await tracker.dispose()
+    tracker.record()
+    await tracker.flush()
+    expect(send).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('waits for an in-flight scan and permits two bounded shutdown retries', async () => {
+    const first = deferred<boolean>()
+    const send = vi.fn<() => Promise<boolean>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true)
+    const { tracker } = setup(send)
+    tracker.record()
     await tick()
     const disposed = tracker.dispose()
-    finishFirst?.(false)
+    expect(tracker.dispose()).toBe(disposed)
+    tracker.record()
+    first.resolve(false)
     await disposed
-    expect(send).toHaveBeenCalledTimes(2)
-    expect(send.mock.calls[1]?.[0]?.[0]).toMatchObject({ entity: '/repo/a.ts', lineChanges: 1 })
+    expect(send).toHaveBeenCalledTimes(3)
+    expect(tracker.status()).toEqual({ pendingSync: false })
+    expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('bounds distinct pending files while still merging an existing entity', async () => {
-    const send = vi.fn(async (_batch: Heartbeat[]) => true)
-    const tracker = setup(send, 1)
-    tracker.record('/repo', [
-      { file: '/repo/a.ts', lineChanges: 1, isWrite: false },
-      { file: '/repo/a.ts', lineChanges: 2, isWrite: true },
-      { file: '/repo/b.ts', lineChanges: 3, isWrite: false },
-    ])
+  it('stops retrying at shutdown without claiming durable activity was discarded', async () => {
+    const send = vi.fn(async () => false)
+    const { tracker, logger } = setup(send)
+    const warn = vi.spyOn(logger, 'warn')
+    tracker.record()
     await tick()
-    expect(send.mock.calls[0]![0]).toEqual([
-      expect.objectContaining({ entity: '/repo/a.ts', lineChanges: 3, isWrite: true }),
-    ])
     await tracker.dispose()
+    expect(send).toHaveBeenCalledTimes(3)
+    expect(tracker.status()).toEqual({ pendingSync: true })
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/transcripts remain available/))
+    expect(vi.getTimerCount()).toBe(0)
+    await vi.advanceTimersByTimeAsync(120_000)
+    expect(send).toHaveBeenCalledTimes(3)
   })
 
-  it('keeps a live lease that is still inside the install window', async () => {
-    // Real production values: a flush can hold the lease across a full CLI
-    // download (120s) plus one heartbeat process lifetime (30s). A lock aged
-    // 140s therefore belongs to a live holder and must not be broken.
-    const stateDir = mkdtempSync(join(tmpdir(), 'dsh-waka-stale-'))
-    directories.push(stateDir)
-    const config = {
-      heartbeatIntervalMs: 60_000,
-      heartbeatTimeoutMs: 30_000,
-      cliDownloadTimeoutMs: 120_000,
-      maxPendingFiles: 10,
-    }
-    let finishFirst: ((success: boolean) => void) | undefined
-    const sendA = vi.fn<(batch: Heartbeat[]) => Promise<boolean>>()
-      .mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve }))
-      .mockResolvedValue(false)
-    const sendB = vi.fn(async (_batch: Heartbeat[]) => false)
-    const trackerA = new WakatimeTracker(
-      config,
-      new HeartbeatRateLimiter(join(stateDir, 'state')),
-      sendA,
-      new PluginLogger(undefined, true, join(stateDir, 'a.log')),
-    )
-    const trackerB = new WakatimeTracker(
-      config,
-      new HeartbeatRateLimiter(join(stateDir, 'state')),
-      sendB,
-      new PluginLogger(undefined, true, join(stateDir, 'b.log')),
-    )
-
-    trackerA.record('/repo', [{ file: '/repo/a.ts', lineChanges: 1, isWrite: false }], 10)
+  it('shares serialization and cadence across independent tracker instances', async () => {
+    const directory = stateDir()
+    const first = deferred<boolean>()
+    const sendA = vi.fn(() => first.promise)
+    const sendB = vi.fn(async () => true)
+    const { tracker: trackerA } = setup(sendA, directory)
+    const { tracker: trackerB } = setup(sendB, directory)
+    trackerA.record()
     await tick()
-    expect(sendA).toHaveBeenCalledTimes(1)
-
-    // Age the live lock to 140s — older than max(30s, 120s)+5s, younger than
-    // 30s+120s+5s — then let a second session flush the same project.
-    // utimesSync needs Date objects; plain numbers are interpreted as seconds.
-    const { stateFileFor } = await import('../src/state.ts')
-    const lockFile = `${stateFileFor('/repo', join(stateDir, 'state'))}.lock`
-    const aged = new Date(Date.now() - 140_000)
-    utimesSync(lockFile, aged, aged)
-    expect(Date.now() - statSync(lockFile).mtimeMs).toBeGreaterThan(139_000)
-
-    trackerB.record('/repo', [{ file: '/repo/b.ts', lineChanges: 1, isWrite: false }], 10)
+    trackerB.record()
     await tick()
-    // The limiter returns a 250ms retry on EEXIST; with the too-low stale
-    // threshold the old code has already broken the live lock, so B's retry
-    // double-sends within the window below. The fixed threshold keeps the
-    // lease alive across retries.
-    await new Promise(resolve => setTimeout(resolve, 700))
+    expect(sendA).toHaveBeenCalledOnce()
     expect(sendB).not.toHaveBeenCalled()
 
-    finishFirst?.(false)
-    await trackerA.dispose()
-    await trackerB.dispose()
+    first.resolve(true)
+    await tick()
+    await vi.advanceTimersByTimeAsync(250)
+    expect(sendB).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(59_750)
+    expect(sendB).toHaveBeenCalledOnce()
+    expect(trackerB.status()).toEqual({ pendingSync: false })
+    await Promise.all([trackerA.dispose(), trackerB.dispose()])
   })
 
-  it('warns when heartbeats are discarded after final disposal retries', async () => {
-    const directory = mkdtempSync(join(tmpdir(), 'dsh-waka-discard-'))
-    directories.push(directory)
-    const logger = new PluginLogger(undefined, true, join(directory, 'test.log'))
-    const warn = vi.spyOn(logger, 'warn')
-    const send = vi.fn(async (_batch: Heartbeat[]) => false)
-    const tracker = new WakatimeTracker(
-      { heartbeatIntervalMs: 60_000, heartbeatTimeoutMs: 1_000, cliDownloadTimeoutMs: 1_000, maxPendingFiles: 10 },
-      new HeartbeatRateLimiter(join(directory, 'state')),
-      send,
-      logger,
-    )
-
-    tracker.record('/repo', [{ file: '/repo/a.ts', lineChanges: 1, isWrite: false }], 10)
+  it('does not bypass another live scan during a forced flush', async () => {
+    const directory = stateDir()
+    const first = deferred<boolean>()
+    const sendA = vi.fn(() => first.promise)
+    const sendB = vi.fn(async () => true)
+    const { tracker: trackerA } = setup(sendA, directory)
+    const { tracker: trackerB } = setup(sendB, directory)
+    trackerA.record()
     await tick()
-    await tracker.dispose()
+    const flushed = trackerB.flush()
+    await vi.advanceTimersByTimeAsync(2_000)
+    await flushed
+    expect(sendB).not.toHaveBeenCalled()
+    expect(trackerB.status()).toEqual({ pendingSync: true })
 
-    expect(send.mock.calls.length).toBeGreaterThanOrEqual(2)
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/discard/i))
+    first.resolve(true)
+    await tick()
+    await trackerB.dispose()
+    expect(sendB).toHaveBeenCalledOnce()
+    await trackerA.dispose()
+  })
+
+  it('covers persistence, CLI installation, sync and queue-count processes in the lease', async () => {
+    const send = vi.fn(async () => true)
+    const { tracker, limiter } = setup(send)
+    tracker.updateConfig({
+      heartbeatIntervalMs: 5_000,
+      heartbeatTimeoutMs: 30_000,
+      cliDownloadTimeoutMs: 120_000,
+    })
+    const acquire = vi.spyOn(limiter, 'acquire')
+    tracker.record()
+    await tick()
+    expect(acquire).toHaveBeenCalledWith(5_000, false, 0, 510_000)
+    tracker.record()
+    await tick()
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(send).toHaveBeenCalledTimes(2)
+    await tracker.dispose()
   })
 })

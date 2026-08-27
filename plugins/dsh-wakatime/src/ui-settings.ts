@@ -1,8 +1,9 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { getPluginDataDir, getPluginSettingsFilePath } from './paths.ts'
+import { getPluginSettingsFilePath } from './paths.ts'
 
-export interface PersistedWakatimeConfig {  cliPath?: string
+export interface PersistedWakatimeConfig {
+  cliPath?: string
   debug?: boolean
   heartbeatIntervalMs?: number
   dashboardRefreshIntervalMs?: number
@@ -77,8 +78,4 @@ export function writePersistedWakatimeConfig(
 
 export function getPersistedWakatimeConfigPath(): string {
   return getPluginSettingsFilePath()
-}
-
-export function getPersistedWakatimeDataDir(): string {
-  return getPluginDataDir()
 }

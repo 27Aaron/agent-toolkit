@@ -1,22 +1,17 @@
 /**
  * WakaTime integration for DeepSeek Harness.
  *
- * The plugin observes the official `tools/result` Cordis event instead of
- * reconstructing calls from the durable session log. That gives it the final,
- * validated arguments and presentation metadata for both native tools and
- * Code Mode sub-dispatches without changing the agent execution pipeline.
+ * Session events only schedule a sync. wakatime-cli owns transcript parsing,
+ * timestamps, file attribution, line accounting, and offline delivery.
  *
  * @module @27aaron/dsh-wakatime
  */
 
-import * as fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import * as path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Session } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@deepseek-ai/dsh-session-persistence'
 import { CliManager, WakatimeApiError } from './cli.ts'
-import { extractFileChanges, resolveEntityPath } from './changes.ts'
 import {
   buildPluginTag,
   Config,
@@ -24,7 +19,7 @@ import {
   resolveConfig,
   type Config as ConfigShape,
 } from './config.ts'
-import { HeartbeatDispatcher } from './heartbeat.ts'
+import { NativeSyncDispatcher } from './sync.ts'
 import { PluginLogger } from './logger.ts'
 import {
   DEFAULT_WAKATIME_API_URL,
@@ -33,7 +28,7 @@ import {
   writeWakatimeApiKey,
   writeWakatimeApiUrl,
 } from './settings.ts'
-import { HeartbeatRateLimiter } from './state.ts'
+import { SyncRateLimiter } from './state.ts'
 import { WakatimeTracker } from './tracker.ts'
 import {
   getPersistedWakatimeConfigPath,
@@ -186,16 +181,18 @@ function configPatch(value: unknown): PersistedWakatimeConfig {
   return patch
 }
 
-function projectFolderOf(session: Session): string {
-  return path.resolve(session.header.cwd ?? process.cwd())
-}
-
-function isDirectory(entity: string): boolean {
+async function awaitDurability(operation: Promise<unknown>, timeoutMs: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
-    return fs.statSync(entity).isDirectory()
-  } catch {
-    // Remote/sandbox display paths may not exist in the host filesystem.
-    return false
+    await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('session persistence checkpoint timed out')), timeoutMs)
+        timer.unref()
+      }),
+    ])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
   }
 }
 
@@ -218,7 +215,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   for (const message of pendingInvalidApiUrlReports.splice(0)) logger.warn(message)
   const cli = new CliManager(config, settings, logger)
   const pluginTag = buildPluginTag(config.client)
-  const dispatcher = new HeartbeatDispatcher(
+  const dispatcher = new NativeSyncDispatcher(
     cli,
     pluginTag,
     config.heartbeatTimeoutMs,
@@ -234,10 +231,22 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   let backgroundRefreshTimer: ReturnType<typeof setTimeout> | undefined
   let backgroundRefreshDisposed = false
   let cachePersistTimer: ReturnType<typeof setTimeout> | undefined
+  // One entry per changed session, not one per file or event. Replacing the
+  // barrier preserves changes arriving while an older snapshot is syncing.
+  const pendingSessions = new Map<Session, () => Promise<unknown>>()
   const tracker = new WakatimeTracker(
     config,
-    new HeartbeatRateLimiter(),
-    heartbeats => dispatcher.send(heartbeats),
+    new SyncRateLimiter(),
+    async () => {
+      const snapshot = [...pendingSessions]
+      await awaitDurability(Promise.all(snapshot.map(async ([session, flush]) => {
+        await flush()
+        // Once durable, the CLI can retry from disk. Do not retain entire
+        // session histories in memory while a missing/offline CLI recovers.
+        if (pendingSessions.get(session) === flush) pendingSessions.delete(session)
+      })), config.heartbeatTimeoutMs)
+      return dispatcher.sync()
+    },
     logger,
   )
   logger.info(`initialized (${pluginTag})`)
@@ -458,7 +467,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
       }
 
       if (endpoint === 'flush') {
-        await tracker.flushAll()
+        await tracker.flush()
         return { ok: true, value: await status() }
       }
 
@@ -523,39 +532,28 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
     }
   })
 
-  ctx.on('tools/result', (exec, result) => {
-    try {
-      if (result.isError || exec.agent === undefined) return
-      const projectFolder = projectFolderOf(exec.agent.session)
-      const changes = extractFileChanges(
-        exec.name,
-        exec.arguments,
-        result.meta,
-        result.value,
-      )
-        .map(change => ({
-          ...change,
-          file: resolveEntityPath(change.file, projectFolder),
-        }))
-        .filter(change => {
-          if (!isDirectory(change.file)) return true
-          logger.debug(`ignoring directory entity ${change.file}`)
-          return false
-        })
-      tracker.record(projectFolder, changes)
-    } catch (error) {
-      // Observer work is isolated even on Harness versions predating
-      // per-listener containment for tools/result.
-      logger.exception('WARN', error, `could not process ${exec.name} result`)
+  ctx.inject(['sessions', 'sessionPersistence'], sessionContext => {
+    const sessions = sessionContext.sessions
+    const persistence = sessionContext.sessionPersistence
+    const changed = (session: Session): void => {
+      // Abandoned empty sessions never materialize a transcript to read.
+      if (session.seq === 0) return
+      pendingSessions.set(session, () => sessions.get(session.id) === session
+        ? sessions.flush(session)
+        // Disposed sessions have already left SessionStore. The persistence
+        // read barrier awaits their retirement drain; request an empty suffix,
+        // without reimplementing or interpreting transcript contents here.
+        : persistence.readFrom(session.id, Number.MAX_SAFE_INTEGER))
+      tracker.record()
     }
-  })
-
-  ctx.on('session/flush', session => {
-    tracker.checkpoint(projectFolderOf(session))
-  })
-
-  ctx.on('session/disposed', session => {
-    void tracker.flushProject(projectFolderOf(session))
+    sessionContext.on('session/event', changed)
+    sessionContext.on('session/disposed', () => {
+      if (tracker.status().pendingSync) void tracker.flush()
+    })
+    for (const session of sessions.list()) changed(session)
+    // Catch up durable transcripts/offline activity from a previous run, even
+    // when this process has not emitted a new file operation yet.
+    tracker.record()
   })
 
   // Dashboard data flows on demand: nothing polls WakaTime until a dashboard
@@ -582,7 +580,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
   )
 
   // Claim only after every other synchronous setup step succeeded. The final
-  // owner effect keeps the claim until pending heartbeats finish flushing, then
+  // owner effect keeps the claim until pending native syncs finish, then
   // wakes any row that stood down so it can restart through Cordis normally.
   ;(globalThis as GlobalClaims)[ACTIVE_CLAIM] = claim
   try {
@@ -594,7 +592,7 @@ export function apply(ctx: Context, rawConfig: ConfigShape): void {
           releaseActiveClaim(claim)
         }
       },
-      'dsh-wakatime: flush pending heartbeats and release active claim',
+      'dsh-wakatime: sync pending activity and release active claim',
     )
   } catch (error) {
     releaseActiveClaim(claim)

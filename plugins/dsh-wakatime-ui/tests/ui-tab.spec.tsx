@@ -77,7 +77,7 @@ function statusResult(cli?: WakatimeCliStatus): WakatimeUiRpcResult<unknown> {
       },
       apiKeyConfigured: true,
       cli: cli ?? { state: 'missing', source: 'none', managedPath: '/tmp/wakatime-cli' },
-      tracking: { projectCount: 0, pendingFiles: 0, pendingProjects: [] },
+      tracking: { pendingSync: false },
       paths: { config: '/tmp/.wakatime.cfg', log: '/tmp/w.log', data: '/tmp/data' },
     },
   }
@@ -276,20 +276,30 @@ describe('native Harness parsing hint', () => {
 
   it('confirms native parsing for a v2.25+ CLI', async () => {
     const renderer = await mountSettingsTab({
-      state: 'ready', source: 'managed', path: '/tmp/wakatime-cli', version: 'v2.25.0-alpha.1',
+      state: 'ready', source: 'managed', path: '/tmp/wakatime-cli', version: 'v2.25.0',
       managedPath: '/tmp/wakatime-cli', nativeSync: true,
     })
     expect(renderedText(renderer).includes('"cliNativeSync"')).toBe(true)
-    expect(renderedText(renderer).includes('cliNativeSyncAvailable')).toBe(false)
+    expect(renderedText(renderer).includes('cliNativeSyncRequired')).toBe(false)
     await ReactTestRenderer.act(async () => { renderer.unmount() })
   })
 
-  it('suggests updating a pre-v2.25 CLI', async () => {
+  it('requires updating a pre-v2.25 CLI without promising fallback tracking', async () => {
     const renderer = await mountSettingsTab({
       state: 'ready', source: 'managed', path: '/tmp/wakatime-cli', version: 'v2.24.4',
+      managedPath: '/tmp/wakatime-cli', nativeSync: false,
+    })
+    expect(renderedText(renderer).includes('cliNativeSyncRequired')).toBe(true)
+    expect(renderedText(renderer).includes('"cliNativeSync"')).toBe(false)
+    await ReactTestRenderer.act(async () => { renderer.unmount() })
+  })
+
+  it('does not promise native tracking for an unversioned local build', async () => {
+    const renderer = await mountSettingsTab({
+      state: 'ready', source: 'configured', path: '/tmp/wakatime-cli', version: '<local-build>',
       managedPath: '/tmp/wakatime-cli',
     })
-    expect(renderedText(renderer).includes('cliNativeSyncAvailable')).toBe(true)
+    expect(renderedText(renderer).includes('cliNativeSyncUnknown')).toBe(true)
     expect(renderedText(renderer).includes('"cliNativeSync"')).toBe(false)
     await ReactTestRenderer.act(async () => { renderer.unmount() })
   })

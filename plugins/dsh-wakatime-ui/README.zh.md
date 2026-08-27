@@ -4,6 +4,8 @@
 
 面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)、构建在 [`@27aaron/dsh-wakatime`](../dsh-wakatime) 之上的 Web 仪表盘与设置页面。想要跟踪**加**图形界面时，安装本包即可；它会以传递依赖的方式安装核心包并 re-export 其插件，Host 行为与核心包完全一致。完整配置说明见核心包 README。
 
+活动同步完全使用原生 CLI：核心通过 `session/event` 调度，等待 Harness 会话持久化后，先执行 `--sync-ai-activity`，再单独执行 `--sync-offline-activity`。纯提示词会话无需等待后续工具调用或其他编辑器来触发同步。
+
 ## 特性
 
 - 在 **设置 → 插件 → WakaTime** 中按官方 Dashboard 结构展示：活动概览、AI Coding、模型、编辑器、语言、操作系统、设备机器以及 AI／人工趋势。
@@ -16,7 +18,7 @@
 
 ## 环境要求
 
-与核心包一致：DeepSeek Harness `>= 0.1.1-rc.2 < 0.2`、Node.js `^22.19.0 || >=24.0.0`，并按其说明配置 WakaTime API Key。仅对 web Profile 有意义；headless Profile 不会加载浏览器端代码。
+与核心包一致：DeepSeek Harness `>= 0.1.1-rc.2 < 0.2`、Node.js `^22.19.0 || >=24.0.0`、稳定版 `wakatime-cli >= v2.25.0`，并按其说明配置 WakaTime API Key。旧版、预发布版或未知 CLI 版本不会被当作已支持，也不会回退到本地解析器。仅对 web Profile 有意义；headless Profile 不会加载浏览器端代码。
 
 ## 从 npm 安装
 
@@ -46,7 +48,7 @@ dsh web
 
 ## 配置
 
-Bundle 插入 id 为 `wakatime-ui` 的行，并 re-export `@27aaron/dsh-wakatime` 的同一份 Schemastery schema，完整字段表见[核心包 README](../dsh-wakatime#配置)。可在 `$DSH_HOME/profiles/<name>/cordis.patch.yml`、`$DSH_HOME/cordis.patch.yml` 或更晚的 `--patch` 层覆盖：
+Bundle 插入 id 为 `wakatime-ui` 的行，并 re-export `@27aaron/dsh-wakatime` 的同一份 Schemastery schema，完整字段表见[核心包 README](../dsh-wakatime/README.zh.md#配置)。可在 `$DSH_HOME/profiles/<name>/cordis.patch.yml`、`$DSH_HOME/cordis.patch.yml` 或更晚的 `--patch` 层覆盖：
 
 ```yaml
 - id: wakatime-ui
@@ -58,12 +60,17 @@ Bundle 插入 id 为 `wakatime-ui` 的行，并 re-export `@27aaron/dsh-wakatime
     autoInstall: false
     client: dsh
     debug: false
-    maxPendingFiles: 5000
 ```
 
 后续配置层会整体替换目标行的 `config`；未写出的字段由 schema 补齐，而不是依赖 Bundle patch 深度合并。
 
+`heartbeatIntervalMs` 表示跨 Session 的全局原生同步间隔；`heartbeatTimeoutMs` 分别限制每个 CLI 进程的运行时间；`client` 用于 CLI 的 `--plugin` 标签。
+
 网络设置（`proxy`、`no_ssl_verify`、`debug`）继续来自标准 `.wakatime.cfg`。
+
+## 跟踪边界
+
+CLI 读取 `$DSH_HOME/sessions` 下的本地 `session.jsonl` / `session.jsonl.zstd`，本包不解析仅存在于远程或内存中的会话。文件覆盖范围跟随上游：v2.25.0 尚不能统计 Code Mode `tool/code-dispatch` 子调用的文件和行数，但会话提示词与 Token 仍可同步。详见核心包的[已知边界](../dsh-wakatime/README.zh.md#已知边界)。CLI 同步执行成功不等于仪表盘立即收到全部数据。
 
 ## 开发验证
 
