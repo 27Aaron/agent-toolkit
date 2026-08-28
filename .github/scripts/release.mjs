@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
-const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
+const root = resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const packages = [
   { directory: 'plugins/dsh-wakatime', name: '@27aaron/dsh-wakatime' },
   { directory: 'plugins/dsh-wakatime-ui', name: '@27aaron/dsh-wakatime-ui' },
@@ -76,6 +76,13 @@ function assertCleanWorktree() {
 }
 
 function assertLoggedIn(registry) {
+  if (process.env.RELEASE_AUTH === 'oidc') {
+    if (process.env.GITHUB_ACTIONS !== 'true') {
+      throw new Error('RELEASE_AUTH=oidc is only supported inside GitHub Actions')
+    }
+    console.log(`Using GitHub Actions OIDC trusted publishing for ${registry}`)
+    return
+  }
   const result = command('npm', ['whoami', '--registry', registry])
   if (result.status !== 0) {
     throw new Error(`not logged in to ${registry}; run npm login --registry ${registry}`)
@@ -99,7 +106,7 @@ function pack(item) {
 function main() {
   const mode = process.argv[2] ?? '--check'
   if (!['--check', '--dry-run', '--publish'].includes(mode)) {
-    throw new Error('usage: node scripts/release.mjs --check|--dry-run|--publish')
+    throw new Error('usage: node .github/scripts/release.mjs --check|--dry-run|--publish')
   }
 
   const items = packages.map(packageInfo)
