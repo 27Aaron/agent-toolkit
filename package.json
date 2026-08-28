@@ -9,6 +9,9 @@
   "scripts": {
     "build": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui build",
     "check": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui check",
+    "release:check": "node scripts/release.mjs --check",
+    "release:dry-run": "node scripts/release.mjs --dry-run",
+    "release": "node scripts/release.mjs --publish",
     "test": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui test",
     "typecheck": "pnpm --filter @27aaron/dsh-wakatime --filter @27aaron/dsh-wakatime-ui typecheck"
   }
