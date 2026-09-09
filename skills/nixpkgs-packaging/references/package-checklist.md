@@ -1,75 +1,29 @@
-# Nix/Nixpkgs 打包检查清单
+# 软件包专项检查
 
-这份清单用于新建软件包、版本升级和 PR 自查。根据目标包的语言和仓库约定选择适用项，不要为了“勾满”而增加无关改动。
+用于新包、打包审查，以及版本更新涉及的专项检查。通用 hash 和验证流程见 [主文件](../SKILL.md)，更新脚本细节见 [更新流程](update-workflow.md)。只检查适用项，不为完成清单扩大改动范围。
 
-## 开始前
+## Nixpkgs 上游贡献
 
-- [ ] 已阅读目标仓库中的 `AGENTS.md`、`CONTRIBUTING.md`、`pkgs/README.md` 或同类指令。
-- [ ] 已确认上游项目、版本/tag、许可证、发布渠道和维护状态。
-- [ ] 已确认这是源码包、预编译二进制包，还是包含两者的混合包。
-- [ ] 已确认包名、属性名和目录位置；新顶层包优先使用 `pkgs/by-name`。
+本节仅适用于向 Nixpkgs 贡献软件包，独立 flake、overlay 和个人包集遵循自己的约定。
 
-## Derivation
+- 核对目标 checkout 的 `CONTRIBUTING.md`、`pkgs/README.md` 及目录规范。评估上游许可证、维护状态、使用场景和维护责任是否满足收录要求。
+- 新顶层包通常放在 `pkgs/by-name/<两位小写前缀>/<包名>/package.nix`；语言包集等特殊位置按仓库规范处理。by-name 包会自动加入顶层属性集，包目录内的文件不得通过文件路径引用目录外文件。
+- 需要修改包定义时直接修改，不增加无必要的 `overrideAttrs`/`overridePythonAttrs` 包装。个人 overlay 中则可按需要使用这些接口。
+- 不用 Import From Derivation 在求值时生成需要随包提交的依赖数据；按对应 builder 要求保存 lockfile、依赖清单或 hash 文件。
+- 提交标题遵循 `pkg: old -> new`、`pkg: init at version` 或仓库对应格式；PR 标题概括实际改动，版本更新附上游 release/changelog。执行提交、推送和 PR 修改的授权边界见主文件。
 
-- [ ] 使用最贴近项目构建系统的 Nixpkgs builder。
-- [ ] 使用 `finalAttrs` 处理版本、源码 URL、源码目录名和派生属性。
-- [ ] 依赖放在正确字段：
-  - 构建阶段执行的工具：`nativeBuildInputs`
-  - 目标平台链接或运行所需的系统库：`buildInputs`
-  - Python 运行依赖：`dependencies`
-  - Python 构建依赖：`build-system`
-  - 测试工具：`nativeCheckInputs`
-  - Go、Rust、npm、pnpm 等语言依赖：使用对应 builder/fetcher 的专用字段
-- [ ] 不在普通构建阶段访问网络；网络依赖通过固定输出 fetcher 提前获取并锁定。
-- [ ] 自定义阶段保留 `runHook`，并记录非默认阶段或特殊参数的原因。
-- [ ] `pkgs/by-name` 包只引用自身目录内的文件。
+## Derivation 和依赖
 
-## 源码和 hash
-
-- [ ] GitHub 项目使用 `fetchFromGitHub`，tag 使用 `tag`，commit 使用完整 revision。
-- [ ] hash 使用 `hash = "sha256-..."` 的 SRI 格式。
-- [ ] 明确每个 hash 对应的输出：源码、子模块、Go vendor、Cargo 依赖、npm/pnpm/yarn 依赖或平台二进制。
-- [ ] 修改 fetcher 参数后，所有受影响的固定输出 hash 都已重新生成。
-- [ ] 临时更新时只使用 `lib.fakeHash`、空字符串或其他官方标准 fake hash；最终文件不能留下 fake hash。
-- [ ] `fetchSubmodules = true` 时按递归 `fetchgit` 的输出计算 hash，不能直接使用压缩包的 `sha256sum`。
+- 选择适合项目的语言 builder，例如 Python 的应用/库 builder、`buildGoModule`、`buildRustPackage` 或 `buildNpmPackage`；只有现有框架不适合时才采用自定义构建。
+- 需要引用最终版本、源码或派生属性且 builder 支持时使用 `finalAttrs`；不为简单更新重写无关表达式。
+- 构建平台上执行的工具放在 `nativeBuildInputs`，目标平台的系统库放在 `buildInputs`，测试工具放在 `nativeCheckInputs`。语言依赖使用框架专用字段，并区分构建和运行依赖。
+- Python 在目标框架支持时使用 `build-system` 和 `dependencies`。Go 检查 `vendorHash`；`null` 表示跳过依赖 vendoring derivation，须确认源码自带可用依赖或不需要外部模块。Rust 按包使用的 Cargo 依赖机制维护 hash。
+- pnpm 选择兼容 lockfile 的工具大版本；lockfile、工具大版本或 `fetcherVersion` 变化时检查依赖输出。接口以目标 revision 为准。
+- 覆盖标准阶段时保留对应 `runHook pre<Phase>` 和 `runHook post<Phase>`；可通过属性或 hook 完成时，不无理由重写整个阶段。
 
 ## 元数据和测试
 
-- [ ] `meta` 位于 derivation 最后。
-- [ ] `meta.description` 简短、客观、首字母大写且不以句号结尾。
-- [ ] `license` 与上游一致，`maintainers`、`platforms` 和 `mainProgram`（适用时）准确。
-- [ ] 使用第三方预编译代码时设置正确的 `meta.sourceProvenance`。
-- [ ] 保留上游测试；如果禁用测试，注释说明原因和分发安全性判断。
-- [ ] 有可靠 CLI 时加入 `versionCheckHook` 或等效版本检查。
-- [ ] 无法运行完整测试时，至少保留 `pythonImportsCheck`、`--help`、`--version` 或安装后 smoke test。
-- [ ] 复杂集成测试放入 `passthru.tests`，并按需用 `nix-build -A package.passthru.tests` 执行。
-
-## 更新脚本
-
-- [ ] 简单的字面量版本和 hash 优先使用通用 `nix-update-script`。
-- [ ] 如果版本或 hash 从 JSON/其他数据文件导入，通用更新器无法修改时再使用专用 `update.sh`。
-- [ ] 专用脚本使用 Nix 感知的预取或 fake-hash 构建获取真实 hash。
-- [ ] 多个固定输出按依赖顺序更新，例如先源码，再前端依赖，最后 Go/Rust 依赖。
-- [ ] 更新脚本失败时恢复工作区，不提交 fake hash。
-- [ ] 更新脚本不自行创建 commit、push 或修改无关文件。
-
-## 本地验证
-
-```bash
-git diff --check
-nix fmt
-nix eval .#package --json
-nix build .#package
-nix build .#package.passthru.tests.example
-./ci/nixpkgs-vet.sh master
-nixpkgs-review wip
-```
-
-`nix build`、`nixpkgs-review` 和测试命令按环境与任务范围选择。若 Nix daemon、网络或二进制缓存不可用，应报告阻塞原因，不要把求值通过当作完整构建通过。
-
-## 提交和 PR
-
-- [ ] 提交标题遵循 Nixpkgs 的 `(pkg-name): old -> new`、`init at version` 或相应修复格式。
-- [ ] PR 标题与提交标题保持一致或能概括所有提交；包名前缀有助于 CI 识别要构建的包。
-- [ ] 版本更新说明上游 release/changelog，特殊打包选择在注释或 PR 描述中说明。
-- [ ] 只有用户明确要求时才 commit、push 或修改 PR 元数据。
+- 按仓库约定将 `meta` 放在 derivation 最后。核对 `description`、`homepage`、`license`、`platforms`，以及适用的 `changelog`、`maintainers` 和 `mainProgram`。Nixpkgs 英文 description 简短、客观、首字母大写、不以句号结尾。
+- 包含第三方预编译二进制或字节码时，设置对应 `meta.sourceProvenance`，不要将其标作纯源码构建。
+- 保留上游测试；必须禁用时说明具体原因。存在可靠 CLI 时按需使用 `versionCheckHook` 或等效安装检查；Python 包可使用 `pythonImportsCheck` 验证导入。
+- 集成测试按需放入 `passthru.tests`，通过目标项目入口运行具体测试属性。smoke test 和导入检查不能替代完整构建及上游测试结论。

@@ -1,103 +1,60 @@
 ---
 name: nixpkgs-packaging
-description: 创建、更新和审查 Nix/Nixpkgs 软件包，包括 fetcher、固定输出 hash、语言依赖、更新脚本、元数据和验证流程。
+description: 创建、更新或审查 Nix/Nixpkgs 软件包 derivation，处理源码和依赖 hash、构建依赖及软件包更新脚本。适用于软件打包，不用于一般 NixOS 或 Home Manager 配置。
+metadata:
+  author: Aaron
+  version: "1.0.2"
 ---
 
 # Nix/Nixpkgs 打包
 
-当任务涉及为 Nix 或 Nixpkgs 打包软件、更新已有 derivation、将生成的 hash 拆分到数据文件，或让软件包更新流程可重复时，使用此技能。
+## 确定范围
 
-当需要确认权威语法、fetcher 语义或更新脚本行为时，阅读 [references/official-links.md](references/official-links.md)。新建或审查软件包时，再阅读 [references/package-checklist.md](references/package-checklist.md)。优先参考当前 Nixpkgs 手册和目标仓库自己的 `pkgs/README.md`，不要依赖记忆或第三方示例。
+- 用户仅要求审查时，报告发现和验证结果，不自动修改软件包；实施任务按用户要求的范围修复。
+- 先确认目标是 Nixpkgs 上游仓库，还是独立 flake、overlay 或个人包集。Nixpkgs 的目录、收录和贡献要求只适用于上游贡献；独立项目沿用自身结构和约定。
+- 检查目标仓库指令、工作区、已有 derivation、上游源码和构建系统。保留用户已有修改，只处理本次要求的软件包及必要依赖。
+- 用户指定版本时使用该版本；自动选择版本时遵循现有发布渠道和稳定版/预发布约定。
+- 语法和 builder/fetcher 行为以目标 Nixpkgs revision 的实现及文档为准。需要查询一手资料时阅读 [官方链接](references/official-links.md)，不要将当前 unstable 文档中的新接口直接套用到旧分支。
+- 新建或审查软件包时阅读 [打包检查清单](references/package-checklist.md)；修改更新器或生成数据布局时阅读 [更新脚本与生成数据](references/update-workflow.md)。普通版本更新按涉及的部分查阅。
 
-## 范围和流程
+## 打包流程
 
-1. 编辑前先检查目标仓库的指令、当前分支、工作区、软件包布局和已有 derivation，并保留无关改动。
-2. 确认软件包实际对应的上游源码和构建系统。条件允许时，复用仓库已有的 builder 和依赖约定。
-3. 根据 fetcher 的实际语义选择 fetcher：
-   - GitHub 快照使用 `fetchFromGitHub`，获取 tag 时优先使用 `tag`。
-   - 新增或更新固定输出 fetch 时使用 `hash = "sha256-..."`（SRI 格式）。
-   - 将 `fetchSubmodules = true`、`fetchgit`、压缩包、补丁和生成的依赖存储视为不同的 hash 输入。
-4. 版本或 fetcher 参数变化时，更新所有受影响的固定输出 hash。最终软件包中不得留下 fake hash。
-5. 保持软件包可复现：固定相关工具的大版本（例如 `pnpm_10`），普通构建阶段不要访问网络，并使用 Nixpkgs 提供的语言构建器处理依赖。
-6. 按风险进行验证：运行语法和数据检查，求值 derivation，并在本地 Nix store/daemon 可用时构建软件包。明确区分“求值成功”和“完整构建成功”。
-
-## 新建和审查软件包
-
-- 新的顶层软件包优先放在 `pkgs/by-name/<两位小写前缀>/<软件包名>/package.nix`。`pkgs/by-name` 中的软件包会自动加入顶层属性集，但其中的文件不能引用目录外的文件。
-- 先确认上游项目有清晰许可证、可维护性和合理的使用场景。源代码可用时优先从源码构建；只有在确有必要时才包装上游二进制，并正确标记来源。
-- 使用合适的语言框架，如 `buildPythonApplication`、`buildGoModule`、`buildRustPackage` 或 `buildNpmPackage`，不要用通用 `mkDerivation` 绕过已有框架。
-- `meta` 放在 derivation 最后。至少核对 `description`、`homepage`、`license`、`maintainers`、`mainProgram` 和 `platforms`；包含第三方构建的二进制或字节码时补充 `meta.sourceProvenance`。
-- 将构建时需要执行的工具放入 `nativeBuildInputs`，将目标平台的库放入 `buildInputs`，将语言运行时依赖放入语言框架对应的依赖字段，将测试工具放入 `nativeCheckInputs`。
-- 使用 `finalAttrs` 引用最终版本、源码或派生属性；在 Nixpkgs 中不要为了覆盖已有软件包而新增不必要的 `overrideAttrs`/`overridePythonAttrs`。
-- 覆盖构建阶段时保留对应的 `runHook pre<Phase>` 和 `runHook post<Phase>`，不要无理由重写整个标准阶段。
-- Nixpkgs 禁止用 Import From Derivation 生成提交时需要的依赖数据；应把生成的 lockfile、依赖清单或 hash 文件提交到包目录。
-
-详细的语言框架、测试、审查和 PR 检查项见 [references/package-checklist.md](references/package-checklist.md)。
+1. 复用适合构建系统的语言 builder 和仓库依赖约定。源代码可用时优先从源码构建；包装预编译代码时准确记录许可证和来源。
+2. 选择匹配所需源码的 fetcher。GitHub 源码快照优先用 `fetchFromGitHub`；目标版本支持时用 `tag` 获取 tag，固定 commit 时使用完整 revision。不要把发布附件当作源码快照。
+3. 确定源码、语言依赖存储和平台二进制各自对应的固定输出，按依赖关系更新版本及受影响的 hash。
+4. 普通构建阶段不访问网络；语言依赖通过对应 builder/fetcher 预先获取。对 pnpm 等依赖工具版本的流程选择目标仓库提供且与 lockfile 兼容的版本。
+5. 按下述验证流程检查结果。交付文件中不得留下临时 fake hash；获取真实 hash 受阻时，还原本次未完成的一组版本/hash 修改，保留其他已有改动，并报告更新未完成。不要留下新版本配旧 hash 的组合。
 
 ## Hash 和 fetcher
 
-Nixpkgs fetcher 属于固定输出 derivation。hash 标识的是 fetcher 的输出，不一定是远程压缩包逐字节的 hash。修改 `tag`、`rev`、`fetchSubmodules`、`sourceRoot`、`fetcherVersion`、补丁或依赖输入时，重新生成受影响的 hash。
+hash 标识固定输出 derivation 的输出，不一定是远程文件逐字节的 hash。先确定变化发生在哪个 derivation，再计算受影响的输出：
 
-新代码优先使用 `hash = "sha256-..."` 的 SRI 格式。GitHub tag 使用 `tag`；如果固定到 commit，使用完整 commit hash。Nixpkgs 的 `fetchFromGitHub` 会根据参数选择快照或递归 Git fetch，因此必须按实际参数计算 hash。
+- 源码 fetcher 的 `tag`、`rev`、子模块选项或输出处理变化时，重新获取源码 hash。
+- 外层 derivation 的 `sourceRoot` 或构建阶段补丁变化不自动改变 `src.hash`；若它们被依赖 fetcher 使用，则检查对应依赖输出。远程补丁自己的下载 hash 单独处理。
+- Go 的 `vendorHash`、Rust 的 `cargoHash` 或 `cargoDeps` 中的 hash、npm/pnpm/yarn 依赖 hash 分别对应各自的依赖输出，不能互换。源码更新后检查这些输出是否受影响，不假设每个 hash 都一定变化。
+- 平台二进制按各自 URL 和输出记录 hash，仅重新生成受影响的构件；保留仓库已有数据结构。
 
-普通更新时，暂时将 Nix 表达式中的相关 hash 设置为 `lib.fakeHash`（或 Nixpkgs 文档规定的其他标准 fake hash），运行最小必要构建，并从 hash 不匹配错误中复制 `got` 的值。对于由 JSON 驱动的更新脚本，只能将对应的标准 fake SRI 值作为临时工作区值，并在失败时恢复原文件。
+新增或更新 hash 时优先使用 SRI 格式，并使用 builder 要求的字段名，例如 `hash`、`vendorHash` 或 `npmDepsHash`。用与 derivation 参数一致的 Nix 感知预取工具，或临时设置 `lib.fakeHash` 后构建目标固定输出。从错误中获取 `got` 时，确认报错的 derivation 正是当前待更新的输出；网络、求值或普通构建错误不能作为 hash 结果。
 
-除非 fetcher 确实对下载文件本身计算 hash，否则不要用下载压缩包的 `sha256sum` 计算 `fetchFromGitHub` 的 hash。设置 `fetchSubmodules = true` 时，要使用递归 `fetchgit` 语义；子模块会改变最终结果。
+输入变化后沿用旧 hash，可能直接复用 Nix store 中的旧输出。因此一次成功构建不能证明旧 hash 仍然正确；应通过独立预取或标准 fake hash 重新获取受影响输出的 hash，再判断它是否变化。
 
-常见的依赖 hash 都是相互独立的固定输出：
+`fetchFromGitHub` 会按参数选择快照或 Git fetch。启用 `fetchSubmodules` 时按实际递归输出计算 hash，不能使用下载压缩包的 `sha256sum` 代替。更新 fake hash 后重新验证，不能把预期的 hash mismatch 当作完整构建通过。
 
-- `vendorHash` 是 `buildGoModule` 使用的 Go 模块依赖输出。
-- `cargoHash`/`cargoDeps` 用于 Rust 依赖 vendoring。
-- `npmDepsHash`、`yarnHash` 或传给 `fetchPnpmDeps` 的 hash，属于对应的 JavaScript 依赖存储。
-- 不同平台的二进制 hash 应以平台为 key 保存，并且只重新生成受影响的构件。
+## 更新器选择
 
-## 保持生成值可维护
+简单软件包优先在 `package.nix` 中保留版本和 hash 字面量，并复用能够正确更新它们的通用更新器。只有用户要求、多个生成值需要统一管理或现有更新器以数据文件为输入时，才考虑 JSON 等外部文件。
 
-对于简单软件包，将版本和 hash 直接写在 `package.nix` 中最简单；当通用更新器可以修改字面量属性时，也能很好地配合 `nix-update-script`。
+调整数据布局时同步检查更新器能否读写新位置；确实无法使用通用工具时再添加自定义脚本。具体要求见 [更新脚本与生成数据](references/update-workflow.md)。
 
-只有在用户明确要求、多个生成值需要一起更新，或更新器天然以该文件为管理对象时，才使用同目录的 `hashes.json` 等 JSON 文件。使用 `lib.importJSON` 加载，例如：
+## 验证和交付
 
-```nix
-let
-  versionData = lib.importJSON ./hashes.json;
-  inherit (versionData) version hash;
-in
-...
-```
+按改动和环境选择检查，不机械执行所有命令：
 
-如果这些值被移出 `package.nix`，不要保留一个无法更新它们的通用 `nix-update-script`。应添加专门的可执行 `update.sh` 或等效的自定义更新器，并让它：
+- 用仓库指定格式化器检查或格式化本次修改的文件，并运行 `git diff --check`；不要为单包修改格式化整个仓库。
+- 存在更新脚本时按实际解释器检查语法，例如 Bash 使用 `bash -n path/to/update.sh`；存在 JSON 数据时运行 `jq empty path/to/hashes.json`，并核对消费者要求的字段。
+- 使用目标项目的入口求值并构建软件包。flake 项目可用 `nix eval .#package.drvPath` 和 `nix build .#package`；传统 Nixpkgs checkout 可用 `nix-instantiate -A package` 和 `nix-build -A package`。替换示例属性名，并确认入口实际包含本次修改。
+- Git flake 默认不会纳入 untracked 文件。新增包或数据文件时确认它们实际进入求值输入；需要暂存时遵循已有授权，也可在合适的临时副本中验证或使用明确的 `path:` 入口。切换入口时检查源文件集合和对 Git 元数据的依赖。
+- 构建环境和目标平台可用时运行完整构建及适用的 `passthru.tests`。对可在当前环境运行的程序执行有意义的版本检查或 smoke test；跨平台产物不能直接运行时说明限制。
+- Nixpkgs 上游贡献按目标分支要求运行结构检查；PR 审查或改动影响依赖包时按需使用 `nixpkgs-review`。命令和比较基线以目标 checkout 为准。
 
-- 发现上游 release；
-- 写入临时的标准 fake hash；
-- 使用 Nix 感知的预取工具或 `nix build` 错误获取真实 hash；
-- 原子更新数据文件，并在失败时恢复；
-- 不自行 commit 或 push。
-
-如果标准更新器仍能正确处理表达式，不要仅仅因为软件包简单就额外添加自定义更新器。
-
-Nixpkgs 的 `maintainers/scripts/update.nix` 可能并行执行多个更新脚本。脚本应从 `git rev-parse --show-toplevel` 找到工作树，不能假定当前目录就是仓库根目录，也不应自行 commit 或 push。需要使用通用更新器时，可优先尝试 `nix-update` 的语言依赖支持；自定义字段再使用专用脚本或 `--custom-dep`。
-
-## 软件包专项检查
-
-- 对 `buildGoModule`，源码更新后检查 `vendorHash` 是否变化；只有源码已经包含合适的 vendor 目录时，才使用 `vendorHash = null`。
-- 对 pnpm，固定兼容的大版本，并在 lockfile、pnpm 大版本或 `fetcherVersion` 变化时重新生成依赖 hash。
-- 对子模块，核对子模块 revision，并使用与 derivation 相同的 fetcher 参数计算递归源码输出。
-- 保持元数据准确：适用时正确填写 `homepage`、`changelog`、`license`、`maintainers`、`mainProgram`、`platforms` 和源码来源类型。
-- 当软件包有可靠的 CLI 版本信息或有意义的 smoke test 时，添加或保留安装检查/版本检查。
-
-## 验证清单
-
-根据软件包和环境选择适用的检查：
-
-```bash
-git diff --check
-bash -n path/to/update.sh                 # 存在 shell 更新脚本时
-jq empty path/to/hashes.json              # 存在 JSON 数据文件时
-nix-instantiate --eval --strict ...       # 或使用 `nix eval`
-nix build .#package                       # 本地 Nix daemon/store 可用时
-nix-build -A package.passthru.tests       # 存在软件包测试时
-./ci/nixpkgs-vet.sh master                # 修改 pkgs/by-name 结构时
-nixpkgs-review wip                        # 审查 PR 和受影响的依赖时
-```
-
-如果软件包有可执行文件，至少运行主程序的 `--help`、`--version` 或等效 smoke test；如果构建了多个可执行文件，尽量逐个检查。交付前报告修改的文件、最终版本和 hash、已通过的检查、构建阻塞原因，以及工作区是否已 commit 或 push。只有用户明确要求时才 commit 或 push。
+报告修改结果、通过的验证和未完成的验证及原因，明确区分静态检查、求值、构建和运行测试。版本或 hash 更新应指出最终版本及相关数据位置，不必重复列出所有长 hash。只有用户明确要求时才 commit、push 或修改 PR 元数据。

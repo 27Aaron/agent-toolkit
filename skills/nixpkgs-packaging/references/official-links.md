@@ -1,13 +1,13 @@
 # Nix/Nixpkgs 官方参考链接
 
-以下均为官方或项目一手资料，用于查询语法和当前行为。目标是 stable 分支时，可将 Nixpkgs 手册链接中的 `unstable` 替换为 `stable`；`unstable` 对应当前 Nixpkgs 开发文档。
+以下均为官方或项目一手资料，用于查询语法和当前行为。下列 `unstable` 和 `master` 链接用于发现资料，不保证适用于目标分支。优先查看目标 checkout 的文档和实现，或将 GitHub 链接固定到目标 revision；`stable` 也只表示当前稳定版，不能代替特定历史版本的文档。
 
 ## Nixpkgs 打包和 fetcher
 
 - [Nixpkgs 参考手册](https://nixos.org/manual/nixpkgs/unstable/)
-- [Fetcher 总览和固定输出注意事项](https://nixos.org/manual/nixpkgs/unstable/#sec-pkgs-fetchers)
+- [Fetcher 总览和固定输出注意事项](https://nixos.org/manual/nixpkgs/unstable/#chap-pkgs-fetchers)
 - [更新源码 hash](https://nixos.org/manual/nixpkgs/unstable/#sec-pkgs-fetchers-updating-source-hashes)
-- [安全地获取 hash](https://nixos.org/manual/nixpkgs/unstable/#sec-pkgs-fetchers-obtaining-hashes-securely)
+- [安全地获取 hash](https://nixos.org/manual/nixpkgs/unstable/#sec-pkgs-fetchers-secure-hashes)
 - [`fetchFromGitHub`](https://nixos.org/manual/nixpkgs/unstable/#sec-pkgs-fetchers-fetchFromGitHub)
 - [Nixpkgs 快速添加软件包和打包规范](https://github.com/NixOS/nixpkgs/blob/master/pkgs/README.md#quick-start-to-adding-a-package)
 - [Nixpkgs 软件包来源和 hash 规范](https://github.com/NixOS/nixpkgs/blob/master/pkgs/README.md#sources)
@@ -28,12 +28,15 @@
 
 - [Nix 高级 derivation 属性](https://nix.dev/manual/nix/stable/language/advanced-attributes.html)
 - [Nix 术语表：固定输出 derivation](https://nix.dev/manual/nix/stable/glossary)
+- [Flake 本地路径与 Git 输入](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-flake.html#path-like-syntax)
 
 ## 更新和审查工具
 
 - [`nix-update`](https://github.com/Mic92/nix-update)
 - [`nixpkgs-review`](https://github.com/Mic92/nixpkgs-review)
 - [`nix-init`](https://github.com/nix-community/nix-init)
+- [`passthru.updateScript` 接口](https://nixos.org/manual/nixpkgs/unstable/#var-passthru-updateScript)
+- [Nixpkgs 更新脚本调度实现](https://github.com/NixOS/nixpkgs/blob/master/maintainers/scripts/update.py)
 
 ## Nixpkgs 贡献和提交
 
