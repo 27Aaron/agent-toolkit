@@ -33,6 +33,7 @@
 ## 更新和审查工具
 
 - [`nix-update`](https://github.com/Mic92/nix-update)
+- [Nixpkgs 自动更新 bot（r-ryantm / nixpkgs-update）维护者 FAQ](https://nix-community.github.io/nixpkgs-update/nixpkgs-maintainer-faq/)
 - [`nixpkgs-review`](https://github.com/Mic92/nixpkgs-review)
 - [`nix-init`](https://github.com/nix-community/nix-init)
 - [`passthru.updateScript` 接口](https://nixos.org/manual/nixpkgs/unstable/#var-passthru-updateScript)

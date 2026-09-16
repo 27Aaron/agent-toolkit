@@ -3,7 +3,7 @@ name: nixpkgs-packaging
 description: 创建、更新或审查 Nix/Nixpkgs 软件包 derivation，处理源码和依赖 hash、构建依赖及软件包更新脚本。适用于软件打包，不用于一般 NixOS 或 Home Manager 配置。
 metadata:
   author: Aaron
-  version: "1.0.2"
+  version: "1.0.3"
 ---
 
 # Nix/Nixpkgs 打包
@@ -42,7 +42,7 @@ hash 标识固定输出 derivation 的输出，不一定是远程文件逐字节
 
 ## 更新器选择
 
-简单软件包优先在 `package.nix` 中保留版本和 hash 字面量，并复用能够正确更新它们的通用更新器。只有用户要求、多个生成值需要统一管理或现有更新器以数据文件为输入时，才考虑 JSON 等外部文件。
+简单软件包优先在 `package.nix` 中保留版本和 hash 字面量，并复用通用更新器 `nix-update`：它只重写 Nix 文件中的字面量，把值放进 JSON 等外部文件会使自动更新失效。简单包通常不需要 `updateScript`，需要控制更新路径（子包、版本过滤）时再加 `nix-update-script`。
 
 调整数据布局时同步检查更新器能否读写新位置；确实无法使用通用工具时再添加自定义脚本。具体要求见 [更新脚本与生成数据](references/update-workflow.md)。
 
@@ -55,6 +55,7 @@ hash 标识固定输出 derivation 的输出，不一定是远程文件逐字节
 - 使用目标项目的入口求值并构建软件包。flake 项目可用 `nix eval .#package.drvPath` 和 `nix build .#package`；传统 Nixpkgs checkout 可用 `nix-instantiate -A package` 和 `nix-build -A package`。替换示例属性名，并确认入口实际包含本次修改。
 - Git flake 默认不会纳入 untracked 文件。新增包或数据文件时确认它们实际进入求值输入；需要暂存时遵循已有授权，也可在合适的临时副本中验证或使用明确的 `path:` 入口。切换入口时检查源文件集合和对 Git 元数据的依赖。
 - 构建环境和目标平台可用时运行完整构建及适用的 `passthru.tests`。对可在当前环境运行的程序执行有意义的版本检查或 smoke test；跨平台产物不能直接运行时说明限制。
+- 求值通过不代表能构建：Nixpkgs CI 只做 Eval/Lint。目标平台不是本机时，在容器或虚拟机中实际构建，再声明构建结果。
 - Nixpkgs 上游贡献按目标分支要求运行结构检查；PR 审查或改动影响依赖包时按需使用 `nixpkgs-review`。命令和比较基线以目标 checkout 为准。
 
 报告修改结果、通过的验证和未完成的验证及原因，明确区分静态检查、求值、构建和运行测试。版本或 hash 更新应指出最终版本及相关数据位置，不必重复列出所有长 hash。只有用户明确要求时才 commit、push 或修改 PR 元数据。

@@ -2,6 +2,15 @@
 
 用于新增或修改更新器、外置版本/hash 数据的任务。优先使用目标仓库已有工具；工具能力以目标版本为准，参考 [官方链接](official-links.md)。
 
+## 通用更新器 nix-update
+
+`nix-update` 是 Nixpkgs 的首选更新工具，支持标准 fetcher 和多数语言依赖输出（`goModules`、`npmDeps`、`pnpmDeps`、`cargoDeps` 等）。
+
+- 只重写 Nix 文件里的字面量；数据放在 JSON 等外部文件时无法更新，需要自写脚本或把字面量移回 `package.nix`。
+- 同一源码派生的多个固定输出用 `--subpackage <属性名>` 一并更新（如 Go 后端加前端）；子包必须能通过属性路径访问（`passthru` 或顶层属性）。
+- 接入方式为 `passthru.updateScript = nix-update-script { extraArgs = [ ... ]; };`，简单包可以不写。
+- 在已是最新的包上再次运行应不产生 diff；`--version=skip` 只刷新 hash。
+
 ## 选择数据布局
 
 版本和少量 hash 字面量保留在 `package.nix` 通常最简单。多个平台或依赖输出需要统一生成时，可使用同目录 JSON，并通过 `lib.importJSON ./hashes.json` 加载。字段名称应能识别对应输出；不要仅为统一风格迁移已有数据。
